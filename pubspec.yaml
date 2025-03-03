@@ -1,0 +1,80 @@
+name: attendance_app
+description: "A new Flutter project."
+publish_to: 'none' 
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.4
+
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  lottie: ^3.2.0
+  flutter_launcher_icons: ^0.14.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^4.0.0
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/dciLOGO.jpg"
+  min_sdk_android: 21 # android min sdk min:16, default 21
+  web:
+    generate: true
+    image_path: "assets/dciLOGO.jpg"
+    background_color: "#hexcode"
+    theme_color: "#hexcode"
+  windows:
+    generate: true
+    image_path: "assets/dciLOGO.jpg"
+    icon_size: 48 # min:48, max:256, default: 48
+  macos:
+    generate: true
+    image_path: "assets/dciLOGO.jpg"
+
+
+flutter:
+
+  uses-material-design: true
+
+  # To add assets to your application, add an assets section, like this:
+  assets:
+    - assets/
+
+  # example:
+  fonts:
+    - family: SB
+      fonts:
+        - asset: fonts/Poppins-SemiBold.ttf
+    - family: BL
+      fonts:
+        - asset: fonts/Poppins-Black.ttf
+    - family: B
+      fonts:
+        - asset: fonts/Poppins-Bold.ttf
+    - family: EB
+      fonts:
+        - asset: fonts/Poppins-ExtraBold.ttf
+    - family: EL
+      fonts:
+        - asset: fonts/Poppins-ExtraLight.ttf
+    - family: L
+      fonts:
+        - asset: fonts/Poppins-Light.ttf
+    - family: M
+      fonts:
+        - asset: fonts/Poppins-Medium.ttf
+    - family: R
+      fonts:
+        - asset: fonts/Poppins-Regular.ttf
+    - family: T
+      fonts:
+        - asset: fonts/Poppins-Thin.ttf  
