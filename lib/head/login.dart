@@ -1,11 +1,14 @@
 import 'dart:ui';
 
+import 'package:attendance_app/Accounts%20Dashboard/admin_dashboard.dart';
+import 'package:attendance_app/Accounts%20Dashboard/department_head_dashboard.dart';
+import 'package:attendance_app/Accounts%20Dashboard/manager_dashoard.dart';
+import 'package:attendance_app/Accounts%20Dashboard/super_user_dashboard.dart';
+import 'package:attendance_app/Manager_Dashboard/manager_dash.dart';
+import 'package:attendance_app/encryption/encryption_helper.dart';
 import 'package:attendance_app/hover_extensions.dart';
-import 'package:attendance_app/roles/admin.dart';
-import 'package:attendance_app/roles/head.dart';
-import 'package:attendance_app/roles/manager.dart';
-import 'package:attendance_app/roles/superuser.dart';
 import 'package:attendance_app/widget/animated_textfield.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -32,12 +35,14 @@ class _LoginState extends State<Login> {
   // Add a text editing controller for the password
   TextEditingController passwordController = TextEditingController();
   TextEditingController emailController = TextEditingController();
+  TextEditingController firstNameController = TextEditingController();
+  TextEditingController lastNameController = TextEditingController();
   String passwordError = ""; // To hold the error message for password
 
   // Password validation logic
   bool validatePassword(String password) {
     String pattern =
-        r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,16}$';
+        r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[_!@#$%^&*(),.?":{}|<>]).{8,16}$';
     RegExp regex = RegExp(pattern);
     return regex.hasMatch(password);
   }
@@ -60,104 +65,106 @@ class _LoginState extends State<Login> {
       builder: (context, constraints) {
         double height = constraints.maxHeight;
         double width = constraints.maxWidth;
-        return Stack(
-          children: [
-            Container(
-              height: height,
-              decoration: BoxDecoration(
-                  color: Colors.white,
-                  image: DecorationImage(
-                      image: AssetImage("assets/bgl.jpg"), fit: BoxFit.cover)),
-              width: width,
-              padding: EdgeInsets.symmetric(
-                  horizontal: width / 20, vertical: width / 15),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: width / 2.23,
-                    height: height,
-                    decoration: BoxDecoration(
-                        border: Border(
-                            right: BorderSide(
-                                color: Color(0xFF002428), width: 2))),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.max,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Column(
-                          children: [
-                            Text(
-                              "Appointment System ",
-                              style: TextStyle(
-                                  color: Color(0xFF002428),
-                                  fontSize: width / 30,
-                                  fontFamily: "BL"),
-                            ),
-                            SizedBox(
-                              height: width / 80,
-                            ),
-                            Text(
-                              "Track schedules, record attendance, and manage appointments -all in one place.",
-                              style: TextStyle(
-                                  color: Color(0xFF002428),
-                                  fontSize: width / 50,
-                                  fontFamily: "M"),
-                            ),
-                          ],
-                        ),
-                        SizedBox(
-                          height: width / 40,
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Image.asset(
-                              "dciSplash.png",
-                              height: width / 10,
-                            ),
-                            SizedBox(
-                              width: width / 40,
-                            ),
-                            Image.asset(
-                              "dci_logo.png",
-                              height: width / 10,
-                            )
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  isLogin ? SignIn() : Register(),
-                ],
-              ),
-            ),
-            if (isLoading)
-              Positioned.fill(
-                  child: Center(
-                child: Stack(
+        return Scaffold(
+          body: Stack(
+            children: [
+              Container(
+                height: height,
+                decoration: BoxDecoration(
+                    color: Colors.white,
+                    image: DecorationImage(
+                        image: AssetImage("assets/bgl.jpg"), fit: BoxFit.cover)),
+                width: width,
+                padding: EdgeInsets.symmetric(
+                    horizontal: width / 20, vertical: width / 15),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-                      child: Container(
-                        color: Colors.black.withOpacity(0.3),
+                    Container(
+                      width: width / 2.23,
+                      height: height,
+                      decoration: BoxDecoration(
+                          border: Border(
+                              right: BorderSide(
+                                  color: Color(0xFF002428), width: 2))),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.max,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Column(
+                            children: [
+                              Text(
+                                "Appointment System ",
+                                style: TextStyle(
+                                    color: Color(0xFF002428),
+                                    fontSize: width / 30,
+                                    fontFamily: "BL"),
+                              ),
+                              SizedBox(
+                                height: width / 80,
+                              ),
+                              Text(
+                                "Track schedules, record attendance, and manage appointments -all in one place.",
+                                style: TextStyle(
+                                    color: Color(0xFF002428),
+                                    fontSize: width / 50,
+                                    fontFamily: "M"),
+                              ),
+                            ],
+                          ),
+                          SizedBox(
+                            height: width / 40,
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Image.asset(
+                                "dciSplash.png",
+                                height: width / 10,
+                              ),
+                              SizedBox(
+                                width: width / 40,
+                              ),
+                              Image.asset(
+                                "dci_logo.png",
+                                height: width / 10,
+                              )
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                    // Lottie animation centered on the screen
-                    Center(
-                      child: Lottie.asset(
-                        'assets/ld.json',
-                        width: width / 4,
-                        height: width / 4,
-                        repeat: true,
-                      ),
-                    ),
+                    isLogin ? SignIn() : Register(),
                   ],
                 ),
-              ))
-          ],
+              ),
+              if (isLoading)
+                Positioned.fill(
+                    child: Center(
+                  child: Stack(
+                    children: [
+                      BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                        child: Container(
+                          color: Colors.black.withOpacity(0.3),
+                        ),
+                      ),
+                      // Lottie animation centered on the screen
+                      Center(
+                        child: Lottie.asset(
+                          'assets/ld.json',
+                          width: width / 4,
+                          height: width / 4,
+                          repeat: true,
+                        ),
+                      ),
+                    ],
+                  ),
+                ))
+            ],
+          ),
         );
       },
     );
@@ -181,20 +188,20 @@ class _LoginState extends State<Login> {
       DocumentSnapshot userDoc = userSnapshot.docs.first;
 
       // Get the role from the Firestore document
-      String role = userDoc['role'];
+      String role = userDoc['roles'];
 
       if (role == "Manager") {
         Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (context) => ManagerDashBoard()));
+            MaterialPageRoute(builder: (context) => Manager_Dashboard()));
       } else if (role == "Department Head") {
         Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (context) => DepartmentDashboard()));
+            MaterialPageRoute(builder: (context) => Deparment_Head_Dashboard()));
       } else if (role == "Admin") {
         Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (context) => AdminPanel()));
+            context, MaterialPageRoute(builder: (context) => Admin_Dashboard()));
       } else if (role == "Superuser") {
         Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (context) => SuperuserPanel()));
+            context, MaterialPageRoute(builder: (context) => SuperUserDashboard()));
       } else {
         print("Unknown role");
       }
@@ -412,6 +419,7 @@ class _LoginState extends State<Login> {
                 width: MediaQuery.of(context).size.width / 7.4,
                 height: MediaQuery.of(context).size.width / 28,
                 child: AnimatedTextField(
+                  controller: firstNameController,
                   label: "First Name",
                   suffix: null,
                   readOnly: false,
@@ -425,6 +433,7 @@ class _LoginState extends State<Login> {
                 width: MediaQuery.of(context).size.width / 7.4,
                 height: MediaQuery.of(context).size.width / 28,
                 child: AnimatedTextField(
+                  controller: lastNameController,
                   label: "Last Name",
                   suffix: null,
                   readOnly: false,
@@ -441,6 +450,7 @@ class _LoginState extends State<Login> {
             width: MediaQuery.of(context).size.width / 3.5,
             height: MediaQuery.of(context).size.width / 28,
             child: AnimatedTextField(
+              controller: emailController,
               label: "Email",
               suffix: Icon(Icons.email),
               readOnly: false,
@@ -505,7 +515,7 @@ class _LoginState extends State<Login> {
                 });
 
                 // Proceed with registration logic here
-                print("Registration successful");
+                _validator();
               } else {
                 setState(() {
                   hideLoading();  // Hide the loading animation on error
@@ -569,4 +579,36 @@ class _LoginState extends State<Login> {
     ),
   );
 }
+
+
+ void _validator() {
+    if (emailController.text.isEmpty || passwordController.text.isEmpty) {
+      _showDialog('Empty Fields', 'Please fill in all fields.');
+      return;
+    }
+    _storePendingUser();
+  }
+
+  Future<void> _storePendingUser() async {
+    try {
+      String encryptedPassword = EncryptionHelper.encryptPassword(passwordController.text.trim());
+      await FirebaseFirestore.instance.collection('users').add({
+        'first_name': firstNameController.text.trim(),
+        'last_name': lastNameController.text.trim(),
+        'email': emailController.text.trim(),
+        'password': encryptedPassword,
+        'status': 'pending'
+      });
+      _showDialog('Pending Approval', 'Your account request has been sent for approval.');
+    } catch (error) {
+      _showDialog('Error', error.toString());
+    }
+  }
+
+  void _showDialog(String title, String message) {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(title: Text(title), content: Text(message), actions: [CupertinoDialogAction(child: Text('OK'), onPressed: () => Navigator.pop(context))]),
+    );
+  }
 }
