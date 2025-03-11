@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:attendance_app/roles/admin.dart';
 import 'package:attendance_app/roles/head.dart';
@@ -7,6 +9,9 @@ import 'package:attendance_app/widget/animated_textfield.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
+
+import 'package:lottie/lottie.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -16,6 +21,7 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
+  bool isLoading = false;
   bool isLogin = true;
   Color color1 = Colors.white;
   Color color2 = Colors.blueAccent;
@@ -36,79 +42,122 @@ class _LoginState extends State<Login> {
     return regex.hasMatch(password);
   }
 
+  void showLoading() {
+    setState(() {
+      isLoading = true;
+    });
+  }
+
+  void hideLoading() {
+    setState(() {
+      isLoading = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         double height = constraints.maxHeight;
         double width = constraints.maxWidth;
-        return Container(
-          height: height,
-          width: width,
-          padding: EdgeInsets.symmetric(
-              horizontal: width / 20, vertical: width / 15),
-          color: Colors.white,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: width / 2.23,
-                height: height,
-                decoration: BoxDecoration(
-                    border: Border(
-                        right: BorderSide(color: Color(0xFF002428), width: 2))),
-                child: Column(
-                  mainAxisSize: MainAxisSize.max,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Column(
-                      children: [
-                        Text(
-                          "Appointment System ",
-                          style: TextStyle(
-                              color: Color(0xFF002428),
-                              fontSize: width / 30,
-                              fontFamily: "BL"),
-                        ),
-                        SizedBox(
-                          height: width / 80,
-                        ),
-                        Text(
-                          "Track schedules, record attendance, and manage appointments -all in one place.",
-                          style: TextStyle(
-                              color: Color(0xFF002428),
-                              fontSize: width / 50,
-                              fontFamily: "M"),
-                        ),
-                      ],
-                    ),
-                    SizedBox(
-                      height: width / 40,
-                    ),
-                    Row(
+        return Stack(
+          children: [
+            Container(
+              height: height,
+              decoration: BoxDecoration(
+                  color: Colors.white,
+                  image: DecorationImage(
+                      image: AssetImage("assets/bgl.jpg"), fit: BoxFit.cover)),
+              width: width,
+              padding: EdgeInsets.symmetric(
+                  horizontal: width / 20, vertical: width / 15),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: width / 2.23,
+                    height: height,
+                    decoration: BoxDecoration(
+                        border: Border(
+                            right: BorderSide(
+                                color: Color(0xFF002428), width: 2))),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.max,
                       mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Image.asset(
-                          "dciSplash.png",
-                          height: width / 10,
+                        Column(
+                          children: [
+                            Text(
+                              "Appointment System ",
+                              style: TextStyle(
+                                  color: Color(0xFF002428),
+                                  fontSize: width / 30,
+                                  fontFamily: "BL"),
+                            ),
+                            SizedBox(
+                              height: width / 80,
+                            ),
+                            Text(
+                              "Track schedules, record attendance, and manage appointments -all in one place.",
+                              style: TextStyle(
+                                  color: Color(0xFF002428),
+                                  fontSize: width / 50,
+                                  fontFamily: "M"),
+                            ),
+                          ],
                         ),
                         SizedBox(
-                          width: width / 40,
+                          height: width / 40,
                         ),
-                        Image.asset(
-                          "dci_logo.png",
-                          height: width / 10,
-                        )
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Image.asset(
+                              "dciSplash.png",
+                              height: width / 10,
+                            ),
+                            SizedBox(
+                              width: width / 40,
+                            ),
+                            Image.asset(
+                              "dci_logo.png",
+                              height: width / 10,
+                            )
+                          ],
+                        ),
                       ],
+                    ),
+                  ),
+                  isLogin ? SignIn() : Register(),
+                ],
+              ),
+            ),
+            if (isLoading)
+              Positioned.fill(
+                  child: Center(
+                child: Stack(
+                  children: [
+                    BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                      child: Container(
+                        color: Colors.black.withOpacity(0.3),
+                      ),
+                    ),
+                    // Lottie animation centered on the screen
+                    Center(
+                      child: Lottie.asset(
+                        'assets/ld.json',
+                        width: width / 4,
+                        height: width / 4,
+                        repeat: true,
+                      ),
                     ),
                   ],
                 ),
-              ),
-              isLogin ? SignIn() : Register(),
-            ],
-          ),
+              ))
+          ],
         );
       },
     );
@@ -155,172 +204,180 @@ class _LoginState extends State<Login> {
   }
 
   Widget SignIn() {
-  return Container(
-    width: MediaQuery.of(context).size.width / 2.23,
-    height: MediaQuery.of(context).size.height,
-    color: Color(0xFF002428),
-    padding: EdgeInsets.all(MediaQuery.of(context).size.width / 30),
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        Column(
-          children: [
-            Text(
-              "Sign In",
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: MediaQuery.of(context).size.width / 35,
-                  fontFamily: "B"),
-            ),
-            Text(
-              "Please sign in to your account.",
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: MediaQuery.of(context).size.width / 55,
-                  fontFamily: "R"),
-            ),
-          ],
-        ),
-        SizedBox(
-          height: MediaQuery.of(context).size.width / 50,
-        ),
-        Container(
-            width: MediaQuery.of(context).size.width / 3.5,
-            height: MediaQuery.of(context).size.width / 28,
-            child: AnimatedTextField(
-              label: "Email",
-              suffix: Icon(Icons.email),
-              readOnly: false,
-              obscureText: false,
-              controller: emailController,
-            )),
-        SizedBox(
-          height: MediaQuery.of(context).size.width / 100,
-        ),
-        Container(
-          height: MediaQuery.of(context).size.width / 28,
-          width: MediaQuery.of(context).size.width / 3.5,
-          child: AnimatedTextField(
-            label: "Password",
-            controller: passwordController,
-            suffix: GestureDetector(
-              onTap: () {
-                setState(() {
-                  islocked = !islocked;
-                  icon = islocked ? Icon(Icons.lock) : Icon(Icons.lock_open);
-                });
-              },
-              child: icon,
-            ).showCursorOnHover,
-            readOnly: false,
-            obscureText: islocked,
+    return Container(
+      width: MediaQuery.of(context).size.width / 2.23,
+      height: MediaQuery.of(context).size.height,
+      decoration: BoxDecoration(
+          color: Color(0xFF002428),
+          borderRadius: BorderRadius.only(
+              topRight: Radius.circular(MediaQuery.of(context).size.width / 30),
+              bottomRight:
+                  Radius.circular(MediaQuery.of(context).size.width / 30))),
+      padding: EdgeInsets.all(MediaQuery.of(context).size.width / 30),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          Column(
+            children: [
+              Text(
+                "Sign In",
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: MediaQuery.of(context).size.width / 35,
+                    fontFamily: "B"),
+              ),
+              Text(
+                "Please sign in to your account.",
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: MediaQuery.of(context).size.width / 55,
+                    fontFamily: "R"),
+              ),
+            ],
           ),
-        ),
-        if (passwordError.isNotEmpty)
-          Text(
-            passwordError,
-            style: TextStyle(color: Colors.red),
+          SizedBox(
+            height: MediaQuery.of(context).size.width / 50,
           ),
-        SizedBox(
-          height: MediaQuery.of(context).size.width / 100,
-        ),
-        MouseRegion(
-          onEnter: (event) {
-            setState(() {
-              color1 = Colors.white;
-              color2 = Color(0xFF2c2d6c);
-            });
-          },
-          onExit: (event) {
-            setState(() {
-              color1 = Colors.white;
-              color2 = Colors.blueAccent;
-            });
-          },
-          child: GestureDetector(
-            onTap: () async {
-              String email = emailController.text;
-              String password = passwordController.text;
-
-              try {
-                // Attempt login
-                UserCredential userCredential = await FirebaseAuth.instance
-                    .signInWithEmailAndPassword(email: email, password: password);
-
-                // Call checkUserRole once login is successful
-                checkUserRole(userCredential.user!);
-              } on FirebaseAuthException catch (e) {
-                // Check for email not found or wrong password error
-                if (e.code == 'user-not-found') {
-                  setState(() {
-                    passwordError = "No user found with this email.";
-                  });
-                } else if (e.code == 'wrong-password') {
-                  setState(() {
-                    passwordError = "Incorrect password.";
-                  });
-                } else {
-                  setState(() {
-                    passwordError = "Wrong credentials! Invalid email or password.";
-                  });
-                }
-              }
-            },
-            child: Container(
+          Container(
               width: MediaQuery.of(context).size.width / 3.5,
-              decoration: BoxDecoration(
-                  color: color2,
-                  borderRadius: BorderRadius.circular(
-                      MediaQuery.of(context).size.width / 80)),
               height: MediaQuery.of(context).size.width / 28,
-              child: Center(
-                child: Text(
-                  "Sign In",
-                  style: TextStyle(
-                      color: color1,
-                      fontSize: MediaQuery.of(context).size.width / 55,
-                      fontFamily: "M"),
+              child: AnimatedTextField(
+                label: "Email",
+                suffix: Icon(Icons.email),
+                readOnly: false,
+                obscureText: false,
+                controller: emailController,
+              )),
+          SizedBox(
+            height: MediaQuery.of(context).size.width / 100,
+          ),
+          Container(
+            height: MediaQuery.of(context).size.width / 28,
+            width: MediaQuery.of(context).size.width / 3.5,
+            child: AnimatedTextField(
+              label: "Password",
+              controller: passwordController,
+              suffix: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    islocked = !islocked;
+                    icon = islocked ? Icon(Icons.lock) : Icon(Icons.lock_open);
+                  });
+                },
+                child: icon,
+              ).showCursorOnHover,
+              readOnly: false,
+              obscureText: islocked,
+            ),
+          ),
+          if (passwordError.isNotEmpty)
+            Text(
+              passwordError,
+              style: TextStyle(color: Colors.red),
+            ),
+          SizedBox(
+            height: MediaQuery.of(context).size.width / 100,
+          ),
+          MouseRegion(
+            onEnter: (event) {
+              setState(() {
+                color1 = Colors.white;
+                color2 = Color(0xFF2c2d6c);
+              });
+            },
+            onExit: (event) {
+              setState(() {
+                color1 = Colors.white;
+                color2 = Colors.blueAccent;
+              });
+            },
+            child: GestureDetector(
+              onTap: () async {
+                String email = emailController.text;
+                String password = passwordController.text;
+                showLoading();
+                try {
+                  // Attempt login
+                  UserCredential userCredential = await FirebaseAuth.instance
+                      .signInWithEmailAndPassword(
+                          email: email, password: password);
+
+                  // Call checkUserRole once login is successful
+                  checkUserRole(userCredential.user!);
+                } on FirebaseAuthException catch (e) {
+                  // Check for email not found or wrong password error
+                  hideLoading();
+                  if (e.code == 'user-not-found') {
+                    setState(() {
+                      passwordError = "No user found with this email.";
+                    });
+                  } else if (e.code == 'wrong-password') {
+                    setState(() {
+                      passwordError = "Incorrect password.";
+                    });
+                  } else {
+                    setState(() {
+                      passwordError =
+                          "Wrong credentials! Invalid email or password.";
+                    });
+                  }
+                }
+              },
+              child: Container(
+                width: MediaQuery.of(context).size.width / 3.5,
+                decoration: BoxDecoration(
+                    color: color2,
+                    borderRadius: BorderRadius.circular(
+                        MediaQuery.of(context).size.width / 80)),
+                height: MediaQuery.of(context).size.width / 28,
+                child: Center(
+                  child: Text(
+                    "Sign In",
+                    style: TextStyle(
+                        color: color1,
+                        fontSize: MediaQuery.of(context).size.width / 55,
+                        fontFamily: "M"),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-        SizedBox(
-          height: MediaQuery.of(context).size.width / 70,
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              "Don't have an account? ",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: MediaQuery.of(context).size.width / 85,
-                fontFamily: "R",
-              ),
-            ),
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  passwordError = "";
-                  isLogin = !isLogin;
-                });
-              },
-              child: Text(
-                "Register Now!",
+          SizedBox(
+            height: MediaQuery.of(context).size.width / 70,
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "Don't have an account? ",
                 style: TextStyle(
-                  color: Colors.yellowAccent,
+                  color: Colors.white,
                   fontSize: MediaQuery.of(context).size.width / 85,
                   fontFamily: "R",
                 ),
               ),
-            ).showCursorOnHover.moveUpOnHover
-          ],
-        )
-      ],
-    ),
-  );
-}
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    passwordError = "";
+                    isLogin = !isLogin;
+                  });
+                },
+                child: Text(
+                  "Register Now!",
+                  style: TextStyle(
+                    color: Colors.yellowAccent,
+                    fontSize: MediaQuery.of(context).size.width / 85,
+                    fontFamily: "R",
+                  ),
+                ),
+              ).showCursorOnHover.moveUpOnHover
+            ],
+          )
+        ],
+      ),
+    );
+  }
 
   Widget Register() {
     return Container(
