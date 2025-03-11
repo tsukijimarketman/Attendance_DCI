@@ -380,181 +380,193 @@ class _LoginState extends State<Login> {
   }
 
   Widget Register() {
-    return Container(
-      width: MediaQuery.of(context).size.width / 2.23,
-      height: MediaQuery.of(context).size.height,
-      color: Color(0xFF002428),
-      padding: EdgeInsets.all(MediaQuery.of(context).size.width / 30),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          Column(
+  return Container(
+    width: MediaQuery.of(context).size.width / 2.23,
+    height: MediaQuery.of(context).size.height,
+    color: Color(0xFF002428),
+    padding: EdgeInsets.all(MediaQuery.of(context).size.width / 30),
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        Column(
+          children: [
+            Text(
+              "Sign Up Now!",
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: MediaQuery.of(context).size.width / 35,
+                  fontFamily: "B"),
+            ),
+          ],
+        ),
+        SizedBox(
+          height: MediaQuery.of(context).size.width / 180,
+        ),
+        Padding(
+          padding: EdgeInsets.symmetric(
+              horizontal: MediaQuery.of(context).size.width / 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                "Sign Up Now!",
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: MediaQuery.of(context).size.width / 35,
-                    fontFamily: "B"),
+              Container(
+                width: MediaQuery.of(context).size.width / 7.4,
+                height: MediaQuery.of(context).size.width / 28,
+                child: AnimatedTextField(
+                  label: "First Name",
+                  suffix: null,
+                  readOnly: false,
+                  obscureText: false,
+                ),
+              ),
+              SizedBox(
+                width: MediaQuery.of(context).size.width / 88,
+              ),
+              Container(
+                width: MediaQuery.of(context).size.width / 7.4,
+                height: MediaQuery.of(context).size.width / 28,
+                child: AnimatedTextField(
+                  label: "Last Name",
+                  suffix: null,
+                  readOnly: false,
+                  obscureText: false,
+                ),
               ),
             ],
           ),
-          SizedBox(
-            height: MediaQuery.of(context).size.width / 180,
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(
-                horizontal: MediaQuery.of(context).size.width / 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  width: MediaQuery.of(context).size.width / 7.4,
-                  height: MediaQuery.of(context).size.width / 28,
-                  child: AnimatedTextField(
-                    label: "First Name",
-                    suffix: null,
-                    readOnly: false,
-                    obscureText: false,
-                  ),
-                ),
-                SizedBox(
-                  width: MediaQuery.of(context).size.width / 88,
-                ),
-                Container(
-                  width: MediaQuery.of(context).size.width / 7.4,
-                  height: MediaQuery.of(context).size.width / 28,
-                  child: AnimatedTextField(
-                    label: "Last Name",
-                    suffix: null,
-                    readOnly: false,
-                    obscureText: false,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(
-            height: MediaQuery.of(context).size.width / 80,
-          ),
-          Container(
-              width: MediaQuery.of(context).size.width / 3.5,
-              height: MediaQuery.of(context).size.width / 28,
-              child: AnimatedTextField(
-                label: "Email",
-                suffix: Icon(Icons.email),
-                readOnly: false,
-                obscureText: false,
-              )),
-          SizedBox(
-            height: MediaQuery.of(context).size.width / 100,
-          ),
-          Container(
-            height: MediaQuery.of(context).size.width / 28,
+        ),
+        SizedBox(
+          height: MediaQuery.of(context).size.width / 80,
+        ),
+        Container(
             width: MediaQuery.of(context).size.width / 3.5,
+            height: MediaQuery.of(context).size.width / 28,
             child: AnimatedTextField(
-              label: "Password",
-              controller: passwordController,
-              suffix: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    islocked = !islocked;
-                    icon = islocked ? Icon(Icons.lock) : Icon(Icons.lock_open);
-                  });
-                },
-                child: icon,
-              ).showCursorOnHover,
+              label: "Email",
+              suffix: Icon(Icons.email),
               readOnly: false,
-              obscureText: islocked,
-            ),
-          ),
-          if (passwordError.isNotEmpty)
-            Text(
-              passwordError,
-              style: TextStyle(color: Colors.red),
-            ),
-          SizedBox(
-            height: MediaQuery.of(context).size.width / 100,
-          ),
-          MouseRegion(
-            onEnter: (event) {
-              setState(() {
-                color1 = Colors.white;
-                color2 = Color(0xFF2c2d6c);
-              });
-            },
-            onExit: (event) {
-              setState(() {
-                color1 = Colors.white;
-                color2 = Colors.blueAccent;
-              });
-            },
-            child: GestureDetector(
+              obscureText: false,
+            )),
+        SizedBox(
+          height: MediaQuery.of(context).size.width / 100,
+        ),
+        Container(
+          height: MediaQuery.of(context).size.width / 28,
+          width: MediaQuery.of(context).size.width / 3.5,
+          child: AnimatedTextField(
+            label: "Password",
+            controller: passwordController,
+            suffix: GestureDetector(
               onTap: () {
-                String password = passwordController.text;
-                if (validatePassword(password)) {
-                  // Proceed with registration logic here
-                  print("Registration successful");
-                } else {
-                  setState(() {
-                    passwordError =
-                        "Password must contain at least one uppercase letter, one lowercase letter, one number, one special character, and be between 8-16 characters long.";
-                  });
-                }
+                setState(() {
+                  islocked = !islocked;
+                  icon = islocked ? Icon(Icons.lock) : Icon(Icons.lock_open);
+                });
               },
-              child: Container(
-                width: MediaQuery.of(context).size.width / 3.5,
-                decoration: BoxDecoration(
-                    color: color2,
-                    borderRadius: BorderRadius.circular(
-                        MediaQuery.of(context).size.width / 80)),
-                height: MediaQuery.of(context).size.width / 28,
-                child: Center(
-                  child: Text(
-                    "Sign Up",
-                    style: TextStyle(
-                        color: color1,
-                        fontSize: MediaQuery.of(context).size.width / 55,
-                        fontFamily: "M"),
-                  ),
+              child: icon,
+            ).showCursorOnHover,
+            readOnly: false,
+            obscureText: islocked,
+          ),
+        ),
+        if (passwordError.isNotEmpty)
+          Text(
+            passwordError,
+            style: TextStyle(color: Colors.red),
+          ),
+        SizedBox(
+          height: MediaQuery.of(context).size.width / 100,
+        ),
+        MouseRegion(
+          onEnter: (event) {
+            setState(() {
+              color1 = Colors.white;
+              color2 = Color(0xFF2c2d6c);
+            });
+          },
+          onExit: (event) {
+            setState(() {
+              color1 = Colors.white;
+              color2 = Colors.blueAccent;
+            });
+          },
+          child: GestureDetector(
+            onTap: () async {
+              String password = passwordController.text;
+              setState(() {
+                showLoading();  // Show the loading animation when clicked
+              });
+
+              if (validatePassword(password)) {
+                // Simulate some delay to show the loading animation
+                await Future.delayed(Duration(seconds: 2));
+
+                setState(() {
+                  hideLoading();  // Hide the loading animation when finished
+                });
+
+                // Proceed with registration logic here
+                print("Registration successful");
+              } else {
+                setState(() {
+                  hideLoading();  // Hide the loading animation on error
+                  passwordError =
+                      "Password must contain at least one uppercase letter, one lowercase letter, one number, one special character, and be between 8-16 characters long.";
+                });
+              }
+            },
+            child: Container(
+              width: MediaQuery.of(context).size.width / 3.5,
+              decoration: BoxDecoration(
+                  color: color2,
+                  borderRadius: BorderRadius.circular(
+                      MediaQuery.of(context).size.width / 80)),
+              height: MediaQuery.of(context).size.width / 28,
+              child: Center(
+                child: Text(
+                  "Sign Up",
+                  style: TextStyle(
+                      color: color1,
+                      fontSize: MediaQuery.of(context).size.width / 55,
+                      fontFamily: "M"),
                 ),
               ),
             ),
           ),
-          SizedBox(
-            height: MediaQuery.of(context).size.width / 70,
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                "Have an existing account? ",
+        ),
+        SizedBox(
+          height: MediaQuery.of(context).size.width / 70,
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              "Have an existing account? ",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: MediaQuery.of(context).size.width / 85,
+                fontFamily: "R",
+              ),
+            ),
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  passwordError = "";
+                  isLogin = !isLogin;
+                });
+              },
+              child: Text(
+                "Sign In Now!",
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Colors.yellowAccent,
                   fontSize: MediaQuery.of(context).size.width / 85,
                   fontFamily: "R",
                 ),
               ),
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    passwordError = "";
-                    isLogin = !isLogin;
-                  });
-                },
-                child: Text(
-                  "Sign In Now!",
-                  style: TextStyle(
-                    color: Colors.yellowAccent,
-                    fontSize: MediaQuery.of(context).size.width / 85,
-                    fontFamily: "R",
-                  ),
-                ),
-              ).showCursorOnHover.moveUpOnHover
-            ],
-          )
-        ],
-      ),
-    );
-  }
+            ).showCursorOnHover.moveUpOnHover
+          ],
+        )
+      ],
+    ),
+  );
+}
 }
