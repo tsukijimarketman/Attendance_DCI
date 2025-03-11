@@ -1,8 +1,15 @@
+import 'package:attendance_app/firebase_options.dart';
+import 'package:attendance_app/head/login.dart';
 import 'package:attendance_app/head/splashscreen.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-void main() {
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(MyApp());
   _hideBar();
 }
@@ -20,7 +27,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Attendance Report',
       home: Scaffold(
-        body: SplashScreen(),
+        body: Login(),
       ),
     );
   }

@@ -1,5 +1,12 @@
+import 'package:attendance_app/hover_extensions.dart';
+import 'package:attendance_app/roles/admin.dart';
+import 'package:attendance_app/roles/head.dart';
+import 'package:attendance_app/roles/manager.dart';
+import 'package:attendance_app/roles/superuser.dart';
 import 'package:attendance_app/widget/animated_textfield.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -9,183 +16,486 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
-  bool isClicked = true;
+  bool isLogin = true;
+  Color color1 = Colors.white;
+  Color color2 = Colors.blueAccent;
+  bool islocked = true;
+  Icon icon = Icon(Icons.lock);
+  bool isChecked = false;
+
+  // Add a text editing controller for the password
+  TextEditingController passwordController = TextEditingController();
+  TextEditingController emailController = TextEditingController();
+  String passwordError = ""; // To hold the error message for password
+
+  // Password validation logic
+  bool validatePassword(String password) {
+    String pattern =
+        r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,16}$';
+    RegExp regex = RegExp(pattern);
+    return regex.hasMatch(password);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          Container(
-            height: MediaQuery.of(context).size.height,
-            width: MediaQuery.of(context).size.width,
-            decoration: BoxDecoration(
-              color: Color(0xFFFFFFFF),
-            ),
-          ),
-          Container(
-            height: MediaQuery.of(context).size.height / 2,
-            width: MediaQuery.of(context).size.width,
-            decoration: BoxDecoration(
-              color: Color.fromARGB(255, 77, 79, 189),
-              image: DecorationImage(
-                  fit: BoxFit.cover, image: AssetImage("assets/dbp.jpg")),
-            ),
-          ),
-          Positioned(
-            top: MediaQuery.of(context).size.height / 4,
-            child: Container(
-              height: MediaQuery.of(context).size.height / 1.3,
-              width: MediaQuery.of(context).size.width,
-              decoration: BoxDecoration(
-                  color: Color.fromARGB(255, 28, 29, 70),
-                  borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(50),
-                      topRight: Radius.circular(50))),
-            ),
-          ),
-          Positioned(
-            top: MediaQuery.of(context).size.width / 3.5,
-            left: MediaQuery.of(context).size.width / 6,
-            right: MediaQuery.of(context).size.width / 6,
-            child: CircleAvatar(
-                radius: MediaQuery.of(context).size.width / 3.8,
-                backgroundColor: Colors.white,
-                child: Image.asset(
-                  "assets/dciSplash.png",
-                  height: MediaQuery.of(context).size.width / 3,
-                )),
-          ),
-          Positioned(
-            top: MediaQuery.of(context).size.height / 2.5,
-            left: MediaQuery.of(context).size.height / 20,
-            right: MediaQuery.of(context).size.height / 20,
-            child: Container(
-              child: Column(
-                children: [
-                  Text(
-                    "Sign In",
-                    style: TextStyle(
-                        fontFamily: "BL",
-                        fontSize: MediaQuery.of(context).size.height / 25,
-                        color: Colors.white),
-                  ),
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height / 40,
-                  ),
-                  Container(
-                      height: MediaQuery.of(context).size.height / 13,
-                      width: MediaQuery.of(context).size.height / 2.6,
-                      child: AnimatedTextField(
-                        label: "Email",
-                        suffix: Icon(Icons.email),
-                        readOnly: false,
-                        obscureText: false,
-                      )),
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height / 40,
-                  ),
-                  Container(
-                      height: MediaQuery.of(context).size.height / 13,
-                      width: MediaQuery.of(context).size.height / 2.6,
-                      child: AnimatedTextField(
-                        label: "Password",
-                        suffix: Icon(Icons.lock),
-                        readOnly: false,
-                        obscureText: true,
-                      )),
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height / 40,
-                  ),
-                  Container(
-                    height: MediaQuery.of(context).size.height / 25,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        double height = constraints.maxHeight;
+        double width = constraints.maxWidth;
+        return Container(
+          height: height,
+          width: width,
+          padding: EdgeInsets.symmetric(
+              horizontal: width / 20, vertical: width / 15),
+          color: Colors.white,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: width / 2.23,
+                height: height,
+                decoration: BoxDecoration(
+                    border: Border(
+                        right: BorderSide(color: Color(0xFF002428), width: 2))),
+                child: Column(
+                  mainAxisSize: MainAxisSize.max,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Column(
                       children: [
-                        Container(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              Checkbox(
-                                  materialTapTargetSize: MaterialTapTargetSize
-                                      .shrinkWrap, // Reduces tap target size
-                                  visualDensity: VisualDensity(
-                                      horizontal: -4, vertical: -4),
-                                  value: isClicked,
-                                  onChanged: (_) {
-                                    setState(() {
-                                      if (isClicked == true) {
-                                        isClicked = false;
-                                      } else if (isClicked == false) {
-                                        isClicked = true;
-                                      }
-                                    });
-                                  }),
-                              SizedBox(
-                                width: MediaQuery.of(context).size.height / 55,
-                              ),
-                              Container(
-                                  child: Text(
-                                "Remember Me",
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontFamily: "M",
-                                    fontSize:
-                                        MediaQuery.of(context).size.height /
-                                            70),
-                              )),
-                            ],
-                          ),
-                        ),
-                        VerticalDivider(),
-                        Container(
-                            child: Text(
-                          "Forgot Password?",
+                        Text(
+                          "Appointment System ",
                           style: TextStyle(
-                            decoration: TextDecoration.underline,
-                            decorationColor: Colors.white,
-                              color: Colors.white,
-                              fontFamily: "M",
-                              fontSize:
-                                  MediaQuery.of(context).size.height / 70),
-                        ))
+                              color: Color(0xFF002428),
+                              fontSize: width / 30,
+                              fontFamily: "BL"),
+                        ),
+                        SizedBox(
+                          height: width / 80,
+                        ),
+                        Text(
+                          "Track schedules, record attendance, and manage appointments -all in one place.",
+                          style: TextStyle(
+                              color: Color(0xFF002428),
+                              fontSize: width / 50,
+                              fontFamily: "M"),
+                        ),
                       ],
                     ),
-                  ),
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height / 40,
-                  ),
-                  Container(
-                    width: MediaQuery.of(context).size.height / 2.6,
-                    height: MediaQuery.of(context).size.height / 13,
-                    decoration: BoxDecoration(
-                        color: Color.fromARGB(255, 77, 79, 189),
-                        borderRadius: BorderRadius.circular(
-                            MediaQuery.of(context).size.height / 80)),
-                    child: Center(
-                      child: Text(
-                        "Sign In",
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontFamily: "R",
-                            fontSize: MediaQuery.of(context).size.height / 40),
-                      ),
+                    SizedBox(
+                      height: width / 40,
                     ),
-                  ),
-                  SizedBox(height: MediaQuery.of(context).size.height/12,),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text("Don't have an account?", style: TextStyle(color: Colors.white, fontFamily: "R"),),
-                      SizedBox(width: MediaQuery.of(context).size.height/60,),
-                      Text("Sign Up Here!", style: TextStyle(color: Colors.white, fontFamily: "B", decoration: TextDecoration.underline, decorationColor: Colors.white),),
-                    ],
-                  )
-                ],
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Image.asset(
+                          "dciSplash.png",
+                          height: width / 10,
+                        ),
+                        SizedBox(
+                          width: width / 40,
+                        ),
+                        Image.asset(
+                          "dci_logo.png",
+                          height: width / 10,
+                        )
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              isLogin ? SignIn() : Register(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void checkUserRole(User user) async {
+    try {
+      // Query the users collection where the email matches the authenticated user's email
+      QuerySnapshot userSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: user.email) // Match by email or user.uid
+          .get();
+
+      if (userSnapshot.docs.isEmpty) {
+        // If no matching user is found, handle the error appropriately
+        print("User not found in Firestore");
+        return;
+      }
+
+      // Assuming you have a single user document matching the email
+      DocumentSnapshot userDoc = userSnapshot.docs.first;
+
+      // Get the role from the Firestore document
+      String role = userDoc['role'];
+
+      if (role == "Manager") {
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(builder: (context) => ManagerDashBoard()));
+      } else if (role == "Department Head") {
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(builder: (context) => DepartmentDashboard()));
+      } else if (role == "Admin") {
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (context) => AdminPanel()));
+      } else if (role == "Superuser") {
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (context) => SuperuserPanel()));
+      } else {
+        print("Unknown role");
+      }
+    } catch (e) {
+      print("Error checking user role: $e");
+    }
+  }
+
+  Widget SignIn() {
+  return Container(
+    width: MediaQuery.of(context).size.width / 2.23,
+    height: MediaQuery.of(context).size.height,
+    color: Color(0xFF002428),
+    padding: EdgeInsets.all(MediaQuery.of(context).size.width / 30),
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        Column(
+          children: [
+            Text(
+              "Sign In",
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: MediaQuery.of(context).size.width / 35,
+                  fontFamily: "B"),
+            ),
+            Text(
+              "Please sign in to your account.",
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: MediaQuery.of(context).size.width / 55,
+                  fontFamily: "R"),
+            ),
+          ],
+        ),
+        SizedBox(
+          height: MediaQuery.of(context).size.width / 50,
+        ),
+        Container(
+            width: MediaQuery.of(context).size.width / 3.5,
+            height: MediaQuery.of(context).size.width / 28,
+            child: AnimatedTextField(
+              label: "Email",
+              suffix: Icon(Icons.email),
+              readOnly: false,
+              obscureText: false,
+              controller: emailController,
+            )),
+        SizedBox(
+          height: MediaQuery.of(context).size.width / 100,
+        ),
+        Container(
+          height: MediaQuery.of(context).size.width / 28,
+          width: MediaQuery.of(context).size.width / 3.5,
+          child: AnimatedTextField(
+            label: "Password",
+            controller: passwordController,
+            suffix: GestureDetector(
+              onTap: () {
+                setState(() {
+                  islocked = !islocked;
+                  icon = islocked ? Icon(Icons.lock) : Icon(Icons.lock_open);
+                });
+              },
+              child: icon,
+            ).showCursorOnHover,
+            readOnly: false,
+            obscureText: islocked,
+          ),
+        ),
+        if (passwordError.isNotEmpty)
+          Text(
+            passwordError,
+            style: TextStyle(color: Colors.red),
+          ),
+        SizedBox(
+          height: MediaQuery.of(context).size.width / 100,
+        ),
+        MouseRegion(
+          onEnter: (event) {
+            setState(() {
+              color1 = Colors.white;
+              color2 = Color(0xFF2c2d6c);
+            });
+          },
+          onExit: (event) {
+            setState(() {
+              color1 = Colors.white;
+              color2 = Colors.blueAccent;
+            });
+          },
+          child: GestureDetector(
+            onTap: () async {
+              String email = emailController.text;
+              String password = passwordController.text;
+
+              try {
+                // Attempt login
+                UserCredential userCredential = await FirebaseAuth.instance
+                    .signInWithEmailAndPassword(email: email, password: password);
+
+                // Call checkUserRole once login is successful
+                checkUserRole(userCredential.user!);
+              } on FirebaseAuthException catch (e) {
+                // Check for email not found or wrong password error
+                if (e.code == 'user-not-found') {
+                  setState(() {
+                    passwordError = "No user found with this email.";
+                  });
+                } else if (e.code == 'wrong-password') {
+                  setState(() {
+                    passwordError = "Incorrect password.";
+                  });
+                } else {
+                  setState(() {
+                    passwordError = "Wrong credentials! Invalid email or password.";
+                  });
+                }
+              }
+            },
+            child: Container(
+              width: MediaQuery.of(context).size.width / 3.5,
+              decoration: BoxDecoration(
+                  color: color2,
+                  borderRadius: BorderRadius.circular(
+                      MediaQuery.of(context).size.width / 80)),
+              height: MediaQuery.of(context).size.width / 28,
+              child: Center(
+                child: Text(
+                  "Sign In",
+                  style: TextStyle(
+                      color: color1,
+                      fontSize: MediaQuery.of(context).size.width / 55,
+                      fontFamily: "M"),
+                ),
               ),
             ),
           ),
+        ),
+        SizedBox(
+          height: MediaQuery.of(context).size.width / 70,
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              "Don't have an account? ",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: MediaQuery.of(context).size.width / 85,
+                fontFamily: "R",
+              ),
+            ),
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  passwordError = "";
+                  isLogin = !isLogin;
+                });
+              },
+              child: Text(
+                "Register Now!",
+                style: TextStyle(
+                  color: Colors.yellowAccent,
+                  fontSize: MediaQuery.of(context).size.width / 85,
+                  fontFamily: "R",
+                ),
+              ),
+            ).showCursorOnHover.moveUpOnHover
+          ],
+        )
+      ],
+    ),
+  );
+}
+
+  Widget Register() {
+    return Container(
+      width: MediaQuery.of(context).size.width / 2.23,
+      height: MediaQuery.of(context).size.height,
+      color: Color(0xFF002428),
+      padding: EdgeInsets.all(MediaQuery.of(context).size.width / 30),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          Column(
+            children: [
+              Text(
+                "Sign Up Now!",
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: MediaQuery.of(context).size.width / 35,
+                    fontFamily: "B"),
+              ),
+            ],
+          ),
+          SizedBox(
+            height: MediaQuery.of(context).size.width / 180,
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(
+                horizontal: MediaQuery.of(context).size.width / 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  width: MediaQuery.of(context).size.width / 7.4,
+                  height: MediaQuery.of(context).size.width / 28,
+                  child: AnimatedTextField(
+                    label: "First Name",
+                    suffix: null,
+                    readOnly: false,
+                    obscureText: false,
+                  ),
+                ),
+                SizedBox(
+                  width: MediaQuery.of(context).size.width / 88,
+                ),
+                Container(
+                  width: MediaQuery.of(context).size.width / 7.4,
+                  height: MediaQuery.of(context).size.width / 28,
+                  child: AnimatedTextField(
+                    label: "Last Name",
+                    suffix: null,
+                    readOnly: false,
+                    obscureText: false,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: MediaQuery.of(context).size.width / 80,
+          ),
+          Container(
+              width: MediaQuery.of(context).size.width / 3.5,
+              height: MediaQuery.of(context).size.width / 28,
+              child: AnimatedTextField(
+                label: "Email",
+                suffix: Icon(Icons.email),
+                readOnly: false,
+                obscureText: false,
+              )),
+          SizedBox(
+            height: MediaQuery.of(context).size.width / 100,
+          ),
+          Container(
+            height: MediaQuery.of(context).size.width / 28,
+            width: MediaQuery.of(context).size.width / 3.5,
+            child: AnimatedTextField(
+              label: "Password",
+              controller: passwordController,
+              suffix: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    islocked = !islocked;
+                    icon = islocked ? Icon(Icons.lock) : Icon(Icons.lock_open);
+                  });
+                },
+                child: icon,
+              ).showCursorOnHover,
+              readOnly: false,
+              obscureText: islocked,
+            ),
+          ),
+          if (passwordError.isNotEmpty)
+            Text(
+              passwordError,
+              style: TextStyle(color: Colors.red),
+            ),
+          SizedBox(
+            height: MediaQuery.of(context).size.width / 100,
+          ),
+          MouseRegion(
+            onEnter: (event) {
+              setState(() {
+                color1 = Colors.white;
+                color2 = Color(0xFF2c2d6c);
+              });
+            },
+            onExit: (event) {
+              setState(() {
+                color1 = Colors.white;
+                color2 = Colors.blueAccent;
+              });
+            },
+            child: GestureDetector(
+              onTap: () {
+                String password = passwordController.text;
+                if (validatePassword(password)) {
+                  // Proceed with registration logic here
+                  print("Registration successful");
+                } else {
+                  setState(() {
+                    passwordError =
+                        "Password must contain at least one uppercase letter, one lowercase letter, one number, one special character, and be between 8-16 characters long.";
+                  });
+                }
+              },
+              child: Container(
+                width: MediaQuery.of(context).size.width / 3.5,
+                decoration: BoxDecoration(
+                    color: color2,
+                    borderRadius: BorderRadius.circular(
+                        MediaQuery.of(context).size.width / 80)),
+                height: MediaQuery.of(context).size.width / 28,
+                child: Center(
+                  child: Text(
+                    "Sign Up",
+                    style: TextStyle(
+                        color: color1,
+                        fontSize: MediaQuery.of(context).size.width / 55,
+                        fontFamily: "M"),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SizedBox(
+            height: MediaQuery.of(context).size.width / 70,
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "Have an existing account? ",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: MediaQuery.of(context).size.width / 85,
+                  fontFamily: "R",
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    passwordError = "";
+                    isLogin = !isLogin;
+                  });
+                },
+                child: Text(
+                  "Sign In Now!",
+                  style: TextStyle(
+                    color: Colors.yellowAccent,
+                    fontSize: MediaQuery.of(context).size.width / 85,
+                    fontFamily: "R",
+                  ),
+                ),
+              ).showCursorOnHover.moveUpOnHover
+            ],
+          )
         ],
       ),
     );
