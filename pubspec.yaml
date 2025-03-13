@@ -18,6 +18,11 @@ dependencies:
   firebase_auth: ^5.5.1
   firebase_core: ^3.12.1
   cloud_firestore: ^5.6.5
+  sidebarx: ^0.17.1
+  model_viewer_plus: ^1.9.1
+  encrypt: ^5.0.3
+  qr_flutter: ^4.1.0
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
