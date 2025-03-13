@@ -1,4 +1,5 @@
 import 'package:attendance_app/404.dart';
+import 'package:attendance_app/Accounts%20Dashboard/super_user_dashboard.dart';
 import 'package:attendance_app/firebase_options.dart';
 import 'package:attendance_app/form/form.dart';
 import 'package:attendance_app/head/login.dart';
@@ -40,7 +41,7 @@ class MyApp extends StatelessWidget {
 
     switch (uri.path) {
       case '/':
-        return MaterialPageRoute(builder: (context) => const Login());
+        return MaterialPageRoute(builder: (context) => const SuperUserDashboard());
 
       case '/attendance_form':
         return _handleAttendanceFormRoute(uri);

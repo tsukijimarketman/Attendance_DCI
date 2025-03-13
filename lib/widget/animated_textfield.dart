@@ -74,7 +74,7 @@ class _AnimatedTextFieldState extends State<AnimatedTextField>
         child: CustomPaint(
           painter: CustomAnimateBorder(alpha.value),
           child: TextField(
-            style: TextStyle(fontSize: 13),
+            style: TextStyle(fontSize: MediaQuery.of(context).size.width/100),
             controller: widget.controller,
             obscureText: widget.obscureText,
             readOnly: widget.readOnly,
@@ -83,11 +83,11 @@ class _AnimatedTextFieldState extends State<AnimatedTextField>
             decoration: InputDecoration(
               label: Text(
                 widget.label,
-                style: TextStyle(color: labelColor),
+                style: TextStyle(color: labelColor, fontSize: MediaQuery.of(context).size.width/90),
               ),
               border: InputBorder.none,
               contentPadding:
-                  EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width/80, vertical: MediaQuery.of(context).size.width/150),
               suffixIcon: widget.suffix != null
                   ? IconTheme(
                       data: IconThemeData(color: suffixColor),

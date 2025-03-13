@@ -1,4 +1,5 @@
 import 'package:attendance_app/Animation/Animation.dart';
+import 'package:attendance_app/superuser_drawer/logout.dart';
 import 'package:attendance_app/superuser_drawer/references.dart';
 import 'package:attendance_app/superuser_drawer/usermanagement.dart';
 import 'package:flutter/material.dart';
@@ -25,44 +26,38 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue.shade700,
+      backgroundColor: Color(0xFFf2edf3),
       body: Row(
         children: [
           /// Sidebar Menu
           SidebarX(
-            
             controller: _controller,
             extendedTheme: SidebarXTheme(
-              itemPadding: EdgeInsets.all(10),
-              hoverColor: Colors.amber,
-              width: 200),
+                itemPadding: EdgeInsets.all(10),
+                hoverColor: Colors.amber,
+                width: MediaQuery.of(context).size.width / 5.3),
             theme: SidebarXTheme(
               margin: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.blue.shade900,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
               ),
-              textStyle: const TextStyle(color: Colors.white),
+              textStyle: const TextStyle(color: Colors.black),
               selectedTextStyle: const TextStyle(color: Colors.amber),
               itemTextPadding: const EdgeInsets.symmetric(horizontal: 20),
               selectedItemDecoration: BoxDecoration(
                 color: Colors.blue.shade700,
                 borderRadius: BorderRadius.circular(8),
               ),
-              iconTheme: const IconThemeData(color: Colors.white, size: 24),
-              selectedIconTheme: const IconThemeData(color: Colors.amber, size: 26),
+              iconTheme:
+                  const IconThemeData(color: Color(0xFFbeabc2), size: 24),
+              selectedIconTheme:
+                  const IconThemeData(color: Colors.amber, size: 26),
+              selectedItemTextPadding: const EdgeInsets.symmetric(horizontal: 20),
+              
             ),
-            headerBuilder: (context, extended) {
-              return Padding(
-                padding: const EdgeInsets.all(20),
-              child: SizedBox(
-  height: 300, // Increase height
-  width: 350,  // Increase width
-  child: AnimatedGlbViewer(),
-),
-              );
-            },
-            items: const [
+            headerDivider: const Divider(thickness: 2, color: Colors.black12),
+            items: [
               SidebarXItem(icon: Icons.dashboard, label: 'Dashboard'),
               SidebarXItem(icon: Icons.person_2, label: 'User Management'),
               SidebarXItem(icon: Icons.room_preferences, label: 'References'),
@@ -73,9 +68,9 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
           /// Page Content Area
           Expanded(
             child: Center(
-                child: _buildPageContent(),
-              ),
+              child: _buildPageContent(),
             ),
+          ),
         ],
       ),
     );
@@ -85,15 +80,17 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
   Widget _buildPageContent() {
     switch (_controller.selectedIndex) {
       case 0:
-        return const Text('Dashboard Page', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold));
+        return const Text('Dashboard Page',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold));
       case 1:
         return const UserManagement();
       case 2:
         return const References();
       case 3:
-        return const Text('Logging out...', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold));
+        return LogoutSU();
       default:
-        return const Text('Select an option from the menu.', style: TextStyle(fontSize: 20));
+        return const Text('Select an option from the menu.',
+            style: TextStyle(fontSize: 20));
     }
   }
 }
