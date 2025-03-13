@@ -175,7 +175,7 @@ class _LoginState extends State<Login> {
       // Query the users collection where the email matches the authenticated user's email
       QuerySnapshot userSnapshot = await FirebaseFirestore.instance
           .collection('users')
-          .where('email', isEqualTo: user.email) // Match by email or user.uid
+          .where('uid', isEqualTo: user.uid) // Match by email or user.uid
           .get();
 
       if (userSnapshot.docs.isEmpty) {
@@ -193,7 +193,7 @@ class _LoginState extends State<Login> {
       if (role == "Manager") {
         Navigator.pushReplacement(context,
             MaterialPageRoute(builder: (context) => Manager_Dashboard()));
-      } else if (role == "Department Head") {
+      } else if (role == "DepartmentHead") {
         Navigator.pushReplacement(context,
             MaterialPageRoute(builder: (context) => Deparment_Head_Dashboard()));
       } else if (role == "Admin") {
