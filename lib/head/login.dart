@@ -1,9 +1,9 @@
 import 'dart:ui';
 
-import 'package:attendance_app/Accounts%20Dashboard/admin_dashboard.dart';
-import 'package:attendance_app/Accounts%20Dashboard/department_head_dashboard.dart';
-import 'package:attendance_app/Accounts%20Dashboard/manager_dashoard.dart';
-import 'package:attendance_app/Accounts%20Dashboard/super_user_dashboard.dart';
+import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_dashboard.dart';
+import 'package:attendance_app/Accounts%20Dashboard/head_drawer/department_head_dashboard.dart';
+import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_dashoard.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/super_user_dashboard.dart';
 import 'package:attendance_app/Animation/text_reveal.dart';
 import 'package:attendance_app/Manager_Dashboard/manager_dash.dart';
 import 'package:attendance_app/encryption/encryption_helper.dart';

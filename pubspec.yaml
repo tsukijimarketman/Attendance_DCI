@@ -23,6 +23,8 @@ dependencies:
   encrypt: ^5.0.3
   qr_flutter: ^4.1.0
   intl: ^0.20.2
+  supabase_flutter: ^2.8.4
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:
