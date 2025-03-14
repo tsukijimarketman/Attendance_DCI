@@ -29,6 +29,14 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "headers": [ 
+      {
+        "source": "/assets/models/**",
+        "headers": [
+          { "key": "Access-Control-Allow-Origin", "value": "*" }
+        ]
+      }
+    ],
     "rewrites": [
       {
         "source": "**",

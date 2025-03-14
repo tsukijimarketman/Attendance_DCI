@@ -5,7 +5,7 @@ import 'package:attendance_app/Accounts%20Dashboard/head_drawer/department_head_
 import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_dashoard.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/super_user_dashboard.dart';
 import 'package:attendance_app/Animation/text_reveal.dart';
-import 'package:attendance_app/Manager_Dashboard/manager_dash.dart';
+import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_dash.dart';
 import 'package:attendance_app/encryption/encryption_helper.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:attendance_app/widget/animated_textfield.dart';
@@ -166,7 +166,7 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
                             textOpacityAnimation: _textOpacitycontrollerLogo,
                             child: Container(
                               child: Image.asset(
-                                "dciSplash.png",
+                                "assets/dciSplash.png",
                                 height: width / 5.8,
                               ),
                             ),
@@ -239,7 +239,7 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
       // Query the users collection where the email matches the authenticated user's email
       QuerySnapshot userSnapshot = await FirebaseFirestore.instance
           .collection('users')
-          .where('email', isEqualTo: user.email) // Match by email or user.uid
+          .where('uid', isEqualTo: user.uid) // Match by email or user.uid
           .get();
 
       if (userSnapshot.docs.isEmpty) {
@@ -257,7 +257,7 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
       if (role == "Manager") {
         Navigator.pushReplacement(context,
             MaterialPageRoute(builder: (context) => Manager_Dashboard()));
-      } else if (role == "Department Head") {
+      } else if (role == "DepartmentHead") {
         Navigator.pushReplacement(
             context,
             MaterialPageRoute(

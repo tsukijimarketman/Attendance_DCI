@@ -396,6 +396,16 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
                 selectedItemTextPadding:
                     const EdgeInsets.symmetric(horizontal: 20),
               ),
+              headerBuilder: (context, extended) {
+                return Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: SizedBox(
+                    height: 300, // Increase height
+                    width: 350, // Increase width
+                    child: AnimatedGlbViewer(),
+                  ),
+                );
+              },
               headerDivider: const Divider(thickness: 2, color: Colors.black12),
               items: [
                 SidebarXItem(icon: Icons.dashboard, label: 'Dashboard'),

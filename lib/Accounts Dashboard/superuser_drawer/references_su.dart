@@ -16,7 +16,8 @@ class _ReferencesState extends State<References> {
   TextEditingController _nameController = TextEditingController();
   TextEditingController _searchCategoryController = TextEditingController();
   TextEditingController _searchDataController = TextEditingController();
-  TextEditingController _editDataController = TextEditingController(); // Controller for editing data
+  TextEditingController _editDataController =
+      TextEditingController(); // Controller for editing data
 
   // Store selected category
   String? selectedCategoryId;
@@ -52,19 +53,23 @@ class _ReferencesState extends State<References> {
                           children: [
                             Text(
                               'Category List',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.w600),
                             ),
                             TextButton(
                               style: ButtonStyle(
-                                backgroundColor: MaterialStateProperty.all(Colors.amber),
-                                shape: MaterialStateProperty.all(RoundedRectangleBorder(
+                                backgroundColor:
+                                    MaterialStateProperty.all(Colors.amber),
+                                shape: MaterialStateProperty.all(
+                                    RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 )),
                               ),
                               onPressed: () => _showDialogAddCategory(context),
                               child: Text(
                                 'Add Category',
-                                style: TextStyle(fontSize: 12, color: Colors.black),
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.black),
                               ),
                             ),
                           ],
@@ -93,40 +98,51 @@ class _ReferencesState extends State<References> {
                       ),
                       Expanded(
                         child: StreamBuilder(
-                          stream: _firestore.collection("categories").snapshots(),
-                          builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                            if (snapshot.connectionState == ConnectionState.waiting) {
+                          stream:
+                              _firestore.collection("categories").snapshots(),
+                          builder:
+                              (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
                               return Center(child: CircularProgressIndicator());
                             }
-                            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                              return Center(child: Text("No categories available."));
+                            if (!snapshot.hasData ||
+                                snapshot.data!.docs.isEmpty) {
+                              return Center(
+                                  child: Text("No categories available."));
                             }
 
-                           var filteredCategories = snapshot.data!.docs.where((doc) {
-        var categoryName = doc["name"].toString().toLowerCase();
-        return categoryName.contains(categorySearchQuery);
-      }).toList();
+                            var filteredCategories =
+                                snapshot.data!.docs.where((doc) {
+                              var categoryName =
+                                  doc["name"].toString().toLowerCase();
+                              return categoryName.contains(categorySearchQuery);
+                            }).toList();
 
-      if (filteredCategories.isEmpty) {
-        return Center(child: Text("No matching categories."));
-      }
+                            if (filteredCategories.isEmpty) {
+                              return Center(
+                                  child: Text("No matching categories."));
+                            }
 
-      return ListView.builder(
-        itemCount: filteredCategories.length,
-        itemBuilder: (context, index) {
-          var category = filteredCategories[index];
-          return ListTile(
-            title: Text(category["name"]),
-            tileColor: selectedCategoryId == category.id ? Colors.grey[300] : null,
-            onTap: () {
-              setState(() {
-                selectedCategoryId = category.id;
-                selectedCategoryName = category["name"];
-              });
-            },
-            trailing: IconButton(
-              icon: Icon(Icons.delete, color: Colors.red),
-              onPressed: () => _deleteCategory(category.id),
+                            return ListView.builder(
+                              itemCount: filteredCategories.length,
+                              itemBuilder: (context, index) {
+                                var category = filteredCategories[index];
+                                return ListTile(
+                                  title: Text(category["name"]),
+                                  tileColor: selectedCategoryId == category.id
+                                      ? Colors.grey[300]
+                                      : null,
+                                  onTap: () {
+                                    setState(() {
+                                      selectedCategoryId = category.id;
+                                      selectedCategoryName = category["name"];
+                                    });
+                                  },
+                                  trailing: IconButton(
+                                    icon: Icon(Icons.delete, color: Colors.red),
+                                    onPressed: () =>
+                                        _deleteCategory(category.id),
                                   ),
                                 );
                               },
@@ -157,19 +173,23 @@ class _ReferencesState extends State<References> {
                           children: [
                             Text(
                               'Data List (${selectedCategoryName})',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.w600),
                             ),
                             TextButton(
                               style: ButtonStyle(
-                                backgroundColor: MaterialStateProperty.all(Colors.amber),
-                                shape: MaterialStateProperty.all(RoundedRectangleBorder(
+                                backgroundColor:
+                                    MaterialStateProperty.all(Colors.amber),
+                                shape: MaterialStateProperty.all(
+                                    RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 )),
                               ),
                               onPressed: () => _showDialogAddData(context),
                               child: Text(
                                 'Add Data',
-                                style: TextStyle(fontSize: 12, color: Colors.black),
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.black),
                               ),
                             ),
                           ],
@@ -205,67 +225,82 @@ class _ReferencesState extends State<References> {
                                   .collection("references")
                                   .snapshots()
                               : null,
-                          builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                            if (snapshot.connectionState == ConnectionState.waiting) {
+                          builder:
+                              (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
                               return Center(child: CircularProgressIndicator());
                             }
-                            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                            if (!snapshot.hasData ||
+                                snapshot.data!.docs.isEmpty) {
                               return Center(child: Text("No data available."));
                             }
 
                             // Filter data based on the search query
-      var filteredData = snapshot.data!.docs.where((doc) {
-        var dataName = doc["name"].toString().toLowerCase();
-        return dataName.contains(dataSearchQuery);
-      }).toList();
+                            var filteredData = snapshot.data!.docs.where((doc) {
+                              var dataName =
+                                  doc["name"].toString().toLowerCase();
+                              return dataName.contains(dataSearchQuery);
+                            }).toList();
 
-      if (filteredData.isEmpty) {
-        return Center(child: Text("No matching data."));
-      }
+                            if (filteredData.isEmpty) {
+                              return Center(child: Text("No matching data."));
+                            }
 
-      return ListView.builder(
-        itemCount: filteredData.length,
-        itemBuilder: (context, index) {
-          var data = filteredData[index];
-          bool isSelected = _selectedDataId == data.id;
+                            return ListView.builder(
+                              itemCount: filteredData.length,
+                              itemBuilder: (context, index) {
+                                var data = filteredData[index];
+                                bool isSelected = _selectedDataId == data.id;
 
-          return ListTile(
-  title: Text(
-    data["name"],
-    style: TextStyle(
-      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-      color: isSelected ? Colors.black : Colors.black, // Highlight color
-    ),
-  ),
-  tileColor: isSelected ? Colors.grey.withOpacity(0.2) : null, // Light background for selected
-  onTap: () {
-    setState(() {
-      _selectedDataId = isSelected ? null : data.id;
-    });
-  },
-  trailing: isSelected
-      ? Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: Icon(Icons.edit, color: Colors.blue),
-              onPressed: () {
-                _showEditDialog(data.id, data["name"]);
-              },
-            ),
-            IconButton(
-              icon: Icon(Icons.delete, color: Colors.red),
-              onPressed: () => _deleteData(data.id),
-            ),
-          ],
-        )
-      : null, // Show icons only when selected
-);
-        },
-      );
-    },
-  ),
-),
+                                return ListTile(
+                                  title: Text(
+                                    data["name"],
+                                    style: TextStyle(
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                      color: isSelected
+                                          ? Colors.black
+                                          : Colors.black, // Highlight color
+                                    ),
+                                  ),
+                                  tileColor: isSelected
+                                      ? Colors.grey.withOpacity(0.2)
+                                      : null, // Light background for selected
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedDataId =
+                                          isSelected ? null : data.id;
+                                    });
+                                  },
+                                  trailing: isSelected
+                                      ? Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            IconButton(
+                                              icon: Icon(Icons.edit,
+                                                  color: Colors.blue),
+                                              onPressed: () {
+                                                _showEditDialog(
+                                                    data.id, data["name"]);
+                                              },
+                                            ),
+                                            IconButton(
+                                              icon: Icon(Icons.delete,
+                                                  color: Colors.red),
+                                              onPressed: () =>
+                                                  _deleteData(data.id),
+                                            ),
+                                          ],
+                                        )
+                                      : null, // Show icons only when selected
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -278,53 +313,52 @@ class _ReferencesState extends State<References> {
   }
 
   void _showEditDialog(String dataId, String currentName) {
-  _editDataController.text = currentName;
+    _editDataController.text = currentName;
 
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: Text("Edit Data"),
-        content: TextField(
-          controller: _editDataController,
-          decoration: InputDecoration(labelText: "Update Name"),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("Cancel"),
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Edit Data"),
+          content: TextField(
+            controller: _editDataController,
+            decoration: InputDecoration(labelText: "Update Name"),
           ),
-          TextButton(
-            onPressed: () {
-              _updateData(dataId, _editDataController.text);
-              Navigator.pop(context);
-            },
-            child: Text("Save"),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-
-Future<void> _updateData(String dataId, String newName) async {
-  if (selectedCategoryId == null || dataId.isEmpty || newName.trim().isEmpty) return;
-
-  try {
-    await _firestore
-        .collection("categories")
-        .doc(selectedCategoryId)
-        .collection("references")
-        .doc(dataId)
-        .update({"name": newName});
-
-    setState(() => _selectedDataId = null); // Deselect after editing
-  } catch (e) {
-    print("Error updating data: $e");
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () {
+                _updateData(dataId, _editDataController.text);
+                Navigator.pop(context);
+              },
+              child: Text("Save"),
+            ),
+          ],
+        );
+      },
+    );
   }
-}
 
+  Future<void> _updateData(String dataId, String newName) async {
+    if (selectedCategoryId == null || dataId.isEmpty || newName.trim().isEmpty)
+      return;
+
+    try {
+      await _firestore
+          .collection("categories")
+          .doc(selectedCategoryId)
+          .collection("references")
+          .doc(dataId)
+          .update({"name": newName});
+
+      setState(() => _selectedDataId = null); // Deselect after editing
+    } catch (e) {
+      print("Error updating data: $e");
+    }
+  }
 
   // Function to show Add Data dialog
   void _showDialogAddData(BuildContext context) {

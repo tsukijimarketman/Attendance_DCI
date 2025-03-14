@@ -41,7 +41,7 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDsxUiCpG4zr5kyUbuE147XIro7vX91HLQ',
+    apiKey: 'AIzaSyDNd0NHZ_3KoVdM_C1YcIdqN1zXstROvPQ',
     appId: '1:794795546739:web:1caadd670b6eea92957206',
     messagingSenderId: '794795546739',
     projectId: 'attendance-dci',
