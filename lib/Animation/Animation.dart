@@ -5,7 +5,7 @@ class AnimatedGlbViewer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ModelViewer(
-      src: "assets/dci.glb",
+      src: "assets/assets/dci.glb",
       alt: "A 3D logo",
       autoRotate: true,
       disableZoom: true,

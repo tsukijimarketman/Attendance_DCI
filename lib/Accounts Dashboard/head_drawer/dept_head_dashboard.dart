@@ -1,20 +1,19 @@
-import 'package:attendance_app/Manager_Dashboard/all_attendee.dart';
+import 'package:attendance_app/Accounts%20Dashboard/head_drawer/all_dept_attendee.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-class Manager_Dash extends StatefulWidget {
-  const Manager_Dash({super.key});
+class DeptHead extends StatefulWidget {
+  const DeptHead({super.key});
 
   @override
-  State<Manager_Dash> createState() => _Manager_DashState();
+  State<DeptHead> createState() => _DeptHeadState();
 }
 
-class _Manager_DashState extends State<Manager_Dash> {
+class _DeptHeadState extends State<DeptHead> {
   String userDepartment = '';
-    String first_name = '';
-  String middle_name = '';
+  String first_name = '';
   String last_name = '';
   bool isLoading = true;
 
@@ -40,9 +39,6 @@ class _Manager_DashState extends State<Manager_Dash> {
 
           setState(() {
             userDepartment = userData['department'] ?? "";
-            first_name = userData['first_name'] ?? "";
-          middle_name = userData['middle_name'] ?? "";
-          last_name = userData['last_name'] ?? "";
           isLoading = false;
           });
         } else {
@@ -68,8 +64,6 @@ class _Manager_DashState extends State<Manager_Dash> {
 
   @override
 Widget build(BuildContext context) {
-  String fullName = "$first_name $middle_name $last_name".trim(); // Generate fullName
-
   return isLoading
       ? SafeArea(child: Center(child: CircularProgressIndicator()))
       : SafeArea(
@@ -77,7 +71,6 @@ Widget build(BuildContext context) {
             stream: FirebaseFirestore.instance
                 .collection('attendance')
                 .where('department', isEqualTo: userDepartment)
-                .where('createdBy', isEqualTo: fullName)  // Filter by created user
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -108,6 +101,7 @@ Widget build(BuildContext context) {
                 itemBuilder: (context, index) {
                   var data = uniqueAttendanceDocs[index].data() as Map<String, dynamic>;
                   String agenda = data['agenda'] ?? 'N/A';
+                  String dept = data['department'] ?? 'N/A';
 
                   return ListTile(
                     title: Text(
@@ -121,6 +115,10 @@ Widget build(BuildContext context) {
                           "Created on: ${formatTimestamp(data['timestamp'] as Timestamp?)}",
                           style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: Colors.black),
                         ),
+                        Text(
+                          dept,
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: Colors.black),
+                        ),
                       ],
                     ),
                     trailing: Icon(Icons.arrow_forward),
@@ -128,7 +126,7 @@ Widget build(BuildContext context) {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => AllAttendee(selectedAgenda: agenda),
+                          builder: (context) => DeptAttendee(selectedAgenda: agenda),
                         ),
                       );
                     },

@@ -1,7 +1,7 @@
 
 import 'package:attendance_app/Animation/Animation.dart';
-import 'package:attendance_app/Manager_Dashboard/manager_dash.dart';
-import 'package:attendance_app/form/make_a_form.dart';
+import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_dash.dart';
+import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/make_a_form.dart';
 import 'package:flutter/material.dart';
 import 'package:sidebarx/sidebarx.dart';
 

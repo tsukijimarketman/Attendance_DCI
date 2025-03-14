@@ -11,7 +11,6 @@ class AttendanceForm extends StatefulWidget {
   final String department;
   final String agenda;
   final String firstName;
-  final String middleName;
   final String lastName;
   final int expiryTime;
 
@@ -21,7 +20,6 @@ class AttendanceForm extends StatefulWidget {
     required this.department,
     required this.agenda,
     required this.firstName,
-    required this.middleName,
     required this.lastName,
     super.key,
   });
@@ -116,7 +114,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
       'timestamp': FieldValue.serverTimestamp(),
       'agenda': widget.agenda,
       'department': widget.department,
-      'createdBy': "${widget.firstName} ${widget.middleName} ${widget.lastName}",
+      'createdBy': "${widget.firstName} ${widget.lastName}",
     });
 
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Form submitted successfully!")));
@@ -132,7 +130,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
           children: [
             Text("Agenda: ${widget.agenda}"),
             Text("Department: ${widget.department}"),
-            Text("Created by: ${widget.firstName} ${widget.middleName} ${widget.lastName}"),
+            Text("Created by: ${widget.firstName} ${widget.lastName}"),
             remainingTime > 0
                 ? Text(
                     "Expires in: ${_formatTime(remainingTime)} minutes",

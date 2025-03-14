@@ -19,7 +19,6 @@ class _MakeAFormState extends State<MakeAForm> {
   final TextEditingController expiryController = TextEditingController();
 
   String firstName = "";
-  String middleName = "";
   String lastName = "";
   DateTime? selectedExpiryTime; // Store selected date-time
 
@@ -46,7 +45,6 @@ class _MakeAFormState extends State<MakeAForm> {
 
           setState(() {
             firstName = userData['first_name'] ?? "N/A";
-            middleName = userData['middle_name'] ?? "N/A";
             lastName = userData['last_name'] ?? "N/A";
             departmentController.text = userData['department'] ?? ""; // Set department field
           });
@@ -71,11 +69,10 @@ class _MakeAFormState extends State<MakeAForm> {
 
   int expiryTime = selectedExpiryTime!.millisecondsSinceEpoch;
 
-  String qrUrl = "https://dci-attendance-0123.web.app//#/attendance_form"
+  String qrUrl = "https://attendance-dci.web.app//#/attendance_form"
       "?agenda=${Uri.encodeComponent(agendaController.text)}"
       "&department=${Uri.encodeComponent(departmentController.text)}"
       "&first_name=${Uri.encodeComponent(firstName)}"
-      "&middle_name=${Uri.encodeComponent(middleName)}"
       "&last_name=${Uri.encodeComponent(lastName)}"
       "&expiryTime=${expiryTime}";
 
@@ -85,7 +82,6 @@ class _MakeAFormState extends State<MakeAForm> {
       builder: (context) => QRCodeScreen(
         qrData: qrUrl,
         firstName: firstName,
-        middleName: middleName,
         lastName: lastName,
         expiryTime: expiryTime,
       ),
@@ -143,7 +139,7 @@ class _MakeAFormState extends State<MakeAForm> {
                     fontSize: 20,
                     color: Colors.black,
                     fontWeight: FontWeight.w400)),
-            Text('User: $firstName $middleName $lastName',
+            Text('User: $firstName $lastName',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
             Container(
   height: 50,
@@ -234,7 +230,6 @@ class QRCodeScreen extends StatefulWidget {
   final int expiryTime;
   final String qrData;
   final String firstName;
-  final String middleName;
   final String lastName;
 
   const QRCodeScreen({
@@ -242,7 +237,6 @@ class QRCodeScreen extends StatefulWidget {
     required this.expiryTime,
     required this.qrData,
     required this.firstName,
-    required this.middleName,
     required this.lastName
     });
 
@@ -326,7 +320,7 @@ class _QRCodeScreenState extends State<QRCodeScreen> {
               'Scan the QR Code to fill the form',
               style: TextStyle(fontSize: 20, color: Colors.black, fontWeight: FontWeight.w400),
             ),
-            Text('Created By: ${widget.firstName} ${widget.middleName} ${widget.lastName}',
+            Text('Created By: ${widget.firstName} ${widget.lastName}',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
             SizedBox(height: 20),
             Center(child: QrImageView(data: widget.qrData, size: 300)),
