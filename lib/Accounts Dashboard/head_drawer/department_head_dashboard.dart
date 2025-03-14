@@ -165,7 +165,7 @@ class _Deparment_Head_DashboardState extends State<Deparment_Head_Dashboard> {
                   Padding(
                     padding: EdgeInsets.symmetric(
                         vertical: MediaQuery.of(context).size.width / 140),
-                    child: Image.asset("dci_logo.png",
+                    child: Image.asset("assets/dci_logo.png",
                         height: MediaQuery.of(context).size.width / 20),
                   ),
                 ],

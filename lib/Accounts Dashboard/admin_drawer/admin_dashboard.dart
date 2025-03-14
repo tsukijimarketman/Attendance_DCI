@@ -1,3 +1,4 @@
+import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/manage_all_appointments.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/auditSU.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/notification_su.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/settings_su.dart';
@@ -164,7 +165,7 @@ class _Admin_DashboardState extends State<Admin_Dashboard> {
                   Padding(
                     padding: EdgeInsets.symmetric(
                         vertical: MediaQuery.of(context).size.width / 140),
-                    child: Image.asset("dci_logo.png",
+                    child: Image.asset("assets/dci_logo.png",
                         height: MediaQuery.of(context).size.width / 20),
                   ),
                 ],
@@ -468,8 +469,7 @@ class _Admin_DashboardState extends State<Admin_Dashboard> {
   Widget _buildPageContent() {
     switch (_controller.selectedIndex) {
       case 0:
-        return const Text('Dashboard Page',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold));
+        return const ManageAllAppointments();
       case 1:
         return const Text('Dashboard Page',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold));

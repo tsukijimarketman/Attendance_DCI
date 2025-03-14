@@ -166,7 +166,7 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
                             textOpacityAnimation: _textOpacitycontrollerLogo,
                             child: Container(
                               child: Image.asset(
-                                "dciSplash.png",
+                                "assets/dciSplash.png",
                                 height: width / 5.8,
                               ),
                             ),
