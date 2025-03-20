@@ -14,74 +14,142 @@ class SettingsSU extends StatefulWidget {
 }
 
 class _SettingsSUState extends State<SettingsSU> {
+  MainAxisAlignment _axisRow = MainAxisAlignment.start;
   final PSGCService psgcService = PSGCService();
-  String? selectedCity;
-  List<dynamic> cities = [];
 
-  // Selected values for dropdowns
-  String? selectedProvince;
+// Selected values for dropdowns
+  String? selectedCity;
   String? selectedMunicipality;
+  String? selectedRegion;
+  String? selectedProvince;
+  String? selectedCityOrMunicipality;
   String? selectedBarangay;
 
-  // Lists to store dropdown options
-  List<dynamic> provinces = [];
+// Lists to store dropdown options
+  List<dynamic> cities = [];
   List<dynamic> municipalities = [];
+  List<dynamic> regions = [];
+  List<dynamic> provinces = [];
+  List<dynamic> citiesMunicipalities = [];
   List<dynamic> barangays = [];
 
   @override
   void initState() {
     super.initState();
-    _loadProvinces();
+    _loadRegions();
   }
 
-  // Fetch provinces
-  _loadProvinces() async {
-    var result = await psgcService.fetchProvinces();
+// Fetch regions
+  void _loadRegions() async {
+    var result = await psgcService.fetchRegions();
     setState(() {
-      provinces = result;
+      regions = result;
     });
   }
 
-  // Fetch cities when a province is selected
-  void _loadCities(String provinceCode) async {
-    print("Loading cities for province: $provinceCode"); // Debugging
+// Fetch provinces or cities/municipalities based on region selection
+  void _loadProvincesOrCities(String regionCode) async {
+    print("Loading data for region: $regionCode");
 
-    var result = await psgcService.fetchCities(provinceCode);
-
-    print("Cities received: $result"); // Debugging
-
+    // First, clear all lower-level selections
     setState(() {
-      cities = result;
-      selectedCity = null; // Reset city selection
-      selectedMunicipality = null;
+      selectedProvince = null;
+      selectedCityOrMunicipality = null;
       selectedBarangay = null;
-      barangays = []; // Clear barangay list
+      provinces = [];
+      citiesMunicipalities = [];
+      barangays = [];
+    });
+
+    // Check if the region has provinces
+    var provinceResult = await psgcService.fetchProvinces(regionCode);
+    if (provinceResult.isNotEmpty) {
+      // This region has provinces, so populate the province dropdown
+      setState(() {
+        provinces = provinceResult;
+      });
+    } else {
+      // No provinces, fetch cities/municipalities directly
+      var cityMunicipalityResult =
+          await psgcService.fetchCitiesMunicipalitiesByRegion(regionCode);
+      setState(() {
+        citiesMunicipalities = cityMunicipalityResult;
+      });
+    }
+  }
+
+// Fetch municipalities when a province is selected
+  void _loadMunicipalitiesForNCR(String provinceCode) async {
+    var result = await psgcService.fetchMunicipalitiesForNCR(provinceCode);
+    setState(() {
+      citiesMunicipalities =
+          result; // Municipalities will be treated as city options
+      selectedCityOrMunicipality = null;
+      selectedBarangay = null;
+      barangays = [];
+    });
+  }
+
+// Fetch cities when a province is selected
+  void _loadCitiesForNCR(String provinceCode) async {
+    var result = await psgcService.fetchCitiesForNCR(provinceCode);
+    setState(() {
+      citiesMunicipalities = result;
+      selectedCityOrMunicipality = null;
+      selectedBarangay = null;
+      barangays = [];
+    });
+  }
+
+// Fetch barangays when a city/municipality is selected
+  void _loadBarangaysForNCR(String cityOrMunicipalityCode) async {
+    var result = await psgcService.fetchBarangaysForNCR(cityOrMunicipalityCode);
+    setState(() {
+      barangays = result;
+      selectedBarangay = null;
     });
   }
 
   // Fetch municipalities when a province is selected
-  _loadMunicipalities(String provinceCode) async {
-    var result = await psgcService.fetchMunicipalities(provinceCode);
+  void _loadMunicipalities(String provinceCode) async {
+    var municipalitiesResult =
+        await psgcService.fetchMunicipalitiesByProvince(provinceCode);
+
     setState(() {
-      municipalities = result;
-      selectedMunicipality = null; // Reset municipality
-      selectedBarangay = null; // Reset barangay
-      barangays = []; // Clear barangay list
+      municipalities = municipalitiesResult;
+      selectedMunicipality = null;
+      selectedBarangay = null;
+      barangays = [];
     });
   }
 
-  // Fetch barangays when a municipality is selected
-  _loadBarangays(String municipalityCode) async {
-    var result = await psgcService.fetchBarangays(municipalityCode);
+// Fetch cities when a province is selected
+  void _loadCities(String provinceCode) async {
+    var citiesResult = await psgcService.fetchCitiesByProvince(provinceCode);
+
+    setState(() {
+      cities = citiesResult;
+      selectedCity = null;
+      selectedBarangay = null;
+      barangays = [];
+    });
+  }
+
+// Fetch barangays when a city is selected
+  void _loadBarangaysFromCity(String cityCode) async {
+    var result = await psgcService.fetchBarangaysByCity(cityCode);
+
     setState(() {
       barangays = result;
-      selectedBarangay = null; // Reset barangay selection
+      selectedBarangay = null;
     });
   }
 
-  // Fetch barangays when a city is selected
-  _loadBarangaysFromCity(String cityCode) async {
-    var result = await psgcService.fetchBarangays(cityCode);
+// Fetch barangays when a municipality is selected
+  void _loadBarangaysFromMunicipality(String municipalityCode) async {
+    var result =
+        await psgcService.fetchBarangaysByMunicipality(municipalityCode);
+
     setState(() {
       barangays = result;
       selectedBarangay = null;
@@ -1184,7 +1252,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                             fontSize: MediaQuery.of(context)
                                                     .size
                                                     .width /
-                                                90,
+                                                120,
                                             color: Colors.black,
                                             fontFamily: "R",
                                           ),
@@ -1210,7 +1278,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                             fontSize: MediaQuery.of(context)
                                                     .size
                                                     .width /
-                                                90,
+                                                120,
                                             color: Colors.black,
                                             fontFamily: "R",
                                           ),
@@ -1992,22 +2060,22 @@ class _SettingsSUState extends State<SettingsSU> {
                         height: MediaQuery.of(context).size.width / 100,
                       ),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
+                        mainAxisAlignment: _axisRow,
                         children: [
+                          // Region Dropdown
                           Column(
                             children: [
                               Text(
-                                "Specify Province",
+                                "Specify Region",
                                 style: TextStyle(
-                                  fontSize: width / 90,
-                                  color: Colors.black,
-                                  fontFamily: "R",
-                                ),
+                                    fontSize: width / 90,
+                                    color: Colors.black,
+                                    fontFamily: "R"),
                               ),
                               SizedBox(height: width / 170),
                               Container(
                                 height: width / 35,
-                                width: width / 8.3,
+                                width: width / 8,
                                 decoration: BoxDecoration(
                                   border: Border.all(color: Colors.black54),
                                   borderRadius:
@@ -2016,240 +2084,495 @@ class _SettingsSUState extends State<SettingsSU> {
                                 ),
                                 child: DropDownTextField(
                                   searchTextStyle: TextStyle(
-                                    fontSize: width / 110,
+                                    fontSize:
+                                        MediaQuery.of(context).size.width / 110,
                                     color: Colors.black,
                                     fontFamily: "R",
                                   ),
                                   searchKeyboardType: TextInputType.text,
                                   searchDecoration: InputDecoration(
-                                    hintText: "Search Province",
+                                    hintText: "Search",
                                     hintStyle: TextStyle(
-                                      fontSize: width / 140,
+                                      fontSize:
+                                          MediaQuery.of(context).size.width /
+                                              140,
                                       color: Colors.black,
                                       fontFamily: "R",
                                     ),
                                     border: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(width / 150),
+                                      borderRadius: BorderRadius.circular(
+                                          MediaQuery.of(context).size.width /
+                                              150),
                                     ),
                                   ),
                                   clearOption: true,
                                   listTextStyle: TextStyle(
-                                    fontSize: width / 110,
+                                    fontSize:
+                                        MediaQuery.of(context).size.width / 110,
                                     color: Colors.black,
                                     fontFamily: "R",
                                   ),
                                   textStyle: TextStyle(
-                                    fontSize: width / 110,
+                                    fontSize:
+                                        MediaQuery.of(context).size.width / 110,
                                     color: Colors.black,
                                     fontFamily: "R",
                                   ),
                                   enableSearch: true,
-                                  validator: (value) =>
-                                      value == null ? "Required field" : null,
+                                  validator: (value) {
+                                    if (value == null) {
+                                      return "Required field";
+                                    } else {
+                                      return null;
+                                    }
+                                  },
                                   dropDownItemCount: 8,
                                   listPadding: ListPadding(top: 0, bottom: 0),
                                   dropDownList: [
-                                    for (var item in provinces)
+                                    for (var item in regions)
                                       DropDownValueModel(
                                           name: item['name'],
                                           value: item['code']),
                                   ],
                                   onChanged: (selected) {
                                     setState(() {
-                                      selectedProvince = selected?.value;
-                                      selectedMunicipality = null;
+                                      selectedRegion = selected?.value;
+                                      selectedProvince = null;
                                       selectedCity = null;
+                                      selectedMunicipality = null;
                                       selectedBarangay = null;
                                       barangays = [];
+
+                                      _axisRow = MainAxisAlignment.start;
                                     });
-                                    _loadMunicipalities(selectedProvince!);
-                                    _loadCities(
-                                        selectedProvince!); // Ensure this is being called
+                                    _loadProvincesOrCities(selectedRegion!);
                                   },
                                 ),
                               ),
                             ],
                           ),
-                          // Municipality Dropdown
-                          if (selectedProvince != null) ...[
+
+                          if (selectedRegion != null) ...[
                             SizedBox(width: width / 50),
-                            Column(
-                              children: [
-                                Text(
-                                  "Specify Municipality",
-                                  style: TextStyle(
-                                    fontSize: width / 90,
-                                    color: Colors.black,
-                                    fontFamily: "R",
+
+                            // Province Dropdown (Only if region has provinces)
+                            if (provinces.isNotEmpty) ...[
+                              Column(
+                                children: [
+                                  Text(
+                                    "Specify Province",
+                                    style: TextStyle(
+                                        fontSize: width / 90,
+                                        color: Colors.black,
+                                        fontFamily: "R"),
                                   ),
-                                ),
-                                SizedBox(height: width / 170),
-                                Container(
-                                  height: width / 35,
-                                  width: width / 8.3,
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.black54),
-                                    borderRadius:
-                                        BorderRadius.circular(width / 150),
-                                    color: selectedCity == null
-                                        ? Colors.white
-                                        : Colors.grey[
-                                            300], // Disable if city is selected
-                                  ),
-                                  child: DropDownTextField(
-                                    searchTextStyle: TextStyle(
-                                      fontSize: width / 110,
-                                      color: Colors.black,
-                                      fontFamily: "R",
+                                  SizedBox(height: width / 170),
+                                  Container(
+                                    height: width / 35,
+                                    width: width / 8,
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.black54),
+                                      borderRadius:
+                                          BorderRadius.circular(width / 150),
+                                      color: Colors.white,
                                     ),
-                                    searchKeyboardType: TextInputType.text,
-                                    searchDecoration: InputDecoration(
-                                      hintText: "Search Municipality",
-                                      hintStyle: TextStyle(
-                                        fontSize: width / 140,
+                                    child: DropDownTextField(
+                                      searchTextStyle: TextStyle(
+                                        fontSize:
+                                            MediaQuery.of(context).size.width /
+                                                110,
                                         color: Colors.black,
                                         fontFamily: "R",
                                       ),
-                                      border: OutlineInputBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(width / 150),
+                                      searchKeyboardType: TextInputType.text,
+                                      searchDecoration: InputDecoration(
+                                        hintText: "Search",
+                                        hintStyle: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              140,
+                                          color: Colors.black,
+                                          fontFamily: "R",
+                                        ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
                                       ),
-                                    ),
-                                    clearOption: true,
-                                    listTextStyle: TextStyle(
-                                      fontSize: width / 110,
-                                      color: Colors.black,
-                                      fontFamily: "R",
-                                    ),
-                                    textStyle: TextStyle(
-                                      fontSize: width / 110,
-                                      color: Colors.black,
-                                      fontFamily: "R",
-                                    ),
-                                    enableSearch: true,
-                                    validator: (value) =>
-                                        value == null ? "Required field" : null,
-                                    dropDownItemCount: 8,
-                                    listPadding: ListPadding(top: 0, bottom: 0),
-                                    dropDownList: [
-                                      for (var item in municipalities)
-                                        DropDownValueModel(
-                                            name: item['name'],
-                                            value: item['code']),
-                                    ],
-                                    onChanged: (selected) {
-                                      setState(() {
-                                        selectedMunicipality = selected?.value;
-                                        selectedCity =
-                                            null; // Disable city if municipality is selected
-                                        selectedBarangay = null;
-                                      });
-                                      _loadBarangays(selectedMunicipality!);
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                          // City Dropdown
-                          if (selectedProvince != null) ...[
-                            SizedBox(width: width / 50),
-                            Column(
-                              children: [
-                                Text(
-                                  "Specify City",
-                                  style: TextStyle(
-                                    fontSize: width / 90,
-                                    color: Colors.black,
-                                    fontFamily: "R",
-                                  ),
-                                ),
-                                SizedBox(height: width / 170),
-                                Container(
-                                  height: width / 35,
-                                  width: width / 8.3,
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.black54),
-                                    borderRadius:
-                                        BorderRadius.circular(width / 150),
-                                    color: selectedMunicipality == null
-                                        ? Colors.white
-                                        : Colors.grey[
-                                            300], // Disable if municipality is selected
-                                  ),
-                                  child: DropDownTextField(
-                                    searchTextStyle: TextStyle(
-                                      fontSize: width / 110,
-                                      color: Colors.black,
-                                      fontFamily: "R",
-                                    ),
-                                    searchKeyboardType: TextInputType.text,
-                                    searchDecoration: InputDecoration(
-                                      hintText: "Search City",
-                                      hintStyle: TextStyle(
-                                        fontSize: width / 140,
+                                      clearOption: true,
+                                      listTextStyle: TextStyle(
+                                        fontSize:
+                                            MediaQuery.of(context).size.width /
+                                                110,
                                         color: Colors.black,
                                         fontFamily: "R",
                                       ),
-                                      border: OutlineInputBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(width / 150),
+                                      textStyle: TextStyle(
+                                        fontSize:
+                                            MediaQuery.of(context).size.width /
+                                                110,
+                                        color: Colors.black,
+                                        fontFamily: "R",
                                       ),
+                                      enableSearch: true,
+                                      validator: (value) {
+                                        if (value == null) {
+                                          return "Required field";
+                                        } else {
+                                          return null;
+                                        }
+                                      },
+                                      dropDownItemCount: 8,
+                                      listPadding:
+                                          ListPadding(top: 0, bottom: 0),
+                                      dropDownList: [
+                                        for (var item in provinces)
+                                          DropDownValueModel(
+                                              name: item['name'],
+                                              value: item['code']),
+                                      ],
+                                      onChanged: (selected) {
+                                        setState(() {
+                                          selectedProvince = selected?.value;
+                                          selectedCity = null;
+                                          selectedMunicipality = null;
+                                          selectedBarangay = null;
+                                          barangays = [];
+                                        });
+                                        _loadMunicipalities(selectedProvince!);
+                                        _loadCities(selectedProvince!);
+                                      },
                                     ),
-                                    clearOption: true,
-                                    listTextStyle: TextStyle(
-                                      fontSize: width / 110,
-                                      color: Colors.black,
-                                      fontFamily: "R",
-                                    ),
-                                    textStyle: TextStyle(
-                                      fontSize: width / 110,
-                                      color: Colors.black,
-                                      fontFamily: "R",
-                                    ),
-                                    enableSearch: true,
-                                    validator: (value) =>
-                                        value == null ? "Required field" : null,
-                                    dropDownItemCount: 8,
-                                    listPadding: ListPadding(top: 0, bottom: 0),
-                                    dropDownList: [
-                                      for (var item in cities)
-                                        DropDownValueModel(
-                                            name: item['name'],
-                                            value: item['code']),
-                                    ],
-                                    onChanged: (selected) {
-                                      setState(() {
-                                        selectedCity = selected?.value;
-                                        selectedMunicipality =
-                                            null; // Reset municipality selection
-                                        selectedBarangay = null;
-                                        barangays = [];
-                                      });
-                                      _loadBarangaysFromCity(selectedCity!);
-                                    },
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
-                          if (selectedMunicipality != null) ...[
+                                ],
+                              ),
+                            ],
+
                             SizedBox(width: width / 50),
+
+                            // NCR Handling: If NCR is selected, show a single dropdown
+                            if (provinces.isEmpty) ...[
+                              Column(
+                                children: [
+                                  Text(
+                                    "Specify City/Municipality",
+                                    style: TextStyle(
+                                        fontSize: width / 90,
+                                        color: Colors.black,
+                                        fontFamily: "R"),
+                                  ),
+                                  SizedBox(height: width / 170),
+                                  Container(
+                                    height: width / 35,
+                                    width: width / 8,
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.black54),
+                                      borderRadius:
+                                          BorderRadius.circular(width / 150),
+                                      color: Colors.white,
+                                    ),
+                                    child: DropDownTextField(
+                                      searchTextStyle: TextStyle(
+                                        fontSize:
+                                            MediaQuery.of(context).size.width /
+                                                110,
+                                        color: Colors.black,
+                                        fontFamily: "R",
+                                      ),
+                                      searchKeyboardType: TextInputType.text,
+                                      searchDecoration: InputDecoration(
+                                        hintText: "Search",
+                                        hintStyle: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              140,
+                                          color: Colors.black,
+                                          fontFamily: "R",
+                                        ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
+                                      ),
+                                      clearOption: true,
+                                      listTextStyle: TextStyle(
+                                        fontSize:
+                                            MediaQuery.of(context).size.width /
+                                                110,
+                                        color: Colors.black,
+                                        fontFamily: "R",
+                                      ),
+                                      textStyle: TextStyle(
+                                        fontSize:
+                                            MediaQuery.of(context).size.width /
+                                                110,
+                                        color: Colors.black,
+                                        fontFamily: "R",
+                                      ),
+                                      enableSearch: true,
+                                      validator: (value) {
+                                        if (value == null) {
+                                          return "Required field";
+                                        } else {
+                                          return null;
+                                        }
+                                      },
+                                      dropDownItemCount: 8,
+                                      listPadding:
+                                          ListPadding(top: 0, bottom: 0),
+                                      dropDownList: [
+                                        for (var item in citiesMunicipalities)
+                                          DropDownValueModel(
+                                              name: item['name'],
+                                              value: item['code']),
+                                      ],
+                                      onChanged: (selected) {
+                                        setState(() {
+                                          selectedCity = selected?.value;
+                                          selectedMunicipality = null;
+                                          selectedBarangay = null;
+                                          barangays = [];
+                                        });
+                                        _loadBarangaysFromCity(selectedCity!);
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+
+                            // If NOT NCR, show separate City & Municipality dropdowns
+                            if (provinces.isNotEmpty) ...[
+                              Column(
+                                children: [
+                                  Text(
+                                    "Specify City",
+                                    style: TextStyle(
+                                        fontSize: width / 90,
+                                        color: Colors.black,
+                                        fontFamily: "R"),
+                                  ),
+                                  SizedBox(height: width / 170),
+                                  Container(
+                                    height: width / 35,
+                                    width: width / 8,
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.black54),
+                                      borderRadius:
+                                          BorderRadius.circular(width / 150),
+                                      color: selectedMunicipality == null
+                                          ? Colors.white
+                                          : Colors.grey[300],
+                                    ),
+                                    child: DropDownTextField(
+                                      isEnabled: selectedMunicipality ==
+                                          null, // Disable if municipality is selected
+                                      searchTextStyle: TextStyle(
+                                        fontSize:
+                                            MediaQuery.of(context).size.width /
+                                                110,
+                                        color: Colors.black,
+                                        fontFamily: "R",
+                                      ),
+                                      searchKeyboardType: TextInputType.text,
+                                      searchDecoration: InputDecoration(
+                                        hintText: "Search",
+                                        hintStyle: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              140,
+                                          color: Colors.black,
+                                          fontFamily: "R",
+                                        ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
+                                      ),
+                                      clearOption: true,
+                                      listTextStyle: TextStyle(
+                                        fontSize:
+                                            MediaQuery.of(context).size.width /
+                                                110,
+                                        color: Colors.black,
+                                        fontFamily: "R",
+                                      ),
+                                      textStyle: TextStyle(
+                                        fontSize:
+                                            MediaQuery.of(context).size.width /
+                                                110,
+                                        color: Colors.black,
+                                        fontFamily: "R",
+                                      ),
+                                      enableSearch: true,
+                                      validator: (value) {
+                                        if (value == null) {
+                                          return "Required field";
+                                        } else {
+                                          return null;
+                                        }
+                                      },
+                                      dropDownItemCount: 8,
+                                      listPadding:
+                                          ListPadding(top: 0, bottom: 0),
+                                      dropDownList: [
+                                        for (var item in cities)
+                                          DropDownValueModel(
+                                              name: item['name'],
+                                              value: item['code']),
+                                      ],
+                                      onChanged: (selected) {
+                                        setState(() {
+                                          selectedCity = selected?.value;
+                                          selectedMunicipality =
+                                              null; // Disable municipality dropdown
+                                          selectedBarangay = null;
+                                          barangays = [];
+
+                                          _axisRow =
+                                              MainAxisAlignment.spaceBetween;
+                                        });
+                                        _loadBarangaysFromCity(selectedCity!);
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(width: width / 50),
+                              Column(
+                                children: [
+                                  Text(
+                                    "Specify Municipality",
+                                    style: TextStyle(
+                                        fontSize: width / 90,
+                                        color: Colors.black,
+                                        fontFamily: "R"),
+                                  ),
+                                  SizedBox(height: width / 170),
+                                  Container(
+                                    height: width / 35,
+                                    width: width / 8,
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.black54),
+                                      borderRadius:
+                                          BorderRadius.circular(width / 150),
+                                      color: selectedCity == null
+                                          ? Colors.white
+                                          : Colors.grey[300],
+                                    ),
+                                    child: DropDownTextField(
+                                      isEnabled: selectedCity ==
+                                          null, // Disable if city is selected
+                                      searchTextStyle: TextStyle(
+                                        fontSize:
+                                            MediaQuery.of(context).size.width /
+                                                110,
+                                        color: Colors.black,
+                                        fontFamily: "R",
+                                      ),
+                                      searchKeyboardType: TextInputType.text,
+                                      searchDecoration: InputDecoration(
+                                        hintText: "Search",
+                                        hintStyle: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              140,
+                                          color: Colors.black,
+                                          fontFamily: "R",
+                                        ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
+                                      ),
+                                      clearOption: true,
+                                      listTextStyle: TextStyle(
+                                        fontSize:
+                                            MediaQuery.of(context).size.width /
+                                                110,
+                                        color: Colors.black,
+                                        fontFamily: "R",
+                                      ),
+                                      textStyle: TextStyle(
+                                        fontSize:
+                                            MediaQuery.of(context).size.width /
+                                                110,
+                                        color: Colors.black,
+                                        fontFamily: "R",
+                                      ),
+                                      enableSearch: true,
+                                      validator: (value) {
+                                        if (value == null) {
+                                          return "Required field";
+                                        } else {
+                                          return null;
+                                        }
+                                      },
+                                      dropDownItemCount: 8,
+                                      listPadding:
+                                          ListPadding(top: 0, bottom: 0),
+                                      dropDownList: [
+                                        for (var item in municipalities)
+                                          DropDownValueModel(
+                                              name: item['name'],
+                                              value: item['code']),
+                                      ],
+                                      onChanged: (selected) {
+                                        setState(() {
+                                          selectedMunicipality =
+                                              selected?.value;
+                                          selectedCity =
+                                              null; // Disable city dropdown
+                                          selectedBarangay = null;
+                                          barangays = [];
+
+                                          _axisRow =
+                                              MainAxisAlignment.spaceBetween;
+                                        });
+                                        _loadBarangaysFromMunicipality(
+                                            selectedMunicipality!);
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+
+                          if (selectedCity != null ||
+                              selectedMunicipality != null) ...[
+                            SizedBox(width: width / 50),
+
+                            // Barangay Dropdown
                             Column(
                               children: [
                                 Text(
                                   "Specify Barangay",
                                   style: TextStyle(
-                                    fontSize: width / 90,
-                                    color: Colors.black,
-                                    fontFamily: "R",
-                                  ),
+                                      fontSize: width / 90,
+                                      color: Colors.black,
+                                      fontFamily: "R"),
                                 ),
                                 SizedBox(height: width / 170),
                                 Container(
                                   height: width / 35,
-                                  width: width / 8.3,
+                                  width: width / 8,
                                   decoration: BoxDecoration(
                                     border: Border.all(color: Colors.black54),
                                     borderRadius:
@@ -2258,37 +2581,51 @@ class _SettingsSUState extends State<SettingsSU> {
                                   ),
                                   child: DropDownTextField(
                                     searchTextStyle: TextStyle(
-                                      fontSize: width / 110,
+                                      fontSize:
+                                          MediaQuery.of(context).size.width /
+                                              110,
                                       color: Colors.black,
                                       fontFamily: "R",
                                     ),
                                     searchKeyboardType: TextInputType.text,
                                     searchDecoration: InputDecoration(
-                                      hintText: "Search Barangay",
+                                      hintText: "Search",
                                       hintStyle: TextStyle(
-                                        fontSize: width / 140,
+                                        fontSize:
+                                            MediaQuery.of(context).size.width /
+                                                140,
                                         color: Colors.black,
                                         fontFamily: "R",
                                       ),
                                       border: OutlineInputBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(width / 150),
+                                        borderRadius: BorderRadius.circular(
+                                            MediaQuery.of(context).size.width /
+                                                150),
                                       ),
                                     ),
                                     clearOption: true,
                                     listTextStyle: TextStyle(
-                                      fontSize: width / 110,
+                                      fontSize:
+                                          MediaQuery.of(context).size.width /
+                                              110,
                                       color: Colors.black,
                                       fontFamily: "R",
                                     ),
                                     textStyle: TextStyle(
-                                      fontSize: width / 110,
+                                      fontSize:
+                                          MediaQuery.of(context).size.width /
+                                              110,
                                       color: Colors.black,
                                       fontFamily: "R",
                                     ),
                                     enableSearch: true,
-                                    validator: (value) =>
-                                        value == null ? "Required field" : null,
+                                    validator: (value) {
+                                      if (value == null) {
+                                        return "Required field";
+                                      } else {
+                                        return null;
+                                      }
+                                    },
                                     dropDownItemCount: 8,
                                     listPadding: ListPadding(top: 0, bottom: 0),
                                     dropDownList: [
@@ -2309,6 +2646,252 @@ class _SettingsSUState extends State<SettingsSU> {
                           ],
                         ],
                       ),
+                      SizedBox(height: MediaQuery.of(context).size.height / 50),
+                      Container(
+                          child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                            if (selectedBarangay != null) ...[
+                              Column(
+                                children: [
+                                  Text("Zipcode",
+                                      style: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              90,
+                                          color: Colors.black,
+                                          fontFamily: "R")),
+                                  SizedBox(
+                                    height:
+                                        MediaQuery.of(context).size.width / 170,
+                                  ),
+                                  Container(
+                                    width:
+                                        MediaQuery.of(context).size.width / 6,
+                                    height:
+                                        MediaQuery.of(context).size.width / 35,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(
+                                          MediaQuery.of(context).size.width /
+                                              150),
+                                    ),
+                                    child: TextField(
+                                      style: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              110,
+                                          color: Colors.black,
+                                          fontFamily: "R"),
+                                      decoration: InputDecoration(
+                                        contentPadding: EdgeInsets.all(
+                                            MediaQuery.of(context).size.width /
+                                                120),
+                                        hintText: "Zipcode",
+                                        hintStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.grey,
+                                            fontFamily: "R"),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(
+                                  width:
+                                      MediaQuery.of(context).size.width / 50),
+                              Column(
+                                children: [
+                                  Text("House/Block/Lot Number",
+                                      style: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              90,
+                                          color: Colors.black,
+                                          fontFamily: "R")),
+                                  SizedBox(
+                                    height:
+                                        MediaQuery.of(context).size.width / 170,
+                                  ),
+                                  Container(
+                                    width:
+                                        MediaQuery.of(context).size.width / 6,
+                                    height:
+                                        MediaQuery.of(context).size.width / 35,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(
+                                          MediaQuery.of(context).size.width /
+                                              150),
+                                    ),
+                                    child: TextField(
+                                      style: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              110,
+                                          color: Colors.black,
+                                          fontFamily: "R"),
+                                      decoration: InputDecoration(
+                                        contentPadding: EdgeInsets.all(
+                                            MediaQuery.of(context).size.width /
+                                                120),
+                                        hintText: "House/Block/Lot Number",
+                                        hintStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.grey,
+                                            fontFamily: "R"),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(
+                                  width:
+                                      MediaQuery.of(context).size.width / 50),
+                              Column(
+                                children: [
+                                  Text("Street",
+                                      style: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              90,
+                                          color: Colors.black,
+                                          fontFamily: "R")),
+                                  SizedBox(
+                                    height:
+                                        MediaQuery.of(context).size.width / 170,
+                                  ),
+                                  Container(
+                                    width:
+                                        MediaQuery.of(context).size.width / 6,
+                                    height:
+                                        MediaQuery.of(context).size.width / 35,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(
+                                          MediaQuery.of(context).size.width /
+                                              150),
+                                    ),
+                                    child: TextField(
+                                      style: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              110,
+                                          color: Colors.black,
+                                          fontFamily: "R"),
+                                      decoration: InputDecoration(
+                                        contentPadding: EdgeInsets.all(
+                                            MediaQuery.of(context).size.width /
+                                                120),
+                                        hintText: "Street",
+                                        hintStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.grey,
+                                            fontFamily: "R"),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(
+                                  width:
+                                      MediaQuery.of(context).size.width / 50),
+                              Column(
+                                children: [
+                                  Text("Subdivision",
+                                      style: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              90,
+                                          color: Colors.black,
+                                          fontFamily: "R")),
+                                  SizedBox(
+                                    height:
+                                        MediaQuery.of(context).size.width / 170,
+                                  ),
+                                  Container(
+                                    width:
+                                        MediaQuery.of(context).size.width / 6,
+                                    height:
+                                        MediaQuery.of(context).size.width / 35,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(
+                                          MediaQuery.of(context).size.width /
+                                              150),
+                                    ),
+                                    child: TextField(
+                                      style: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              110,
+                                          color: Colors.black,
+                                          fontFamily: "R"),
+                                      decoration: InputDecoration(
+                                        contentPadding: EdgeInsets.all(
+                                            MediaQuery.of(context).size.width /
+                                                120),
+                                        hintText: "Subdivision",
+                                        hintStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.grey,
+                                            fontFamily: "R"),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ])),
+                      SizedBox(height: MediaQuery.of(context).size.height / 50),
                     ],
                   ),
                 ),
@@ -2325,6 +2908,11 @@ class _SettingsSUState extends State<SettingsSU> {
                         fontFamily: "BL"),
                   ),
                 ),
+                Container(
+                  color: Colors.red,
+                  height: MediaQuery.of(context).size.width / 5,
+                  width: MediaQuery.of(context).size.width / 1.328,
+                ),
               ],
             ),
           ),
@@ -2337,9 +2925,21 @@ class _SettingsSUState extends State<SettingsSU> {
 class PSGCService {
   final String baseUrl = 'https://psgc.gitlab.io/api';
 
-  // Fetch provinces
-  Future<List<dynamic>> fetchProvinces() async {
-    final response = await http.get(Uri.parse('$baseUrl/provinces.json'));
+  /// Fetch all regions
+  Future<List<dynamic>> fetchRegions() async {
+    final response = await http.get(Uri.parse('$baseUrl/regions.json'));
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to load regions');
+    }
+  }
+
+  /// Fetch provinces by regionCode (if the region has provinces)
+  Future<List<dynamic>> fetchProvinces(String regionCode) async {
+    final response = await http
+        .get(Uri.parse('$baseUrl/regions/$regionCode/provinces.json'));
+
     if (response.statusCode == 200) {
       return json.decode(response.body);
     } else {
@@ -2347,10 +2947,24 @@ class PSGCService {
     }
   }
 
-  // Fetch municipalities by province code
-  Future<List<dynamic>> fetchMunicipalities(String provinceCode) async {
+  /// Fetch cities/municipalities if the region does NOT have provinces (e.g., NCR)
+  Future<List<dynamic>> fetchCitiesMunicipalitiesByRegion(
+      String regionCode) async {
+    final response = await http.get(
+        Uri.parse('$baseUrl/regions/$regionCode/cities-municipalities.json'));
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to load cities/municipalities');
+    }
+  }
+
+  /// Fetch municipalities by province code
+  Future<List<dynamic>> fetchMunicipalitiesForNCR(String provinceCode) async {
     final response = await http
         .get(Uri.parse('$baseUrl/provinces/$provinceCode/municipalities.json'));
+
     if (response.statusCode == 200) {
       return json.decode(response.body);
     } else {
@@ -2358,15 +2972,10 @@ class PSGCService {
     }
   }
 
-  // Fetch cities by province code (NEW METHOD)
-  Future<List<dynamic>> fetchCities(String provinceCode) async {
-    final url = '$baseUrl/provinces/$provinceCode/cities.json';
-    print("Fetching cities from: $url"); // Debugging
-
-    final response = await http.get(Uri.parse(url));
-
-    print("Response Code: ${response.statusCode}");
-    print("Response Body: ${response.body}");
+  /// Fetch cities by province code
+  Future<List<dynamic>> fetchCitiesForNCR(String provinceCode) async {
+    final response = await http
+        .get(Uri.parse('$baseUrl/provinces/$provinceCode/cities.json'));
 
     if (response.statusCode == 200) {
       return json.decode(response.body);
@@ -2375,14 +2984,65 @@ class PSGCService {
     }
   }
 
-  // Fetch barangays by municipality code
-  Future<List<dynamic>> fetchBarangays(String municipalityOrCityCode) async {
+  /// Fetch barangays by city/municipality code
+  Future<List<dynamic>> fetchBarangaysForNCR(
+      String cityOrMunicipalityCode) async {
     final response = await http.get(Uri.parse(
-        '$baseUrl/municipalities/$municipalityOrCityCode/barangays.json'));
+        '$baseUrl/cities-municipalities/$cityOrMunicipalityCode/barangays.json'));
+
     if (response.statusCode == 200) {
       return json.decode(response.body);
     } else {
       throw Exception('Failed to load barangays');
+    }
+  }
+
+  /// Fetch municipalities by province code
+  Future<List<dynamic>> fetchMunicipalitiesByProvince(
+      String provinceCode) async {
+    final response = await http
+        .get(Uri.parse('$baseUrl/provinces/$provinceCode/municipalities.json'));
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to load municipalities');
+    }
+  }
+
+  /// Fetch cities by province code
+  Future<List<dynamic>> fetchCitiesByProvince(String provinceCode) async {
+    final response = await http
+        .get(Uri.parse('$baseUrl/provinces/$provinceCode/cities.json'));
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to load cities');
+    }
+  }
+
+  /// Fetch barangays by city or municipality code
+  Future<List<dynamic>> fetchBarangaysByCity(String cityCode) async {
+    final response =
+        await http.get(Uri.parse('$baseUrl/cities/$cityCode/barangays.json'));
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to load barangays for city');
+    }
+  }
+
+  Future<List<dynamic>> fetchBarangaysByMunicipality(
+      String municipalityCode) async {
+    final response = await http.get(
+        Uri.parse('$baseUrl/municipalities/$municipalityCode/barangays.json'));
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to load barangays for municipality');
     }
   }
 }
