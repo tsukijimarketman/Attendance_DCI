@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -16,11 +15,11 @@ class MakeAForm extends StatefulWidget {
 class _MakeAFormState extends State<MakeAForm> {
   final TextEditingController agendaController = TextEditingController();
   final TextEditingController departmentController = TextEditingController();
-  final TextEditingController expiryController = TextEditingController();
+  final TextEditingController scheduleController = TextEditingController();
 
   String firstName = "";
   String lastName = "";
-  DateTime? selectedExpiryTime; // Store selected date-time
+  DateTime? selectedScheduleTime; // Store selected date-time
 
   @override
   void initState() {
@@ -59,22 +58,84 @@ class _MakeAFormState extends State<MakeAForm> {
     }
   }
 
+  void pickScheduleDateTime() async {
+    DateTime now = DateTime.now();
+
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now,
+      lastDate: DateTime(2100),
+    );
+
+    if (pickedDate == null) return;
+
+    TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+
+    if (pickedTime == null) return;
+
+    DateTime fullDateTime = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+
+     setState(() {
+    selectedScheduleTime = fullDateTime;
+    scheduleController.text = formatDateTime(fullDateTime);
+  });
+}
+
+// Function to format date-time
+String formatDateTime(DateTime dateTime) {
+  return "${_monthName(dateTime.month)} ${dateTime.day} ${dateTime.year} "
+         "${_formatHour(dateTime.hour)}:${_formatMinute(dateTime.minute)} "
+         "${dateTime.hour >= 12 ? 'PM' : 'AM'}";
+}
+
+String _monthName(int month) {
+  List<String> months = [
+    "", "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+  return months[month];
+}
+
+String _formatHour(int hour) {
+  int formattedHour = hour % 12 == 0 ? 12 : hour % 12;
+  return formattedHour.toString();
+}
+
+String _formatMinute(int minute) {
+  return minute.toString().padLeft(2, '0');
+}
+
   void generateQRCode() {
-  if (selectedExpiryTime == null) {
+  if (agendaController.text.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Please select an expiration date and time")),
     );
     return;
   }
 
-  int expiryTime = selectedExpiryTime!.millisecondsSinceEpoch;
+  int now = DateTime.now().millisecondsSinceEpoch;
+  
+  int qrExpiryTime = now + (30 * 60 * 1000);
+  // Form expires in 1 hour
+  int formExpiryTime = now + (60 * 60 * 1000);
 
   String qrUrl = "https://attendance-dci.web.app//#/attendance_form"
       "?agenda=${Uri.encodeComponent(agendaController.text)}"
       "&department=${Uri.encodeComponent(departmentController.text)}"
       "&first_name=${Uri.encodeComponent(firstName)}"
       "&last_name=${Uri.encodeComponent(lastName)}"
-      "&expiryTime=${expiryTime}";
+"&selectedScheduleTime=${selectedScheduleTime?.millisecondsSinceEpoch ?? ""}"
+      "&expiryTime=${formExpiryTime}";
 
   Navigator.push(
     context,
@@ -83,47 +144,10 @@ class _MakeAFormState extends State<MakeAForm> {
         qrData: qrUrl,
         firstName: firstName,
         lastName: lastName,
-        expiryTime: expiryTime,
+        expiryTime: qrExpiryTime,
       ),
     ),
   );
-}
-
-
-  void pickExpiryDateTime() async {
-  DateTime now = DateTime.now();
-
-  // Show Date Picker
-  DateTime? pickedDate = await showDatePicker(
-    context: context,
-    initialDate: now,
-    firstDate: now,
-    lastDate: DateTime(2100),
-  );
-
-  if (pickedDate == null) return; // User canceled
-
-  // Show Time Picker
-  TimeOfDay? pickedTime = await showTimePicker(
-    context: context,
-    initialTime: TimeOfDay.now(),
-  );
-
-  if (pickedTime == null) return; // User canceled
-
-  // Combine Date & Time
-  DateTime fullDateTime = DateTime(
-    pickedDate.year,
-    pickedDate.month,
-    pickedDate.day,
-    pickedTime.hour,
-    pickedTime.minute,
-  );
-
-  setState(() {
-    selectedExpiryTime = fullDateTime;
-    expiryController.text = "${fullDateTime.toLocal()}".split('.')[0]; // Format display
-  });
 }
 
   @override
@@ -180,7 +204,7 @@ class _MakeAFormState extends State<MakeAForm> {
               height: 10,
             ),
             GestureDetector(
-  onTap: pickExpiryDateTime,
+  onTap: pickScheduleDateTime,
   child: Container(
     height: 50,
     width: 400,
@@ -191,9 +215,9 @@ class _MakeAFormState extends State<MakeAForm> {
       color: Colors.grey[200], // Non-editable look
     ),
     child: Text(
-      selectedExpiryTime != null
-          ? "${selectedExpiryTime!.toLocal()}".split('.')[0]
-          : "Select Expiration Date & Time",
+      selectedScheduleTime  != null
+          ? "${selectedScheduleTime !.toLocal()}".split('.')[0]
+          : "Select Date & Time For Appointment",
       style: TextStyle(fontSize: 16, color: Colors.black),
     ),
   ),

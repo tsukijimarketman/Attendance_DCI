@@ -2,6 +2,8 @@
 import 'package:attendance_app/Animation/Animation.dart';
 import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_dash.dart';
 import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/make_a_form.dart';
+import 'package:attendance_app/add_client.dart';
+import 'package:attendance_app/schedule_appointment.dart';
 import 'package:flutter/material.dart';
 import 'package:sidebarx/sidebarx.dart';
 
@@ -89,9 +91,9 @@ class _Manager_DashboardState extends State<Manager_Dashboard> {
       case 0:
         return const Manager_Dash();
       case 1:
-        return const MakeAForm();
+        return const ScheduleAppointment();
       case 2:
-        return const Text('HEHE');
+        return const AddClient();      
       case 3:
         return const Text(
           'Logging out...',

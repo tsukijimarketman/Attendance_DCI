@@ -25,6 +25,7 @@ dependencies:
   intl: ^0.20.2
   supabase_flutter: ^2.8.4
   image_picker: ^1.1.2
+  standard_searchbar: ^2.1.1
 
 dev_dependencies:
   flutter_test:

@@ -107,29 +107,33 @@ Widget build(BuildContext context) {
                   var data = uniqueAttendanceDocs[index].data() as Map<String, dynamic>;
                   String agenda = data['agenda'] ?? 'N/A';
 
-                  return ListTile(
-                    title: Text(
-                      agenda,
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+                  return Card(
+                    color: Colors.grey.shade300,
+                    elevation: 10,
+                    child: ListTile(
+                      title: Text(
+                        agenda,
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Created on: ${formatTimestamp(data['timestamp'] as Timestamp?)}",
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: Colors.black),
+                          ),
+                        ],
+                      ),
+                      trailing: Icon(Icons.arrow_forward),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AllAttendee(selectedAgenda: agenda),
+                          ),
+                        );
+                      },
                     ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Created on: ${formatTimestamp(data['timestamp'] as Timestamp?)}",
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: Colors.black),
-                        ),
-                      ],
-                    ),
-                    trailing: Icon(Icons.arrow_forward),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AllAttendee(selectedAgenda: agenda),
-                        ),
-                      );
-                    },
                   );
                 },
               );
