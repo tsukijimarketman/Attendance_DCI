@@ -18,13 +18,15 @@ class SuperUserDashboard extends StatefulWidget {
 }
 
 class _SuperUserDashboardState extends State<SuperUserDashboard> {
-  var _controller =
+  final _controller =
       SidebarXController(selectedIndex: 0); // Start with Dashboard
 
   Color color1 = Colors.grey;
   Color color2 = Colors.grey;
   Color color3 = Colors.grey;
   Color color4 = Colors.grey;
+
+  IconData iconSettings = Icons.settings;
 
   @override
   void initState() {
@@ -202,157 +204,125 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
               width: MediaQuery.of(context).size.width / 30,
             ),
             GestureDetector(
-              onTap: () {
-                setState(() {
-                  if (isHeadersClicked == false) {
-                    setState(() {
-                      isHeadersClicked = true;
-                      selectedOption = "Notifications";
-                      _controller = SidebarXController(selectedIndex: -1);
-                    });
-                  } else if (isHeadersClicked == true) {
-                    setState(() {
-                      isHeadersClicked = false;
-                      selectedOption = "";
-
-                      _controller = SidebarXController(selectedIndex: 0);
-                    });
-                  }
-                });
-              },
-              child: MouseRegion(
-                onEnter: (event) {
-                  setState(() {
-                    color1 = Color.fromARGB(255, 11, 55, 99);
-                  });
-                },
-                onExit: (event) {
-                  setState(() {
-                    color1 = Colors.grey;
-                  });
-                },
-                child: Tooltip(
-                  message: 'Notifications',
-                  preferBelow: false,
-                  decoration: BoxDecoration(color: Colors.transparent),
-                  textStyle: TextStyle(
-                      color: Color.fromARGB(255, 11, 55, 99),
-                      fontFamily: "B",
-                      fontSize: MediaQuery.of(context).size.width / 140),
-                  padding: EdgeInsets.symmetric(
-                      horizontal: MediaQuery.of(context).size.width / 120,
-                      vertical: MediaQuery.of(context).size.width / 160),
-                  child: Icon(
-                    Icons.notifications_none,
-                    color: color1,
-                    size: MediaQuery.of(context).size.width / 58,
-                  ),
-                ),
-              ),
-            ).showCursorOnHover,
+                    onTap: () {
+                      setState(() {
+                        if (selectedOption == "Settings") {
+                          // If Settings is clicked again, toggle the visibility of the page
+                          if (isHeadersClicked) {
+                            isHeadersClicked = false;
+                          } else {
+                            selectedOption = "Settings";
+                            isHeadersClicked = true;
+                          }
+                        } else {
+                          // If a different option is clicked, set it as the selected option
+                          selectedOption = "Settings";
+                          isHeadersClicked = true;
+                        }
+                      });
+                    },
+                    child: selectedOption == "Settings" &&
+                            isHeadersClicked == false
+                        ? MouseRegion(
+                            onEnter: (event) {
+                              setState(() {
+                                color2 = Color.fromARGB(255, 11, 55, 99);
+                              });
+                            },
+                            onExit: (event) {
+                              setState(() {
+                                color2 = Colors.grey;
+                              });
+                            },
+                            child: Tooltip(
+                              message: 'Settings',
+                              preferBelow: false,
+                              decoration:
+                                  BoxDecoration(color: Colors.transparent),
+                              textStyle: TextStyle(
+                                  color: Color.fromARGB(255, 11, 55, 99),
+                                  fontFamily: "B",
+                                  fontSize:
+                                      MediaQuery.of(context).size.width / 140),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal:
+                                      MediaQuery.of(context).size.width / 120,
+                                  vertical:
+                                      MediaQuery.of(context).size.width / 160),
+                              child: Icon(
+                                Icons.settings_outlined,
+                                color: color2,
+                                size: MediaQuery.of(context).size.width / 60,
+                              ),
+                            ),
+                          )
+                        : Tooltip(
+                            message: 'Settings',
+                            preferBelow: false,
+                            decoration:
+                                BoxDecoration(color: Colors.transparent),
+                            textStyle: TextStyle(
+                                color: Color.fromARGB(255, 11, 55, 99),
+                                fontFamily: "B",
+                                fontSize:
+                                    MediaQuery.of(context).size.width / 140),
+                            padding: EdgeInsets.symmetric(
+                                horizontal:
+                                    MediaQuery.of(context).size.width / 120,
+                                vertical:
+                                    MediaQuery.of(context).size.width / 160),
+                            child: Icon(
+                              isHeadersClicked == true &&
+                                      selectedOption == "Settings"
+                                  ? iconSettings
+                                  : Icons.settings_outlined,
+                              color: isHeadersClicked == true &&
+                                      selectedOption == "Settings"
+                                  ? Color.fromARGB(255, 11, 55, 99)
+                                  : Colors.grey,
+                              size: MediaQuery.of(context).size.width / 60,
+                            ),
+                          ))
+                .showCursorOnHover,
             SizedBox(
               width: MediaQuery.of(context).size.width / 40,
             ),
             GestureDetector(
               onTap: () {
                 setState(() {
-                  if (isHeadersClicked == false) {
-                    setState(() {
-                      isHeadersClicked = true;
-                      selectedOption = "Settings";
-
-                      _controller = SidebarXController(selectedIndex: -1);
-                    });
-                  } else if (isHeadersClicked == true) {
-                    setState(() {
+                  if (selectedOption == "Audit Logs") {
+                    // If Audit Logs is clicked again, toggle the visibility of the page
+                    if (isHeadersClicked) {
                       isHeadersClicked = false;
-                      selectedOption = "";
-
-                      _controller = SidebarXController(selectedIndex: 0);
-                    });
-                  }
-                });
-              },
-              child: MouseRegion(
-                onEnter: (event) {
-                  setState(() {
-                    color2 = Color.fromARGB(255, 11, 55, 99);
-                  });
-                },
-                onExit: (event) {
-                  setState(() {
-                    color2 = Colors.grey;
-                  });
-                },
-                child: Tooltip(
-                  message: 'Settings',
-                  preferBelow: false,
-                  decoration: BoxDecoration(color: Colors.transparent),
-                  textStyle: TextStyle(
-                      color: Color.fromARGB(255, 11, 55, 99),
-                      fontFamily: "B",
-                      fontSize: MediaQuery.of(context).size.width / 140),
-                  padding: EdgeInsets.symmetric(
-                      horizontal: MediaQuery.of(context).size.width / 120,
-                      vertical: MediaQuery.of(context).size.width / 160),
-                  child: Icon(
-                    Icons.settings_outlined,
-                    color: color2,
-                    size: MediaQuery.of(context).size.width / 60,
-                  ),
-                ),
-              ),
-            ).showCursorOnHover,
-            SizedBox(
-              width: MediaQuery.of(context).size.width / 40,
-            ),
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  if (isHeadersClicked == false) {
-                    setState(() {
-                      isHeadersClicked = true;
+                    } else {
                       selectedOption = "Audit Logs";
-
-                      _controller = SidebarXController(selectedIndex: -1);
-                    });
-                  } else if (isHeadersClicked == true) {
-                    setState(() {
-                      isHeadersClicked = false;
-                      selectedOption = "";
-
-                      _controller = SidebarXController(selectedIndex: 0);
-                    });
+                      isHeadersClicked = true;
+                    }
+                  } else {
+                    // If a different option is clicked, set it as the selected option
+                    selectedOption = "Audit Logs";
+                    isHeadersClicked = true;
                   }
                 });
               },
-              child: MouseRegion(
-                onEnter: (event) {
-                  setState(() {
-                    color3 = Color.fromARGB(255, 11, 55, 99);
-                  });
-                },
-                onExit: (event) {
-                  setState(() {
-                    color3 = Colors.grey;
-                  });
-                },
-                child: Tooltip(
-                  message: 'Audit Logs',
-                  preferBelow: false,
-                  decoration: BoxDecoration(color: Colors.transparent),
-                  textStyle: TextStyle(
-                      color: Color.fromARGB(255, 11, 55, 99),
-                      fontFamily: "B",
-                      fontSize: MediaQuery.of(context).size.width / 140),
-                  padding: EdgeInsets.symmetric(
-                      horizontal: MediaQuery.of(context).size.width / 120,
-                      vertical: MediaQuery.of(context).size.width / 160),
-                  child: Icon(
-                    Icons.history,
-                    color: color3,
-                    size: MediaQuery.of(context).size.width / 60,
-                  ),
+              child: Tooltip(
+                message: 'Audit Logs',
+                preferBelow: false,
+                decoration: BoxDecoration(color: Colors.transparent),
+                textStyle: TextStyle(
+                    color: Color.fromARGB(255, 11, 55, 99),
+                    fontFamily: "B",
+                    fontSize: MediaQuery.of(context).size.width / 140),
+                padding: EdgeInsets.symmetric(
+                    horizontal: MediaQuery.of(context).size.width / 120,
+                    vertical: MediaQuery.of(context).size.width / 160),
+                child: Icon(
+                  Icons.history,
+                  color:
+                      isHeadersClicked == true && selectedOption == "Audit Logs"
+                          ? Color.fromARGB(255, 11, 55, 99)
+                          : Colors.grey,
+                  size: MediaQuery.of(context).size.width / 60,
                 ),
               ),
             ).showCursorOnHover,
@@ -426,16 +396,6 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
                 selectedItemTextPadding:
                     const EdgeInsets.symmetric(horizontal: 20),
               ),
-              headerBuilder: (context, extended) {
-                return Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: SizedBox(
-                    height: 300, // Increase height
-                    width: 350, // Increase width
-                    child: AnimatedGlbViewer(),
-                  ),
-                );
-              },
               headerDivider: const Divider(thickness: 2, color: Colors.black12),
               items: [
                 SidebarXItem(icon: Icons.dashboard, label: 'Dashboard'),
@@ -449,13 +409,15 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
               child: isHeadersClicked
                   ? Row(
                       children: [
-                        selectedOption == "Notifications"
-                            ? NotificationsSU()
-                            : selectedOption == "Settings"
-                                ? SettingsSU()
-                                : selectedOption == "Audit Logs"
-                                    ? AuditSU()
-                                    : Container(),
+                        selectedOption == "Settings"
+                            ? SettingsSU()
+                            : selectedOption == "Audit Logs"
+                                ? AuditSU()
+                                : Container(
+                                    child: Center(
+                                      child: Text("Unexpected Error"),
+                                    ),
+                                  ),
                       ],
                     )
                   : Center(
