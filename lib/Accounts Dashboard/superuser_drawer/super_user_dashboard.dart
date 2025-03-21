@@ -168,7 +168,7 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
                   Padding(
                     padding: EdgeInsets.symmetric(
                         vertical: MediaQuery.of(context).size.width / 140),
-                    child: Image.asset("dci_logo.png",
+                    child: Image.asset("assets/dci_logo.png",
                         height: MediaQuery.of(context).size.width / 20),
                   ),
                 ],

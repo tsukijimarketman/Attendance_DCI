@@ -13,6 +13,7 @@ class AttendanceForm extends StatefulWidget {
   final String firstName;
   final String lastName;
   final int expiryTime;
+  final int selectedScheduleTime;
 
   const AttendanceForm({
     required this.expiryTime,
@@ -21,6 +22,7 @@ class AttendanceForm extends StatefulWidget {
     required this.agenda,
     required this.firstName,
     required this.lastName,
+    required this.selectedScheduleTime,
     super.key,
   });
 
@@ -35,22 +37,38 @@ class _AttendanceFormState extends State<AttendanceForm> {
   final TextEditingController contactController = TextEditingController();
   late Timer _timer;
   int remainingTime = 0; // Time in seconds
+  late DateTime scheduledTime; // Moved initialization inside initState()
 
  @override
-  void initState() {
-    super.initState();
-    int now = DateTime.now().millisecondsSinceEpoch;
+void initState() {
+  super.initState();
+  scheduledTime = DateTime.fromMillisecondsSinceEpoch(widget.selectedScheduleTime);
 
-    if (widget.expiryTime < now) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const NotFoundPage()),
-        );
-      });
-    } else {
-      _startCountdown();
-    }
+  int now = DateTime.now().millisecondsSinceEpoch;
+
+  // Check if QR Code expired (30 minutes limit)
+  int qrExpiryTime = widget.expiryTime - (30 * 60 * 1000);
+  if (now > qrExpiryTime) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const NotFoundPage()),
+      );
+    });
+    return;
   }
+
+  // Check if form expired (1-hour limit)
+  if (widget.expiryTime < now) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const NotFoundPage()),
+      );
+    });
+    return;
+  }
+
+  _startCountdown();
+}
 
   void _startCountdown() {
     int now = DateTime.now().millisecondsSinceEpoch;
@@ -115,10 +133,17 @@ class _AttendanceFormState extends State<AttendanceForm> {
       'agenda': widget.agenda,
       'department': widget.department,
       'createdBy': "${widget.firstName} ${widget.lastName}",
+      'selectedScheduleTime': widget.selectedScheduleTime,
     });
 
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Form submitted successfully!")));
   }
+
+  String formatDateTime(DateTime dateTime) {
+  return "${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')} "
+         "${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}";
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -130,6 +155,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
           children: [
             Text("Agenda: ${widget.agenda}"),
             Text("Department: ${widget.department}"),
+            Text("Schedule Appointment: ${formatDateTime(scheduledTime)}"),
             Text("Created by: ${widget.firstName} ${widget.lastName}"),
             remainingTime > 0
                 ? Text(

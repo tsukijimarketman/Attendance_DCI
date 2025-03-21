@@ -61,6 +61,9 @@ class MyApp extends StatelessWidget {
     // Parse expiry time and validate
     int expiryTime = int.tryParse(uri.queryParameters['expiryTime'] ?? "") ?? 0;
     int currentTime = DateTime.now().millisecondsSinceEpoch;
+    int selectedScheduleTime = int.tryParse(uri.queryParameters['selectedScheduleTime'] ?? "") ?? 0;
+
+    print("Schedule Appointment Time: $selectedScheduleTime");
 
     print("Extracted expiryTime: $expiryTime, Current Time: $currentTime");
 
@@ -70,12 +73,14 @@ class MyApp extends StatelessWidget {
 
     return MaterialPageRoute(
       builder: (context) => AttendanceForm(
+        selectedScheduleTime: selectedScheduleTime,
         expiryTime: expiryTime,
         roles: uri.queryParameters['roles'] ?? "",
         department: uri.queryParameters['department'] ?? "",
         agenda: uri.queryParameters['agenda'] ?? "",
         firstName: uri.queryParameters['first_name'] ?? "",
         lastName: uri.queryParameters['last_name'] ?? "",
+        
       ),
     );
   }
