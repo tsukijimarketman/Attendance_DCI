@@ -2909,10 +2909,222 @@ class _SettingsSUState extends State<SettingsSU> {
                   ),
                 ),
                 Container(
-                  color: Colors.red,
-                  height: MediaQuery.of(context).size.width / 5,
-                  width: MediaQuery.of(context).size.width / 1.328,
-                ),
+                    height: MediaQuery.of(context).size.width / 5,
+                    width: MediaQuery.of(context).size.width / 1.328,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Column(children: [
+                          SizedBox(
+                              height: MediaQuery.of(context).size.width / 80),
+                          Column(
+                            children: [
+                              Text("Email",
+                                  style: TextStyle(
+                                      fontSize:
+                                          MediaQuery.of(context).size.width /
+                                              90,
+                                      color: Colors.black,
+                                      fontFamily: "R")),
+                              SizedBox(
+                                height: MediaQuery.of(context).size.width / 170,
+                              ),
+                              Container(
+                                width: MediaQuery.of(context).size.width / 5.52,
+                                height: MediaQuery.of(context).size.width / 35,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(
+                                      MediaQuery.of(context).size.width / 150),
+                                ),
+                                child: TextField(
+                                  showCursor: false,
+                                  readOnly: true,
+                                  style: TextStyle(
+                                      fontSize:
+                                          MediaQuery.of(context).size.width /
+                                              110,
+                                      color: Colors.black,
+                                      fontFamily: "R"),
+                                  decoration: InputDecoration(
+                                    contentPadding: EdgeInsets.all(
+                                        MediaQuery.of(context).size.width /
+                                            120),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(
+                                          MediaQuery.of(context).size.width /
+                                              150),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(
+                              height: MediaQuery.of(context).size.width / 80),
+                          GestureDetector(
+                            onTap: () {},
+                            child: Container(
+                                width: MediaQuery.of(context).size.width / 5.52,
+                                height: MediaQuery.of(context).size.width / 35,
+                                decoration: BoxDecoration(
+                                  color: Colors.yellow,
+                                  borderRadius: BorderRadius.circular(
+                                      MediaQuery.of(context).size.width / 150),
+                                ),
+                                child: Center(
+                                    child: Text("Change Password",
+                                        style: TextStyle(
+                                            color: Colors.black,
+                                            fontFamily: "M",
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                100)))),
+                          ).showCursorOnHover.moveUpOnHover,
+                        ]),
+                        SizedBox(width: MediaQuery.of(context).size.width/50),
+                        Column(children: [
+                          SizedBox(
+                              height: MediaQuery.of(context).size.width / 80),
+                          Column(
+                            children: [
+                              Text("Password",
+                                  style: TextStyle(
+                                      fontSize:
+                                          MediaQuery.of(context).size.width /
+                                              90,
+                                      color: Colors.black,
+                                      fontFamily: "R")),
+                              SizedBox(
+                                height: MediaQuery.of(context).size.width / 170,
+                              ),
+                              Container(
+                                width: MediaQuery.of(context).size.width / 5.52,
+                                height: MediaQuery.of(context).size.width / 35,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(
+                                      MediaQuery.of(context).size.width / 150),
+                                ),
+                                child: TextField(
+                                  showCursor: false,
+                                  readOnly: true,
+                                  style: TextStyle(
+                                      fontSize:
+                                          MediaQuery.of(context).size.width /
+                                              110,
+                                      color: Colors.black,
+                                      fontFamily: "R"),
+                                  decoration: InputDecoration(
+                                    contentPadding: EdgeInsets.all(
+                                        MediaQuery.of(context).size.width /
+                                            120),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(
+                                          MediaQuery.of(context).size.width /
+                                              150),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(
+                              height: MediaQuery.of(context).size.width / 80),
+                          Column(
+                            children: [
+                              Text("Confirm Password",
+                                  style: TextStyle(
+                                      fontSize:
+                                          MediaQuery.of(context).size.width /
+                                              90,
+                                      color: Colors.black,
+                                      fontFamily: "R")),
+                              SizedBox(
+                                height: MediaQuery.of(context).size.width / 170,
+                              ),
+                              Container(
+                                width: MediaQuery.of(context).size.width / 5.52,
+                                height: MediaQuery.of(context).size.width / 35,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(
+                                      MediaQuery.of(context).size.width / 150),
+                                ),
+                                child: TextField(
+                                  showCursor: false,
+                                  readOnly: true,
+                                  style: TextStyle(
+                                      fontSize:
+                                          MediaQuery.of(context).size.width /
+                                              110,
+                                      color: Colors.black,
+                                      fontFamily: "R"),
+                                  decoration: InputDecoration(
+                                    contentPadding: EdgeInsets.all(
+                                        MediaQuery.of(context).size.width /
+                                            120),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(
+                                          MediaQuery.of(context).size.width /
+                                              150),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(
+                              height: MediaQuery.of(context).size.width / 80),
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () {},
+                                child: Container(
+                                    width: MediaQuery.of(context).size.width / 10,
+                                    height: MediaQuery.of(context).size.width / 35,
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      borderRadius: BorderRadius.circular(
+                                          MediaQuery.of(context).size.width / 150),
+                                    ),
+                                    child: Center(
+                                        child: Text("Cancel",
+                                            style: TextStyle(
+                                                color: Colors.white,
+                                                fontFamily: "M",
+                                                fontSize: MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    100)))),
+                              ).showCursorOnHover.moveUpOnHover,
+                              SizedBox(width: MediaQuery.of(context).size.width/100),
+                              GestureDetector(
+                                onTap: () {},
+                                child: Container(
+                                    width: MediaQuery.of(context).size.width / 10,
+                                    height: MediaQuery.of(context).size.width / 35,
+                                    decoration: BoxDecoration(
+                                      color: Colors.green,
+                                      borderRadius: BorderRadius.circular(
+                                          MediaQuery.of(context).size.width / 150),
+                                    ),
+                                    child: Center(
+                                        child: Text("Save",
+                                            style: TextStyle(
+                                                color: Colors.white,
+                                                fontFamily: "M",
+                                                fontSize: MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    100)))),
+                              ).showCursorOnHover.moveUpOnHover,
+                            ],
+                          ),
+                        ])
+                      ],
+                    )),
               ],
             ),
           ),
