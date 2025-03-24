@@ -1,9 +1,11 @@
 
+import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/Manager.dart';
 import 'package:attendance_app/Animation/Animation.dart';
-import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_dash.dart';
 import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/make_a_form.dart';
-import 'package:attendance_app/add_client.dart';
-import 'package:attendance_app/schedule_appointment.dart';
+import 'package:attendance_app/Appointment/add_client.dart';
+import 'package:attendance_app/Appointment/schedule_appointment.dart';
+import 'package:attendance_app/Auth/log_out.dart';
+import 'package:attendance_app/Auth/showDialogSignOut.dart';
 import 'package:flutter/material.dart';
 import 'package:sidebarx/sidebarx.dart';
 
@@ -89,17 +91,15 @@ class _Manager_DashboardState extends State<Manager_Dashboard> {
   Widget _buildPageContent() {
     switch (_controller.selectedIndex) {
       case 0:
-        return const Manager_Dash();
+        return const ManagerDash();
       case 1:
         return const ScheduleAppointment();
       case 2:
         return const AddClient();      
       case 3:
-        return const Text(
-          'Logging out...',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        );
-      default:
+        Future.delayed(Duration.zero, () => showSignOutDialog(context));
+        return Container();      
+        default:
         return const Text(
           'Select an option from the menu.',
           style: TextStyle(fontSize: 20),

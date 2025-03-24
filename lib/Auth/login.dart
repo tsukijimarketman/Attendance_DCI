@@ -5,7 +5,6 @@ import 'package:attendance_app/Accounts%20Dashboard/head_drawer/department_head_
 import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_dashoard.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/super_user_dashboard.dart';
 import 'package:attendance_app/Animation/text_reveal.dart';
-import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_dash.dart';
 import 'package:attendance_app/encryption/encryption_helper.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:attendance_app/widget/animated_textfield.dart';
@@ -234,47 +233,37 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
     );
   }
 
-  void checkUserRole(User user) async {
-    try {
-      // Query the users collection where the email matches the authenticated user's email
-      QuerySnapshot userSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .where('uid', isEqualTo: user.uid) // Match by email or user.uid
-          .get();
+  Future<Widget> checkUserRole(User user) async {
+  try {
+    QuerySnapshot userSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .where('uid', isEqualTo: user.uid)
+        .get();
 
-      if (userSnapshot.docs.isEmpty) {
-        // If no matching user is found, handle the error appropriately
-        print("User not found in Firestore");
-        return;
-      }
-
-      // Assuming you have a single user document matching the email
-      DocumentSnapshot userDoc = userSnapshot.docs.first;
-
-      // Get the role from the Firestore document
-      String role = userDoc['roles'];
-
-      if (role == "Manager") {
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (context) => Manager_Dashboard()));
-      } else if (role == "DepartmentHead") {
-        Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (context) => Deparment_Head_Dashboard()));
-      } else if (role == "Admin") {
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (context) => Admin_Dashboard()));
-      } else if (role == "Superuser") {
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (context) => SuperUserDashboard()));
-      } else {
-        print("Unknown role");
-      }
-    } catch (e) {
-      print("Error checking user role: $e");
+    if (userSnapshot.docs.isEmpty) {
+      print("User not found in Firestore");
+      return Login(); // If user not found, return to login screen
     }
+
+    DocumentSnapshot userDoc = userSnapshot.docs.first;
+    String role = userDoc['roles'];
+
+    if (role == "Manager") {
+      return Manager_Dashboard();
+    } else if (role == "DepartmentHead") {
+      return Deparment_Head_Dashboard();
+    } else if (role == "Admin") {
+      return Admin_Dashboard();
+    } else if (role == "Superuser") {
+      return SuperUserDashboard();
+    } else {
+      return Login();
+    }
+  } catch (e) {
+    print("Error checking user role: $e");
+    return Login();
   }
+}
 
   Widget SignIn() {
     return FadeTransition(

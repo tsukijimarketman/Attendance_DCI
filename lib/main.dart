@@ -1,23 +1,27 @@
 import 'package:attendance_app/404.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/super_user_dashboard.dart';
+import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_dashoard.dart';
 import 'package:attendance_app/firebase_options.dart';
 import 'package:attendance_app/form/form.dart';
-import 'package:attendance_app/head/login.dart';
+import 'package:attendance_app/Auth/Persistent.dart';
+import 'package:attendance_app/Auth/login.dart';
 import 'package:attendance_app/head/splashscreen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-// import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() async{
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  // await Supabase.initialize(
-  //   url: 'https://yvzrahtqpzwzawbzdeym.supabase.co', 
-  //   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2enJhaHRxcHp3emF3YnpkZXltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NTAwNDAsImV4cCI6MjA1NzQyNjA0MH0.UOxsh2Zif4Fq72MJhWfS1MAtGqg_w8w5c8DsmkaP8DI', 
-  // );
+  await Supabase.initialize(
+    url: 'https://yvzrahtqpzwzawbzdeym.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2enJhaHRxcHp3emF3YnpkZXltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NTAwNDAsImV4cCI6MjA1NzQyNjA0MH0.UOxsh2Zif4Fq72MJhWfS1MAtGqg_w8w5c8DsmkaP8DI');
+
+  await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
+
   runApp(MyApp());
   _hideBar();
 }
@@ -29,14 +33,13 @@ Future _hideBar() async {
 class MyApp extends StatelessWidget {
   MyApp({super.key});
 
-  
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'QR Code Attendance',
-      initialRoute: '/',
       onGenerateRoute: _generateRoute,
+      home: AuthPersistent(), // New wrapper to check authentication status
     );
   }
 
@@ -46,7 +49,7 @@ class MyApp extends StatelessWidget {
 
     switch (uri.path) {
       case '/':
-        return MaterialPageRoute(builder: (context) => const SuperUserDashboard());
+        return MaterialPageRoute(builder: (context) => const Login());
 
       case '/attendance_form':
         return _handleAttendanceFormRoute(uri);
@@ -61,7 +64,8 @@ class MyApp extends StatelessWidget {
     // Parse expiry time and validate
     int expiryTime = int.tryParse(uri.queryParameters['expiryTime'] ?? "") ?? 0;
     int currentTime = DateTime.now().millisecondsSinceEpoch;
-    int selectedScheduleTime = int.tryParse(uri.queryParameters['selectedScheduleTime'] ?? "") ?? 0;
+    int selectedScheduleTime =
+        int.tryParse(uri.queryParameters['selectedScheduleTime'] ?? "") ?? 0;
 
     print("Schedule Appointment Time: $selectedScheduleTime");
 
@@ -80,7 +84,6 @@ class MyApp extends StatelessWidget {
         agenda: uri.queryParameters['agenda'] ?? "",
         firstName: uri.queryParameters['first_name'] ?? "",
         lastName: uri.queryParameters['last_name'] ?? "",
-        
       ),
     );
   }
