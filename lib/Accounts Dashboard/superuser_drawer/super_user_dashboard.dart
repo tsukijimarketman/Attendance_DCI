@@ -4,7 +4,7 @@ import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/settings_su
 import 'package:attendance_app/Animation/Animation.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/references_su.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/usermanagement_su.dart';
-import 'package:attendance_app/head/login.dart';
+import 'package:attendance_app/Auth/login.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';

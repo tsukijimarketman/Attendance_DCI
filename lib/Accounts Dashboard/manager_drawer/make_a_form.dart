@@ -6,20 +6,20 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 class MakeAForm extends StatefulWidget {
-  const MakeAForm({super.key});
+  final TextEditingController agenda;
+
+  MakeAForm({super.key, required this.agenda});
 
   @override
   State<MakeAForm> createState() => _MakeAFormState();
 }
 
 class _MakeAFormState extends State<MakeAForm> {
-  final TextEditingController agendaController = TextEditingController();
   final TextEditingController departmentController = TextEditingController();
   final TextEditingController scheduleController = TextEditingController();
 
   String firstName = "";
   String lastName = "";
-  DateTime? selectedScheduleTime; // Store selected date-time
 
   @override
   void initState() {
@@ -45,7 +45,8 @@ class _MakeAFormState extends State<MakeAForm> {
           setState(() {
             firstName = userData['first_name'] ?? "N/A";
             lastName = userData['last_name'] ?? "N/A";
-            departmentController.text = userData['department'] ?? ""; // Set department field
+            departmentController.text =
+                userData['department'] ?? ""; // Set department field
           });
         } else {
           print("No user document found.");
@@ -58,97 +59,39 @@ class _MakeAFormState extends State<MakeAForm> {
     }
   }
 
-  void pickScheduleDateTime() async {
-    DateTime now = DateTime.now();
-
-    DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: now,
-      firstDate: now,
-      lastDate: DateTime(2100),
-    );
-
-    if (pickedDate == null) return;
-
-    TimeOfDay? pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-
-    if (pickedTime == null) return;
-
-    DateTime fullDateTime = DateTime(
-      pickedDate.year,
-      pickedDate.month,
-      pickedDate.day,
-      pickedTime.hour,
-      pickedTime.minute,
-    );
-
-     setState(() {
-    selectedScheduleTime = fullDateTime;
-    scheduleController.text = formatDateTime(fullDateTime);
-  });
-}
-
-// Function to format date-time
-String formatDateTime(DateTime dateTime) {
-  return "${_monthName(dateTime.month)} ${dateTime.day} ${dateTime.year} "
-         "${_formatHour(dateTime.hour)}:${_formatMinute(dateTime.minute)} "
-         "${dateTime.hour >= 12 ? 'PM' : 'AM'}";
-}
-
-String _monthName(int month) {
-  List<String> months = [
-    "", "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
-  ];
-  return months[month];
-}
-
-String _formatHour(int hour) {
-  int formattedHour = hour % 12 == 0 ? 12 : hour % 12;
-  return formattedHour.toString();
-}
-
-String _formatMinute(int minute) {
-  return minute.toString().padLeft(2, '0');
-}
-
   void generateQRCode() {
-  if (agendaController.text.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Please select an expiration date and time")),
-    );
-    return;
-  }
+    if (widget.agenda.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Please select an expiration date and time")),
+      );
+      return;
+    }
 
-  int now = DateTime.now().millisecondsSinceEpoch;
-  
-  int qrExpiryTime = now + (30 * 60 * 1000);
-  // Form expires in 1 hour
-  int formExpiryTime = now + (60 * 60 * 1000);
+    int now = DateTime.now().millisecondsSinceEpoch;
 
-  String qrUrl = "https://attendance-dci.web.app//#/attendance_form"
-      "?agenda=${Uri.encodeComponent(agendaController.text)}"
-      "&department=${Uri.encodeComponent(departmentController.text)}"
-      "&first_name=${Uri.encodeComponent(firstName)}"
-      "&last_name=${Uri.encodeComponent(lastName)}"
-"&selectedScheduleTime=${selectedScheduleTime?.millisecondsSinceEpoch ?? ""}"
-      "&expiryTime=${formExpiryTime}";
+    int qrExpiryTime = now + (30 * 60 * 1000);
+    // Form expires in 1 hour
+    int formExpiryTime = now + (60 * 60 * 1000);
 
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => QRCodeScreen(
-        qrData: qrUrl,
-        firstName: firstName,
-        lastName: lastName,
-        expiryTime: qrExpiryTime,
+    String qrUrl = "https://attendance-dci.web.app//#/attendance_form"
+        "?agenda=${Uri.encodeComponent(widget.agenda.text)}"
+        "&department=${Uri.encodeComponent(departmentController.text)}"
+        "&first_name=${Uri.encodeComponent(firstName)}"
+        "&last_name=${Uri.encodeComponent(lastName)}"
+        "&expiryTime=${formExpiryTime}";
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => QRCodeScreen(
+          qrData: qrUrl,
+          firstName: firstName,
+          lastName: lastName,
+          expiryTime: qrExpiryTime,
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -166,63 +109,40 @@ String _formatMinute(int minute) {
             Text('User: $firstName $lastName',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
             Container(
-  height: 50,
-  width: 400,
-  decoration: BoxDecoration(
-    border: Border.all(color: Colors.amber, width: 1),
-    borderRadius: BorderRadius.circular(10),
-    color: Colors.grey[200], // Light grey background to indicate it's non-editable
-  ),
-  child: CupertinoTextField(
-                controller: agendaController,
-                placeholder: 'Agenda',
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.amber, width: 1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
+              height: 50,
+              width: 400,
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.amber, width: 1),
+                borderRadius: BorderRadius.circular(10),
+                color: Colors.grey[
+                    200], // Light grey background to indicate it's non-editable
+              ),
+              child: Text(
+                '${widget.agenda.text}',
+                style: TextStyle(fontSize: 16, color: Colors.black),
               ),
             ),
             SizedBox(
               height: 10,
             ),
             Container(
-  height: 50,
-  width: 400,
-  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-  decoration: BoxDecoration(
-    border: Border.all(color: Colors.amber, width: 1),
-    borderRadius: BorderRadius.circular(10),
-    color: Colors.grey[200], // Light grey background to indicate it's non-editable
-  ),
-  child: Text(
-    departmentController.text.isNotEmpty ? departmentController.text : "Loading...",
-    style: TextStyle(fontSize: 16, color: Colors.black),
-  ),
-),
-
-            SizedBox(
-              height: 10,
+              height: 50,
+              width: 400,
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.amber, width: 1),
+                borderRadius: BorderRadius.circular(10),
+                color: Colors.grey[
+                    200], // Light grey background to indicate it's non-editable
+              ),
+              child: Text(
+                departmentController.text.isNotEmpty
+                    ? departmentController.text
+                    : "Loading...",
+                style: TextStyle(fontSize: 16, color: Colors.black),
+              ),
             ),
-            GestureDetector(
-  onTap: pickScheduleDateTime,
-  child: Container(
-    height: 50,
-    width: 400,
-    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-    decoration: BoxDecoration(
-      border: Border.all(color: Colors.amber, width: 1),
-      borderRadius: BorderRadius.circular(10),
-      color: Colors.grey[200], // Non-editable look
-    ),
-    child: Text(
-      selectedScheduleTime  != null
-          ? "${selectedScheduleTime !.toLocal()}".split('.')[0]
-          : "Select Date & Time For Appointment",
-      style: TextStyle(fontSize: 16, color: Colors.black),
-    ),
-  ),
-),
-
             SizedBox(
               height: 10,
             ),
@@ -256,13 +176,12 @@ class QRCodeScreen extends StatefulWidget {
   final String firstName;
   final String lastName;
 
-  const QRCodeScreen({
-    super.key, 
-    required this.expiryTime,
-    required this.qrData,
-    required this.firstName,
-    required this.lastName
-    });
+  const QRCodeScreen(
+      {super.key,
+      required this.expiryTime,
+      required this.qrData,
+      required this.firstName,
+      required this.lastName});
 
   @override
   State<QRCodeScreen> createState() => _QRCodeScreenState();
@@ -332,8 +251,7 @@ class _QRCodeScreenState extends State<QRCodeScreen> {
     return "$minutes:${secs.toString().padLeft(2, '0')}";
   }
 
-  
- @override
+  @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Center(
@@ -342,7 +260,10 @@ class _QRCodeScreenState extends State<QRCodeScreen> {
           children: [
             Text(
               'Scan the QR Code to fill the form',
-              style: TextStyle(fontSize: 20, color: Colors.black, fontWeight: FontWeight.w400),
+              style: TextStyle(
+                  fontSize: 20,
+                  color: Colors.black,
+                  fontWeight: FontWeight.w400),
             ),
             Text('Created By: ${widget.firstName} ${widget.lastName}',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
@@ -352,11 +273,17 @@ class _QRCodeScreenState extends State<QRCodeScreen> {
             remainingTime > 0
                 ? Text(
                     "Expires in: ${_formatTime(remainingTime)} minutes",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red),
                   )
                 : Text(
                     "QR Code Expired",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red),
                   ),
           ],
         ),
