@@ -1,9 +1,13 @@
+import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_appointment.dart';
 import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/manage_all_appointments.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/auditSU.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/notification_su.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/settings_su.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/super_user_dashboard.dart';
 import 'package:attendance_app/Animation/Animation.dart';
+import 'package:attendance_app/Appointment/add_client.dart';
+import 'package:attendance_app/Appointment/schedule_appointment.dart';
+import 'package:attendance_app/Auth/showDialogSignOut.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -31,110 +35,6 @@ class _Admin_DashboardState extends State<Admin_Dashboard> {
     _controller.addListener(() {
       setState(() {}); // Rebuild UI when selected index changes
     });
-  }
-
-  // Show logout confirmation dialog
-  Future<void> _showLogoutDialog() async {
-    bool? confirmLogout = await showDialog<bool>(
-      context: context,
-      barrierDismissible: true, // Don't close when tapping outside
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Container(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Icon(Icons.info_outline,
-                    color: Colors.grey,
-                    size: MediaQuery.of(context).size.width / 30),
-                Text(
-                  'Confirm Logout',
-                  style: TextStyle(
-                      fontFamily: "SB",
-                      fontSize: MediaQuery.of(context).size.width / 60),
-                ),
-              ],
-            ),
-          ),
-          content: Text(
-            'Are you sure you want to log out?',
-            style: TextStyle(
-                fontFamily: "R",
-                fontSize: MediaQuery.of(context).size.width / 80),
-          ),
-          actions: [
-            Row(
-              mainAxisSize: MainAxisSize.max,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context, false);
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(
-                          MediaQuery.of(context).size.width / 40),
-                      color: Colors.red,
-                    ),
-                    height: MediaQuery.of(context).size.width / 40,
-                    width: MediaQuery.of(context).size.width / 10,
-                    child: Center(
-                        child: Text(
-                      'No',
-                      style: TextStyle(
-                          fontFamily: "R",
-                          color: Colors.white,
-                          fontSize: MediaQuery.of(context).size.width / 80),
-                    )),
-                  ),
-                ).showCursorOnHover.moveUpOnHover,
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context, true);
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(
-                          MediaQuery.of(context).size.width / 40),
-                      color: Colors.green,
-                    ),
-                    height: MediaQuery.of(context).size.width / 40,
-                    width: MediaQuery.of(context).size.width / 10,
-                    child: Center(
-                        child: Text(
-                      'Yes',
-                      style: TextStyle(
-                          fontFamily: "R",
-                          color: Colors.white,
-                          fontSize: MediaQuery.of(context).size.width / 80),
-                    )),
-                  ),
-                ).showCursorOnHover.moveUpOnHover,
-              ],
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirmLogout == true) {
-      await _logout(); // Proceed with logout if user confirms
-    }
-  }
-
-  // Method to log the user out
-  Future<void> _logout() async {
-    try {
-      await FirebaseAuth.instance.signOut();
-      // After signing out, you can directly navigate to the login screen
-      Navigator.pushReplacementNamed(context, '/login');
-    } catch (e) {
-      // Handle logout error (if any)
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Logout failed: $e')),
-      );
-    }
   }
 
   bool isHeadersClicked = false;
@@ -360,7 +260,7 @@ class _Admin_DashboardState extends State<Admin_Dashboard> {
             ),
             GestureDetector(
               onTap: () {
-                _showLogoutDialog();
+                showSignOutDialog(context);
               },
               child: MouseRegion(
                 onEnter: (event) {
@@ -438,8 +338,9 @@ class _Admin_DashboardState extends State<Admin_Dashboard> {
               headerDivider: const Divider(thickness: 2, color: Colors.black12),
               items: [
                 SidebarXItem(icon: Icons.dashboard, label: 'Dashboard'),
-                SidebarXItem(icon: Icons.person_2, label: 'User Management'),
-                SidebarXItem(icon: Icons.room_preferences, label: 'References'),
+                SidebarXItem(icon: Icons.schedule_send_outlined, label: 'Scheduled Appointments'),
+                SidebarXItem(icon: Icons.schedule_outlined, label: 'Schedule a Appointment'), 
+                SidebarXItem(icon: Icons.person_2_outlined, label: 'Clients'),
               ],
             ),
 
@@ -471,11 +372,11 @@ class _Admin_DashboardState extends State<Admin_Dashboard> {
       case 0:
         return const ManageAllAppointments();
       case 1:
-        return const Text('Dashboard Page',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold));
+        return const AdminAppointment();
        case 2:
-        return const Text('Dashboard Page',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold));
+        return const ScheduleAppointment();
+       case 3: 
+        return const AddClient();
       default:
         return const Text('Select an option from the menu.',
             style: TextStyle(fontSize: 20));

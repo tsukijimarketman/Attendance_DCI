@@ -5,6 +5,7 @@ import 'package:attendance_app/Animation/Animation.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/references_su.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/usermanagement_su.dart';
 import 'package:attendance_app/Auth/login.dart';
+import 'package:attendance_app/Auth/showDialogSignOut.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -34,110 +35,6 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
     _controller.addListener(() {
       setState(() {}); // Rebuild UI when selected index changes
     });
-  }
-
-  // Show logout confirmation dialog
-  Future<void> _showLogoutDialog() async {
-    bool? confirmLogout = await showDialog<bool>(
-      context: context,
-      barrierDismissible: true, // Don't close when tapping outside
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Container(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Icon(Icons.info_outline,
-                    color: Colors.grey,
-                    size: MediaQuery.of(context).size.width / 30),
-                Text(
-                  'Confirm Logout',
-                  style: TextStyle(
-                      fontFamily: "SB",
-                      fontSize: MediaQuery.of(context).size.width / 60),
-                ),
-              ],
-            ),
-          ),
-          content: Text(
-            'Are you sure you want to log out?',
-            style: TextStyle(
-                fontFamily: "R",
-                fontSize: MediaQuery.of(context).size.width / 80),
-          ),
-          actions: [
-            Row(
-              mainAxisSize: MainAxisSize.max,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context, false);
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(
-                          MediaQuery.of(context).size.width / 40),
-                      color: Colors.red,
-                    ),
-                    height: MediaQuery.of(context).size.width / 40,
-                    width: MediaQuery.of(context).size.width / 10,
-                    child: Center(
-                        child: Text(
-                      'No',
-                      style: TextStyle(
-                          fontFamily: "R",
-                          color: Colors.white,
-                          fontSize: MediaQuery.of(context).size.width / 80),
-                    )),
-                  ),
-                ).showCursorOnHover.moveUpOnHover,
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context, true);
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(
-                          MediaQuery.of(context).size.width / 40),
-                      color: Colors.green,
-                    ),
-                    height: MediaQuery.of(context).size.width / 40,
-                    width: MediaQuery.of(context).size.width / 10,
-                    child: Center(
-                        child: Text(
-                      'Yes',
-                      style: TextStyle(
-                          fontFamily: "R",
-                          color: Colors.white,
-                          fontSize: MediaQuery.of(context).size.width / 80),
-                    )),
-                  ),
-                ).showCursorOnHover.moveUpOnHover,
-              ],
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirmLogout == true) {
-      await _logout(); // Proceed with logout if user confirms
-    }
-  }
-
-  // Method to log the user out
-  Future<void> _logout() async {
-    try {
-      await FirebaseAuth.instance.signOut();
-      // After signing out, you can directly navigate to the login screen
-      Navigator.pushReplacementNamed(context, '/login');
-    } catch (e) {
-      // Handle logout error (if any)
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Logout failed: $e')),
-      );
-    }
   }
 
   bool isHeadersClicked = false;
@@ -330,8 +227,8 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
               width: MediaQuery.of(context).size.width / 40,
             ),
             GestureDetector(
-              onTap: () {
-                _showLogoutDialog();
+              onTap:  (){
+                showSignOutDialog(context);
               },
               child: MouseRegion(
                 onEnter: (event) {

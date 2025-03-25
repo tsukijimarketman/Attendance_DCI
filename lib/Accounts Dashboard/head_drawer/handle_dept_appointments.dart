@@ -1,17 +1,17 @@
-import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/all_admin_attendee.dart';
+import 'package:attendance_app/Appointment/appointment_details.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-class ManageAllAppointments extends StatefulWidget {
-  const ManageAllAppointments({super.key});
+class HandleDeptAppointments extends StatefulWidget {
+  const HandleDeptAppointments({super.key});
 
   @override
-  State<ManageAllAppointments> createState() => _ManageAllAppointmentsState();
+  State<HandleDeptAppointments> createState() => _HandleDeptAppointmentsState();
 }
 
-class _ManageAllAppointmentsState extends State<ManageAllAppointments> {
+class _HandleDeptAppointmentsState extends State<HandleDeptAppointments> {
   String userDepartment = '';
   String first_name = '';
   String last_name = '';
@@ -20,8 +20,41 @@ class _ManageAllAppointmentsState extends State<ManageAllAppointments> {
   @override
   void initState() {
     super.initState();
-            isLoading = false;
+      fetchUserDepartment(); // This will call updateAppointmentStatuses once completed
 
+}
+
+// Function to check and update appointment statuses
+Future<void> updateAppointmentStatuses() async {
+  try {
+    // Get all scheduled appointments for the user's department
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection('appointment')
+        .where('department', isEqualTo: userDepartment)
+        .where('status', isEqualTo: "Scheduled") // Only check scheduled ones
+        .get();
+
+    DateTime now = DateTime.now();
+
+    for (var doc in querySnapshot.docs) {
+      var data = doc.data() as Map<String, dynamic>;
+
+      if (data['schedule'] != null) {
+        DateTime? appointmentDate = _parseSchedule(data['schedule']);
+
+        if (appointmentDate != null && appointmentDate.isBefore(now)) {
+          // If the scheduled date has passed, update status to "In Progress"
+          await FirebaseFirestore.instance
+              .collection('appointment')
+              .doc(doc.id)
+              .update({'status': "In Progress"});
+          print("Updated ${data['agenda']} to In Progress");
+        }
+      }
+    }
+  } catch (e) {
+    print("Error updating appointment statuses: $e");
+  }
 }
 
 DateTime? _parseSchedule(String schedule) {
@@ -36,6 +69,40 @@ DateTime? _parseSchedule(String schedule) {
     return null;
   }
 }
+
+  Future<void> fetchUserDepartment() async {
+    User? user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      try {
+        QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .where('uid', isEqualTo: user.uid)
+            .limit(1)
+            .get();
+
+        if (querySnapshot.docs.isNotEmpty) {
+          var userData =
+              querySnapshot.docs.first.data() as Map<String, dynamic>;
+
+          setState(() {
+            userDepartment = userData['department'] ?? "";
+            first_name = userData['first_name'] ?? "";
+            last_name = userData['last_name'] ?? "";
+            isLoading = false;
+          });
+                  
+          updateAppointmentStatuses();
+        } else {
+          setState(() => isLoading = false);
+        }
+      } catch (e) {
+        setState(() => isLoading = false);
+      }
+    } else {
+      setState(() => isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,6 +152,8 @@ DateTime? _parseSchedule(String schedule) {
                   : StreamBuilder<QuerySnapshot>(
                       stream: FirebaseFirestore.instance
                           .collection('appointment')
+                          .where('department', isEqualTo: userDepartment)
+                          .where('createdBy', isEqualTo: fullName)
                           .where('status', isEqualTo: status)
                           .snapshots(),
                       builder: (context, snapshot) {
@@ -114,29 +183,22 @@ DateTime? _parseSchedule(String schedule) {
                           itemBuilder: (context, index) {
                             var data = uniqueAppointments[index].data() as Map<String, dynamic>;
                             String agenda = data['agenda'] ?? 'N/A';
-                            String createdBy = data['createdBy'] ?? 'N/A';
 
                             return Card(
                               color: Colors.grey.shade200,
                               elevation: 2,
                               child: ListTile(
                                 title: Text(
-                                  createdBy,
+                                  agenda,
                                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                 ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(agenda),
-                                    Text("Scheduled: ${data['schedule']}"),
-                                  ],
-                                ),
+                                subtitle: Text("Scheduled: ${data['schedule']}"),
                                 trailing: Icon(Icons.arrow_forward),
                                 onTap: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => AllDeptAttendee(selectedAgenda: agenda),
+                                      builder: (context) => AppointmentDetails(selectedAgenda: agenda),
                                     ),
                                   );
                                 },

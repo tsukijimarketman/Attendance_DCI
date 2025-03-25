@@ -1,20 +1,20 @@
-import 'package:attendance_app/form/make_a_form.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-class AppointmentDetails extends StatefulWidget {
+class AllDeptAttendee extends StatefulWidget {
   final String selectedAgenda;
-
-  AppointmentDetails({super.key, required this.selectedAgenda});
+  const AllDeptAttendee({
+    required this.selectedAgenda,
+    super.key});
 
   @override
-  State<AppointmentDetails> createState() => _AppointmentDetailsState();
+  State<AllDeptAttendee> createState() => _AllDeptAttendeeState();
 }
 
-class _AppointmentDetailsState extends State<AppointmentDetails> {
+class _AllDeptAttendeeState extends State<AllDeptAttendee> {
+  
   final TextEditingController agendaController = TextEditingController();
   final TextEditingController departmentController = TextEditingController();
   final TextEditingController scheduleController = TextEditingController();
@@ -55,8 +55,6 @@ void initState() {
           .collection(
               'appointment') // Assuming the collection name is 'appointments'
           .where('agenda', isEqualTo: widget.selectedAgenda)
-          .where('department', isEqualTo: userDepartment)
-          .where('createdBy', isEqualTo: fullName)
           .limit(1)
           .get();
 
@@ -99,7 +97,6 @@ void initState() {
  
            setState(() {
              userDepartment = userData['department'] ?? "";
-             fullName = "${userData['first_name']} ${userData['last_name']}";
         isLoading = false;
            });
          } else {
@@ -115,51 +112,12 @@ void initState() {
        setState(() => isLoading = false);
      }
    }
- 
-
-  Future<void> updateAppointmentStatus(String newStatus) async {
-  try {
-    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-        .collection('appointment')
-        .where('agenda', isEqualTo: widget.selectedAgenda)
-          .where('department', isEqualTo: userDepartment)
-          .where('createdBy', isEqualTo: fullName)
-        .limit(1)
-        .get();
-
-    if (querySnapshot.docs.isNotEmpty) {
-      String docId = querySnapshot.docs.first.id;
-
-      await FirebaseFirestore.instance
-          .collection('appointment')
-          .doc(docId)
-          .update({'status': newStatus});
-
-      setState(() {
-        Status = newStatus; // Update UI
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Status updated to $newStatus")),
-      );
-
-      print("Status updated to $newStatus");
-    } else {
-      print("No appointment found to update.");
-    }
-  } catch (e) {
-    print("Error updating status: $e");
-  }
-}
-
 
   Future<void> fetchAttendancetData() async {
     try {
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection('attendance')
           .where('agenda', isEqualTo: widget.selectedAgenda)
-          .where('department', isEqualTo: userDepartment)
-          .where('createdBy', isEqualTo: fullName)  // Fil
           .get(); // Remove limit(1) to fetch all related records
 
       if (querySnapshot.docs.isNotEmpty) {
@@ -453,75 +411,7 @@ void initState() {
                                             ),
                                           ],
                                         ),
-                                ),
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.amber,
-                                  ),
-                                  padding: EdgeInsets.symmetric(vertical: 10),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                    children: [
-                                      Column(
-                                        children: [
-                                          Row(
-                                            children: [
-                                              IconButton(
-                                                  icon: Icon(
-                                                    Icons.close,
-                                                    color: Colors.red,
-                                                  ),
-                                                  onPressed: () {
-                                                            updateAppointmentStatus("Cancelled");
-
-                                                  }),
-                                              IconButton(
-                                                  icon: Icon(
-                                                    Icons.check_sharp,
-                                                    color: Colors.blue,
-                                                  ),
-                                                  onPressed: () {
-                                                            updateAppointmentStatus("Completed");
-
-                                                  }),
-                                            ],
-                                          ),
-                                          Text("Current Status: ${Status}"),
-                                        ],
-                                      ),
-                                      Column(
-                                        children: [
-                                          IconButton(
-                                              icon: Icon(Icons.upload_file_sharp),
-                                              onPressed: () {}),
-                                          Text("Upload File")
-                                        ],
-                                      ),
-                                      Column(
-                                        children: [
-                                          IconButton(
-                                              icon: Icon(Icons.email_sharp),
-                                              onPressed: () {}),
-                                          Text("Send Email")
-                                        ],
-                                      ),
-                                      Column(
-                                        children: [
-                                          IconButton(
-                                              icon: Icon(Icons.qr_code_scanner_sharp),
-                                              onPressed: () {
-                                                Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                        builder: (context) => MakeAForm(
-                                                              agenda: agendaController,
-                                                            )));
-                                              }),
-                                          Text("Qr-Code"),
-                                        ],
-                                      )
-                                    ],
-                                  ),
+                                
                                 ),
                               ])))
                             ]),
