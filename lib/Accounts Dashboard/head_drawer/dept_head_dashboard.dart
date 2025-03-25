@@ -1,4 +1,5 @@
 import 'package:attendance_app/Accounts%20Dashboard/head_drawer/all_dept_attendee.dart';
+import 'package:attendance_app/Appointment/appointment_details.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -19,9 +20,23 @@ class _DeptHeadState extends State<DeptHead> {
 
   @override
   void initState() {
-      super.initState();
-      fetchUserDepartment();
+    super.initState();
+      fetchUserDepartment(); // This will call updateAppointmentStatuses once completed
+
+}
+
+DateTime? _parseSchedule(String schedule) {
+  try {
+    // Remove the " at" portion properly
+    String cleanedSchedule = schedule.replaceFirst(" at", "");
+
+    // Now parse the cleaned date
+    return DateFormat("MMMM d yyyy h:mm a").parse(cleanedSchedule);
+  } catch (e) {
+    print("Error parsing schedule: $e | Input: $schedule");
+    return null;
   }
+}
 
   Future<void> fetchUserDepartment() async {
     User? user = FirebaseAuth.instance.currentUser;
@@ -35,106 +50,138 @@ class _DeptHeadState extends State<DeptHead> {
             .get();
 
         if (querySnapshot.docs.isNotEmpty) {
-          var userData = querySnapshot.docs.first.data() as Map<String, dynamic>;
+          var userData =
+              querySnapshot.docs.first.data() as Map<String, dynamic>;
 
           setState(() {
             userDepartment = userData['department'] ?? "";
-          isLoading = false;
+            isLoading = false;
           });
         } else {
-          print("No user document found.");
           setState(() => isLoading = false);
         }
       } catch (e) {
-        print("Error fetching user data: $e");
         setState(() => isLoading = false);
       }
     } else {
-      print("No user is logged in.");
       setState(() => isLoading = false);
     }
   }
 
-    
-  String formatTimestamp(Timestamp? timestamp) {
-    if (timestamp == null) return "N/A";
-    DateTime date = timestamp.toDate();
-    return DateFormat('MMMM dd, yyyy HH:mm:ss').format(date);
+  @override
+  Widget build(BuildContext context) {
+    String fullName = "$first_name $last_name".trim(); // Generate fullName
+
+    return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              GridView(
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2, 
+                  crossAxisSpacing: 12, 
+                  mainAxisSpacing: 12, 
+                  childAspectRatio: 1.2, 
+                ),
+                children: [
+                  buildStatusCard("Scheduled", "Scheduled", fullName),
+                  buildStatusCard("In Progress", "In Progress", fullName),
+                  buildStatusCard("Completed", "Completed", fullName),
+                  buildStatusCard("Cancelled", "Cancelled", fullName),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
   }
 
-  @override
-Widget build(BuildContext context) {
-  return isLoading
-      ? SafeArea(child: Center(child: CircularProgressIndicator()))
-      : SafeArea(
-          child: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('attendance')
-                .where('department', isEqualTo: userDepartment)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator());
-              }
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return Center(child: Text("No attendance records found"));
-              }
+  Widget buildStatusCard(String title, String status, String fullName) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Divider(thickness: 1, color: Colors.black),
+            Expanded(
+              child: isLoading
+                  ? Center(child: CircularProgressIndicator())
+                  : StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('appointment')
+                          .where('department', isEqualTo: userDepartment)
+                          .where('status', isEqualTo: status)
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return Center(child: CircularProgressIndicator());
+                        }
+                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                          return Center(child: Text("No records"));
+                        }
 
-              var attendanceDocs = snapshot.data!.docs;
+                        var appointmentDocs = snapshot.data!.docs;
+                        Set<String> uniqueAgendas = {};
+                        List<QueryDocumentSnapshot> uniqueAppointments = [];
 
-              // 🔥 Use a Set to store unique agendas
-              Set<String> uniqueAgendas = {};
-              List<QueryDocumentSnapshot> uniqueAttendanceDocs = [];
+                        for (var doc in appointmentDocs) {
+                          var data = doc.data() as Map<String, dynamic>;
+                          String agenda = data['agenda'] ?? 'N/A';
 
-              for (var doc in attendanceDocs) {
-                var data = doc.data() as Map<String, dynamic>;
-                String agenda = data['agenda'] ?? 'N/A';
+                          if (!uniqueAgendas.contains(agenda)) {
+                            uniqueAgendas.add(agenda);
+                            uniqueAppointments.add(doc);
+                          }
+                        }
 
-                if (!uniqueAgendas.contains(agenda)) {
-                  uniqueAgendas.add(agenda);
-                  uniqueAttendanceDocs.add(doc);
-                }
-              }
+                        return ListView.builder(
+                          itemCount: uniqueAppointments.length,
+                          itemBuilder: (context, index) {
+                            var data = uniqueAppointments[index].data() as Map<String, dynamic>;
+                            String agenda = data['agenda'] ?? 'N/A';
+                            String createdBy = data['createdBy'] ?? 'N/A';
 
-              return ListView.builder(
-                itemCount: uniqueAttendanceDocs.length,
-                itemBuilder: (context, index) {
-                  var data = uniqueAttendanceDocs[index].data() as Map<String, dynamic>;
-                  String agenda = data['agenda'] ?? 'N/A';
-                  String dept = data['department'] ?? 'N/A';
-
-                  return ListTile(
-                    title: Text(
-                      agenda,
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+                            return Card(
+                              color: Colors.grey.shade200,
+                              elevation: 2,
+                              child: ListTile(
+                                title: Text(
+                                  createdBy,
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(agenda),
+                                    Text("Scheduled: ${data['schedule']}"),
+                                  ],
+                                ),
+                                trailing: Icon(Icons.arrow_forward),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => DeptAttendee(selectedAgenda: agenda),
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                        );
+                      },
                     ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Created on: ${formatTimestamp(data['timestamp'] as Timestamp?)}",
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: Colors.black),
-                        ),
-                        Text(
-                          dept,
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: Colors.black),
-                        ),
-                      ],
-                    ),
-                    trailing: Icon(Icons.arrow_forward),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => DeptAttendee(selectedAgenda: agenda),
-                        ),
-                      );
-                    },
-                  );
-                },
-              );
-            },
-          ),
-        );
-}
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

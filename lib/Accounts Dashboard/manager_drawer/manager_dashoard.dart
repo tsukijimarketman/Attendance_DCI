@@ -1,7 +1,7 @@
 
 import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/Manager.dart';
 import 'package:attendance_app/Animation/Animation.dart';
-import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/make_a_form.dart';
+import 'package:attendance_app/form/make_a_form.dart';
 import 'package:attendance_app/Appointment/add_client.dart';
 import 'package:attendance_app/Appointment/schedule_appointment.dart';
 import 'package:attendance_app/Auth/log_out.dart';
@@ -94,7 +94,7 @@ class _Manager_DashboardState extends State<Manager_Dashboard> {
         return const ManagerDash();
       case 1:
         return const ScheduleAppointment();
-      case 2:
+      case 2:   
         return const AddClient();      
       case 3:
         Future.delayed(Duration.zero, () => showSignOutDialog(context));
