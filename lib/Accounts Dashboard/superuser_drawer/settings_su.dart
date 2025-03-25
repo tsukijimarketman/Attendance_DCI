@@ -2,7 +2,9 @@ import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/super_user_
 import 'package:attendance_app/Animation/Animation.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dropdown_textfield/dropdown_textfield.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
@@ -17,13 +19,34 @@ class SettingsSU extends StatefulWidget {
 }
 
 class _SettingsSUState extends State<SettingsSU> {
+  bool isEditing = false; //Controls read only state
+
+  // Controllers for TextFields
+  final TextEditingController firstNameController = TextEditingController();
+  final TextEditingController middleNameController = TextEditingController();
+  final TextEditingController lastNameController = TextEditingController();
+  final TextEditingController suffixController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController mobileNumberController = TextEditingController();
+  final TextEditingController telephoneNumberController = TextEditingController();
+  final TextEditingController placeOfBirthController = TextEditingController();
+  final TextEditingController heightController = TextEditingController();
+  final TextEditingController weightController = TextEditingController();
+  final TextEditingController zipCodeController = TextEditingController();
+  final TextEditingController houseNumberController = TextEditingController();
+  final TextEditingController streetController = TextEditingController();
+  final TextEditingController subdivisionController = TextEditingController();
+
+  
+
+  
   bool isChangePassword = false;
   String _textContent = "Edit Profile Information";
   Color _buttonColor = Color.fromARGB(255, 11, 55, 99);
   MainAxisAlignment _axisRow = MainAxisAlignment.start;
   final PSGCService psgcService = PSGCService();
 
-// Selected values for dropdowns
+  // Selected values for dropdowns
   String? selectedCity;
   String? selectedMunicipality;
   String? selectedRegion;
@@ -662,6 +685,66 @@ class _SettingsSUState extends State<SettingsSU> {
   @override
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
+    final String? currentUserUid = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserUid == null) {
+      return Center(child: Text("User not logged in"));
+    }
+    return StreamBuilder<QuerySnapshot>(
+  stream: FirebaseFirestore.instance
+      .collection("users")
+      .where("uid", isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+      .limit(1)
+      .snapshots(), // Real-time Firestore updates
+  builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return Center(child: CircularProgressIndicator()); // Show loading
+    }
+
+    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+      return Center(child: Text("No data available"));
+    }
+
+    var userData = snapshot.data!.docs.first.data() as Map<String, dynamic>;
+
+    // Assign values to controllers & state variables
+    firstNameController.text = userData["first_name"] ?? "";
+    middleNameController.text = userData["middle_name"] ?? "";
+    lastNameController.text = userData["last_name"] ?? "";
+    suffixController.text = userData["suffix"] ?? "";
+    emailController.text = userData["email"] ?? "";
+    mobileNumberController.text = userData["mobile_number"] ?? "";
+    telephoneNumberController.text = userData["telephone_number"] ?? "";
+    placeOfBirthController.text = userData["place_of_birth"] ?? "";
+    heightController.text = userData["height"] ?? "";
+    weightController.text = userData["weight"] ?? "";
+    zipCodeController.text = userData["zip_code"] ?? "";
+    houseNumberController.text = userData["house_number"] ?? "";
+    streetController.text = userData["street"] ?? "";
+    subdivisionController.text = userData["subdivision"] ?? "";
+
+    // Dropdowns
+    selectedSex = userData["sex"];
+    selectedAnswer = userData["dual_citizen"];
+    selectedCivilStatus = userData["civil_status"];
+    selectedBloodType = userData["blood_type"];
+
+    // Dropdown Search Fields
+    selectedCitizenship = userData["citizenship"];
+    selectedCountry = userData["country"];
+    selectedReligion = userData["religion"];
+    selectedRegion = userData["region"];
+    selectedProvince = userData["province"];
+    selectedCity = userData["city"];
+    selectedMunicipality = userData["municipality"];
+    selectedBarangay = userData["barangay"];
+
+    // Special Widgets
+    _dateController.text = userData["birthdate"] ?? "";
+
+    // Checkboxes
+    byBirthChecked = userData["by_birth"] ?? false;
+    byNaturalizedChecked = userData["by_naturalized"] ?? false;
+
     return Expanded(
       child: SingleChildScrollView(
         child: Padding(
@@ -784,6 +867,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                                   150),
                                         ),
                                         child: TextField(
+                                          controller: firstNameController,
                                           keyboardType: TextInputType.text,
                                           inputFormatters: [
                                             FilteringTextInputFormatter.allow(
@@ -864,6 +948,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                                   150),
                                         ),
                                         child: TextField(
+                                          controller: middleNameController,
                                           readOnly: textFieldReadOnly,
                                           keyboardType: TextInputType.text,
                                           inputFormatters: [
@@ -944,6 +1029,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                                   150),
                                         ),
                                         child: TextField(
+                                          controller: lastNameController,
                                           keyboardType: TextInputType.text,
                                           inputFormatters: [
                                             FilteringTextInputFormatter.allow(
@@ -1024,6 +1110,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                                   150),
                                         ),
                                         child: TextField(
+                                          controller: suffixController,
                                           keyboardType: TextInputType.text,
                                           inputFormatters: [
                                             FilteringTextInputFormatter.allow(
@@ -1210,6 +1297,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                               : Colors.white,
                                         ),
                                         child: DropDownTextField(
+                                          controller: selectedCitizenship,
                                           readOnly: dropDownSearchReadOnly,
                                           enableSearch: dropDownSearchReadOnly,
                                           searchTextStyle: TextStyle(
@@ -1293,7 +1381,6 @@ class _SettingsSUState extends State<SettingsSU> {
                                                     ],
                                         ),
                                       ),
-                                      //insert dropdrown here
                                     ],
                                   ),
                                   SizedBox(
@@ -1502,6 +1589,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                               : Colors.white,
                                         ),
                                         child: DropDownTextField(
+                                          controller: selectedCountry,
                                           readOnly: dropDownSearchReadOnly,
                                           enableSearch: dropDownSearchReadOnly,
                                           searchTextStyle: TextStyle(
@@ -1718,6 +1806,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                                   150),
                                         ),
                                         child: TextField(
+                                          controller: mobileNumberController,
                                           inputFormatters: [
                                             FilteringTextInputFormatter
                                                 .digitsOnly, // This ensures only digits are allowed
@@ -1797,6 +1886,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                                   150),
                                         ),
                                         child: TextField(
+                                          controller: telephoneNumberController,
                                           inputFormatters: [
                                             FilteringTextInputFormatter
                                                 .digitsOnly, // This ensures only digits are allowed
@@ -1876,6 +1966,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                                   150),
                                         ),
                                         child: TextField(
+                                          controller: emailController,
                                           readOnly: textFieldReadOnly,
                                           keyboardType:
                                               TextInputType.emailAddress,
@@ -2041,6 +2132,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                               150),
                                     ),
                                     child: TextField(
+                                      controller: placeOfBirthController,
                                       keyboardType: TextInputType.text,
                                       inputFormatters: [
                                         FilteringTextInputFormatter.allow(RegExp(
@@ -2108,6 +2200,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                               150),
                                     ),
                                     child: TextField(
+                                      controller: heightController,
                                       inputFormatters: [
                                         FilteringTextInputFormatter
                                             .digitsOnly, // This ensures only digits are allowed
@@ -2175,6 +2268,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                               150),
                                     ),
                                     child: TextField(
+                                      controller: weightController,
                                       inputFormatters: [
                                         FilteringTextInputFormatter
                                             .digitsOnly, // This ensures only digits are allowed
@@ -2341,6 +2435,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                           : Colors.white,
                                     ),
                                     child: DropDownTextField(
+                                      controller: selectedReligion,
                                       padding: EdgeInsets.all(
                                               MediaQuery.of(context)
                                                   .size
@@ -2464,6 +2559,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                           : Colors.white,
                                     ),
                                     child: DropDownTextField(
+                                      controller: selectedRegion,
                                       searchTextStyle: TextStyle(
                                         fontSize:
                                             MediaQuery.of(context).size.width /
@@ -2570,6 +2666,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                           color: Colors.white,
                                         ),
                                         child: DropDownTextField(
+                                          controller: selectedProvince,
                                           searchTextStyle: TextStyle(
                                             fontSize: MediaQuery.of(context)
                                                     .size
@@ -2677,6 +2774,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                           color: Colors.white,
                                         ),
                                         child: DropDownTextField(
+                                          controller: selectedCity,
                                           searchTextStyle: TextStyle(
                                             fontSize: MediaQuery.of(context)
                                                     .size
@@ -2782,6 +2880,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                               : Colors.grey[300],
                                         ),
                                         child: DropDownTextField(
+                                          controller: selectedCity,
                                           isEnabled: selectedMunicipality ==
                                               null, // Disable if municipality is selected
                                           searchTextStyle: TextStyle(
@@ -2889,6 +2988,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                               : Colors.grey[300],
                                         ),
                                         child: DropDownTextField(
+                                          controller: selectedMunicipality,
                                           isEnabled: selectedCity ==
                                               null, // Disable if city is selected
                                           searchTextStyle: TextStyle(
@@ -3002,6 +3102,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                         color: Colors.white,
                                       ),
                                       child: DropDownTextField(
+                                        controller: selectedBarangay,
                                         searchTextStyle: TextStyle(
                                           fontSize: MediaQuery.of(context)
                                                   .size
@@ -3114,6 +3215,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                                   150),
                                         ),
                                         child: TextField(
+                                          controller: zipCodeController,
                                           style: TextStyle(
                                               fontSize: MediaQuery.of(context)
                                                       .size
@@ -3182,6 +3284,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                                   150),
                                         ),
                                         child: TextField(
+                                          controller: houseNumberController,
                                           style: TextStyle(
                                               fontSize: MediaQuery.of(context)
                                                       .size
@@ -3250,6 +3353,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                                   150),
                                         ),
                                         child: TextField(
+                                          controller: streetController,
                                           style: TextStyle(
                                               fontSize: MediaQuery.of(context)
                                                       .size
@@ -3318,6 +3422,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                                   150),
                                         ),
                                         child: TextField(
+                                          controller: subdivisionController,
                                           style: TextStyle(
                                               fontSize: MediaQuery.of(context)
                                                       .size
@@ -3819,7 +3924,9 @@ class _SettingsSUState extends State<SettingsSU> {
           ),
         ),
       ),
-    );
+    ); // Return the UI after fetching data
+  },
+);
   }
 }
 
