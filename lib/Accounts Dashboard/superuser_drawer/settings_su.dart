@@ -1,3 +1,5 @@
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/super_user_dashboard.dart';
+import 'package:attendance_app/Animation/Animation.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import 'package:dropdown_textfield/dropdown_textfield.dart';
@@ -5,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:attendance_app/Accounts Dashboard/superuser_drawer/settings_su.dart';
 
 class SettingsSU extends StatefulWidget {
   const SettingsSU({super.key});
@@ -14,6 +17,9 @@ class SettingsSU extends StatefulWidget {
 }
 
 class _SettingsSUState extends State<SettingsSU> {
+  bool isChangePassword = false;
+  String _textContent = "Edit Profile Information";
+  Color _buttonColor = Color.fromARGB(255, 11, 55, 99);
   MainAxisAlignment _axisRow = MainAxisAlignment.start;
   final PSGCService psgcService = PSGCService();
 
@@ -648,6 +654,11 @@ class _SettingsSUState extends State<SettingsSU> {
     'Zimbabwean',
   ];
 
+  bool textFieldReadOnly = true;
+  bool dropDownReadOnly = true;
+  bool dropDownSearchReadOnly = true;
+  bool calendarReadOnly = true;
+
   @override
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
@@ -664,318 +675,1347 @@ class _SettingsSUState extends State<SettingsSU> {
                   decoration: BoxDecoration(
                     border: Border(bottom: BorderSide(color: Colors.black)),
                   ),
-                  child: Text(
-                    "Personal Information",
-                    style: TextStyle(
-                        fontSize: MediaQuery.of(context).size.width / 50,
-                        color: Color.fromARGB(255, 11, 55, 99),
-                        fontFamily: "BL"),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Personal Information",
+                        style: TextStyle(
+                            fontSize: MediaQuery.of(context).size.width / 50,
+                            color: Color.fromARGB(255, 11, 55, 99),
+                            fontFamily: "BL"),
+                      ),
+                    ],
                   ),
                 ),
-                Row(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: MediaQuery.of(context).size.width / 5.5,
-                      height: MediaQuery.of(context).size.width / 5.28,
-                      child: Column(
-                        children: [
-                          Spacer(),
-                          CircleAvatar(
-                            radius: MediaQuery.of(context).size.width / 17,
-                            backgroundColor: Colors.grey,
-                            child: Icon(
-                              Icons.person,
-                              size: MediaQuery.of(context).size.width / 12,
-                              color: Colors.white,
-                            ),
-                          ),
-                          SizedBox(
-                            height: MediaQuery.of(context).size.width / 40,
-                          ),
-                          GestureDetector(
-                            onTap: () {},
-                            child: Container(
-                              height: MediaQuery.of(context).size.width / 35,
-                              width: MediaQuery.of(context).size.width / 8,
-                              decoration: BoxDecoration(
-                                color: Color.fromARGB(255, 11, 55, 99),
-                                borderRadius: BorderRadius.circular(
-                                    MediaQuery.of(context).size.width / 150),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  "Edit Profile",
-                                  style: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
-                                              80,
-                                      color: Colors.white,
-                                      fontFamily: "R"),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: MediaQuery.of(context).size.width / 5.5,
+                          height: MediaQuery.of(context).size.width / 5.28,
+                          child: Column(
+                            children: [
+                              Spacer(),
+                              CircleAvatar(
+                                radius: MediaQuery.of(context).size.width / 17,
+                                backgroundColor: Colors.grey,
+                                child: Icon(
+                                  Icons.person,
+                                  size: MediaQuery.of(context).size.width / 12,
+                                  color: Colors.white,
                                 ),
                               ),
-                            ),
-                          ).showCursorOnHover,
-                        ],
-                      ),
-                    ),
-                    Container(
-                      height: MediaQuery.of(context).size.width / 5,
-                      width: MediaQuery.of(context).size.width / 1.75,
-                      child: Column(
-                        children: [
-                          SizedBox(
-                            height: MediaQuery.of(context).size.width / 80,
+                              SizedBox(
+                                height: MediaQuery.of(context).size.width / 40,
+                              ),
+                              GestureDetector(
+                                onTap: () {},
+                                child: Container(
+                                  height:
+                                      MediaQuery.of(context).size.width / 35,
+                                  width: MediaQuery.of(context).size.width / 8,
+                                  decoration: BoxDecoration(
+                                    color: Color.fromARGB(255, 11, 55, 99),
+                                    borderRadius: BorderRadius.circular(
+                                        MediaQuery.of(context).size.width /
+                                            150),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      "Edit Photo",
+                                      style: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              80,
+                                          color: Colors.white,
+                                          fontFamily: "R"),
+                                    ),
+                                  ),
+                                ),
+                              ).showCursorOnHover,
+                            ],
                           ),
-                          Row(
+                        ),
+                        Container(
+                          height: MediaQuery.of(context).size.width / 5,
+                          width: MediaQuery.of(context).size.width / 1.75,
+                          child: Column(
                             children: [
-                              Column(
+                              SizedBox(
+                                height: MediaQuery.of(context).size.width / 80,
+                              ),
+                              Row(
                                 children: [
-                                  Text("First Name",
-                                      style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              90,
-                                          color: Colors.black,
-                                          fontFamily: "R")),
-                                  SizedBox(
-                                    height:
-                                        MediaQuery.of(context).size.width / 170,
-                                  ),
-                                  Container(
-                                    width:
-                                        MediaQuery.of(context).size.width / 7,
-                                    height:
-                                        MediaQuery.of(context).size.width / 35,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width /
-                                              150),
-                                    ),
-                                    child: TextField(
-                                      style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              110,
-                                          color: Colors.black,
-                                          fontFamily: "R"),
-                                      decoration: InputDecoration(
-                                        contentPadding: EdgeInsets.all(
+                                  Column(
+                                    children: [
+                                      Text("First Name",
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  90,
+                                              color: Colors.black,
+                                              fontFamily: "R")),
+                                      SizedBox(
+                                        height:
                                             MediaQuery.of(context).size.width /
-                                                120),
-                                        hintText: "First Name",
-                                        hintStyle: TextStyle(
-                                            fontSize: MediaQuery.of(context)
-                                                    .size
-                                                    .width /
-                                                110,
-                                            color: Colors.grey,
-                                            fontFamily: "R"),
-                                        border: OutlineInputBorder(
+                                                170,
+                                      ),
+                                      Container(
+                                        width:
+                                            MediaQuery.of(context).size.width /
+                                                7,
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                35,
+                                        decoration: BoxDecoration(
+                                          color: textFieldReadOnly == true
+                                              ? Colors.grey[300]
+                                              : Colors.white,
                                           borderRadius: BorderRadius.circular(
                                               MediaQuery.of(context)
                                                       .size
                                                       .width /
                                                   150),
                                         ),
+                                        child: TextField(
+                                          keyboardType: TextInputType.text,
+                                          inputFormatters: [
+                                            FilteringTextInputFormatter.allow(
+                                                RegExp(
+                                                    r'[a-zA-Z]')), // Allows only letters
+                                          ],
+                                          readOnly: textFieldReadOnly,
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  110,
+                                              color: Colors.black,
+                                              fontFamily: "R"),
+                                          decoration: InputDecoration(
+                                            contentPadding: EdgeInsets.all(
+                                                MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    120),
+                                            hintText: textFieldReadOnly == true
+                                                ? null
+                                                : "First Name",
+                                            hintStyle: TextStyle(
+                                                fontSize: MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    110,
+                                                color: Colors.grey,
+                                                fontFamily: "R"),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      MediaQuery.of(context)
+                                                              .size
+                                                              .width /
+                                                          150),
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                              SizedBox(
-                                width: MediaQuery.of(context).size.width / 50,
-                              ),
-                              Column(
-                                children: [
-                                  Text("Middle Name",
-                                      style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              90,
-                                          color: Colors.black,
-                                          fontFamily: "R")),
                                   SizedBox(
-                                    height:
-                                        MediaQuery.of(context).size.width / 170,
-                                  ),
-                                  Container(
                                     width:
-                                        MediaQuery.of(context).size.width / 7,
-                                    height:
-                                        MediaQuery.of(context).size.width / 35,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width /
-                                              150),
-                                    ),
-                                    child: TextField(
-                                      style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              110,
-                                          color: Colors.black,
-                                          fontFamily: "R"),
-                                      decoration: InputDecoration(
-                                        contentPadding: EdgeInsets.all(
+                                        MediaQuery.of(context).size.width / 50,
+                                  ),
+                                  Column(
+                                    children: [
+                                      Text("Middle Name",
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  90,
+                                              color: Colors.black,
+                                              fontFamily: "R")),
+                                      SizedBox(
+                                        height:
                                             MediaQuery.of(context).size.width /
-                                                120),
-                                        hintText: "Middle Name",
-                                        hintStyle: TextStyle(
-                                            fontSize: MediaQuery.of(context)
-                                                    .size
-                                                    .width /
-                                                110,
-                                            color: Colors.grey,
-                                            fontFamily: "R"),
-                                        border: OutlineInputBorder(
+                                                170,
+                                      ),
+                                      Container(
+                                        width:
+                                            MediaQuery.of(context).size.width /
+                                                7,
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                35,
+                                        decoration: BoxDecoration(
+                                          color: textFieldReadOnly == true
+                                              ? Colors.grey[300]
+                                              : Colors.white,
                                           borderRadius: BorderRadius.circular(
                                               MediaQuery.of(context)
                                                       .size
                                                       .width /
                                                   150),
                                         ),
+                                        child: TextField(
+                                          readOnly: textFieldReadOnly,
+                                          keyboardType: TextInputType.text,
+                                          inputFormatters: [
+                                            FilteringTextInputFormatter.allow(
+                                                RegExp(
+                                                    r'[a-zA-Z]')), // Allows only letters
+                                          ],
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  110,
+                                              color: Colors.black,
+                                              fontFamily: "R"),
+                                          decoration: InputDecoration(
+                                            contentPadding: EdgeInsets.all(
+                                                MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    120),
+                                            hintText: textFieldReadOnly == true
+                                                ? null
+                                                : "Middle Name",
+                                            hintStyle: TextStyle(
+                                                fontSize: MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    110,
+                                                color: Colors.grey,
+                                                fontFamily: "R"),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      MediaQuery.of(context)
+                                                              .size
+                                                              .width /
+                                                          150),
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                              SizedBox(
-                                width: MediaQuery.of(context).size.width / 50,
-                              ),
-                              Column(
-                                children: [
-                                  Text("Last Name",
-                                      style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              90,
-                                          color: Colors.black,
-                                          fontFamily: "R")),
                                   SizedBox(
-                                    height:
-                                        MediaQuery.of(context).size.width / 170,
-                                  ),
-                                  Container(
                                     width:
-                                        MediaQuery.of(context).size.width / 7,
-                                    height:
-                                        MediaQuery.of(context).size.width / 35,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width /
-                                              150),
-                                    ),
-                                    child: TextField(
-                                      style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              110,
-                                          color: Colors.black,
-                                          fontFamily: "R"),
-                                      decoration: InputDecoration(
-                                        contentPadding: EdgeInsets.all(
+                                        MediaQuery.of(context).size.width / 50,
+                                  ),
+                                  Column(
+                                    children: [
+                                      Text("Last Name",
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  90,
+                                              color: Colors.black,
+                                              fontFamily: "R")),
+                                      SizedBox(
+                                        height:
                                             MediaQuery.of(context).size.width /
-                                                120),
-                                        hintText: "Last Name",
-                                        hintStyle: TextStyle(
-                                            fontSize: MediaQuery.of(context)
-                                                    .size
-                                                    .width /
-                                                110,
-                                            color: Colors.grey,
-                                            fontFamily: "R"),
-                                        border: OutlineInputBorder(
+                                                170,
+                                      ),
+                                      Container(
+                                        width:
+                                            MediaQuery.of(context).size.width /
+                                                7,
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                35,
+                                        decoration: BoxDecoration(
+                                          color: textFieldReadOnly == true
+                                              ? Colors.grey[300]
+                                              : Colors.white,
                                           borderRadius: BorderRadius.circular(
                                               MediaQuery.of(context)
                                                       .size
                                                       .width /
                                                   150),
                                         ),
+                                        child: TextField(
+                                          keyboardType: TextInputType.text,
+                                          inputFormatters: [
+                                            FilteringTextInputFormatter.allow(
+                                                RegExp(
+                                                    r'[a-zA-Z]')), // Allows only letters
+                                          ],
+                                          readOnly: textFieldReadOnly,
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  110,
+                                              color: Colors.black,
+                                              fontFamily: "R"),
+                                          decoration: InputDecoration(
+                                            contentPadding: EdgeInsets.all(
+                                                MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    120),
+                                            hintText: textFieldReadOnly == true
+                                                ? null
+                                                : "Last Name",
+                                            hintStyle: TextStyle(
+                                                fontSize: MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    110,
+                                                color: Colors.grey,
+                                                fontFamily: "R"),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      MediaQuery.of(context)
+                                                              .size
+                                                              .width /
+                                                          150),
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                    ),
+                                    ],
+                                  ),
+                                  SizedBox(
+                                    width:
+                                        MediaQuery.of(context).size.width / 50,
+                                  ),
+                                  Column(
+                                    children: [
+                                      Text("Suffix",
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  90,
+                                              color: Colors.black,
+                                              fontFamily: "R")),
+                                      SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                170,
+                                      ),
+                                      Container(
+                                        width:
+                                            MediaQuery.of(context).size.width /
+                                                12.1,
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                35,
+                                        decoration: BoxDecoration(
+                                          color: textFieldReadOnly == true
+                                              ? Colors.grey[300]
+                                              : Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
+                                        child: TextField(
+                                          keyboardType: TextInputType.text,
+                                          inputFormatters: [
+                                            FilteringTextInputFormatter.allow(
+                                                RegExp(
+                                                    r'[a-zA-Z]')), // Allows only letters
+                                          ],
+                                          readOnly: textFieldReadOnly,
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  110,
+                                              color: Colors.black,
+                                              fontFamily: "R"),
+                                          decoration: InputDecoration(
+                                            contentPadding: EdgeInsets.all(
+                                                MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    120),
+                                            hintText: textFieldReadOnly == true
+                                                ? null
+                                                : "Suffix",
+                                            hintStyle: TextStyle(
+                                                fontSize: MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    110,
+                                                color: Colors.grey,
+                                                fontFamily: "R"),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      MediaQuery.of(context)
+                                                              .size
+                                                              .width /
+                                                          150),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
                               SizedBox(
-                                width: MediaQuery.of(context).size.width / 50,
+                                height: MediaQuery.of(context).size.width / 80,
                               ),
-                              Column(
+                              Row(
                                 children: [
-                                  Text("Suffix",
-                                      style: TextStyle(
+                                  Column(
+                                    children: [
+                                      Text("Sex",
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  90,
+                                              color: Colors.black,
+                                              fontFamily: "R")),
+                                      SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                170,
+                                      ),
+                                      Container(
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                35, // Adjust height
+                                        width:
+                                            MediaQuery.of(context).size.width /
+                                                13, // Adjust width
+                                        decoration: BoxDecoration(
+                                          border:
+                                              Border.all(color: Colors.black54),
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                          color: dropDownReadOnly == true
+                                              ? Colors.grey[300]
+                                              : Colors.white,
+                                        ),
+                                        child: DropdownButton<String>(
+                                          style: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: dropDownReadOnly == true
+                                                ? Colors.grey
+                                                : Colors.black,
+                                            fontFamily: "R",
+                                          ),
+                                          padding: EdgeInsets.symmetric(
+                                              horizontal: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  120),
+                                          value: selectedSex,
+                                          hint: dropDownReadOnly == true
+                                              ? null
+                                              : Text(
+                                                  'Select',
+                                                  style: TextStyle(
+                                                    fontSize:
+                                                        MediaQuery.of(context)
+                                                                .size
+                                                                .width /
+                                                            110,
+                                                    color: Colors.black,
+                                                    fontFamily: "R",
+                                                  ),
+                                                ),
+                                          onChanged: dropDownReadOnly == true
+                                              ? null
+                                              : (String? newValue) {
+                                                  setState(() {
+                                                    selectedSex = newValue;
+                                                  });
+                                                },
+                                          items: options
+                                              .map<DropdownMenuItem<String>>(
+                                                  (String value) {
+                                            return DropdownMenuItem<String>(
+                                              value: value,
+                                              child: Padding(
+                                                padding: EdgeInsets.symmetric(
+                                                    vertical:
+                                                        4.0), // Add space between items
+                                                child: Text(value),
+                                              ),
+                                            );
+                                          }).toList(),
+                                          underline: SizedBox.shrink(),
+                                          isExpanded: true,
+                                          dropdownColor: Colors.white,
+                                          icon: Icon(Icons
+                                              .arrow_drop_down), // Use custom dropdown icon
+                                        ),
+                                      )
+                                    ],
+                                  ),
+                                  SizedBox(
+                                    width:
+                                        MediaQuery.of(context).size.width / 50,
+                                  ),
+                                  Column(
+                                    children: [
+                                      Text(
+                                        "Citizenship",
+                                        style: TextStyle(
                                           fontSize: MediaQuery.of(context)
                                                   .size
                                                   .width /
                                               90,
                                           color: Colors.black,
-                                          fontFamily: "R")),
+                                          fontFamily: "R",
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                170,
+                                      ),
+                                      Container(
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                35, // Adjust height
+                                        width:
+                                            MediaQuery.of(context).size.width /
+                                                10, // Adjust width
+                                        decoration: BoxDecoration(
+                                          border:
+                                              Border.all(color: Colors.black54),
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                          color: dropDownSearchReadOnly == true
+                                              ? Colors.grey[300]
+                                              : Colors.white,
+                                        ),
+                                        child: DropDownTextField(
+                                          readOnly: dropDownSearchReadOnly,
+                                          enableSearch: dropDownSearchReadOnly,
+                                          searchTextStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.black,
+                                            fontFamily: "R",
+                                          ),
+                                          searchKeyboardType:
+                                              TextInputType.text,
+                                          searchDecoration: InputDecoration(
+                                            hintText:
+                                                dropDownSearchReadOnly == true
+                                                    ? null
+                                                    : "Search",
+                                            hintStyle: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  140,
+                                              color: Colors.black,
+                                              fontFamily: "R",
+                                            ),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      MediaQuery.of(context)
+                                                              .size
+                                                              .width /
+                                                          150),
+                                            ),
+                                          ),
+                                          clearOption: true,
+                                          listTextStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.black,
+                                            fontFamily: "R",
+                                          ),
+                                          textStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.black,
+                                            fontFamily: "R",
+                                          ),
+                                          validator: (value) {
+                                            if (value == null) {
+                                              return "Required field";
+                                            } else {
+                                              return null;
+                                            }
+                                          },
+                                          dropDownItemCount: 6,
+                                          listPadding:
+                                              ListPadding(top: 0, bottom: 0),
+                                          dropDownList:
+                                              dropDownSearchReadOnly == true
+                                                  ? []
+                                                  : [
+                                                      for (int i = 0;
+                                                          i <
+                                                              citizenshipOptions
+                                                                  .length;
+                                                          i++)
+                                                        DropDownValueModel(
+                                                          name:
+                                                              citizenshipOptions[
+                                                                      i]
+                                                                  .toString(),
+                                                          value:
+                                                              citizenshipOptions[
+                                                                      i]
+                                                                  .toString(),
+                                                        ),
+                                                    ],
+                                        ),
+                                      ),
+                                      //insert dropdrown here
+                                    ],
+                                  ),
                                   SizedBox(
-                                    height:
-                                        MediaQuery.of(context).size.width / 170,
+                                    width:
+                                        MediaQuery.of(context).size.width / 50,
+                                  ),
+                                  Column(
+                                    children: [
+                                      Text("Dual Citizen",
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  90,
+                                              color: Colors.black,
+                                              fontFamily: "R")),
+                                      SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                170,
+                                      ),
+                                      Container(
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                35, // Adjust height
+                                        width:
+                                            MediaQuery.of(context).size.width /
+                                                13, // Adjust width
+                                        decoration: BoxDecoration(
+                                          border:
+                                              Border.all(color: Colors.black54),
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                          color: dropDownReadOnly == true
+                                              ? Colors.grey[300]
+                                              : Colors.white,
+                                        ),
+                                        child: DropdownButton<String>(
+                                          style: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.black,
+                                            fontFamily: "R",
+                                          ),
+                                          padding: EdgeInsets.symmetric(
+                                              horizontal: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  120),
+                                          value: selectedAnswer,
+                                          hint: dropDownReadOnly == true
+                                              ? null
+                                              : Text(
+                                                  'Select',
+                                                  style: TextStyle(
+                                                    fontSize:
+                                                        MediaQuery.of(context)
+                                                                .size
+                                                                .width /
+                                                            110,
+                                                    color: Colors.black,
+                                                    fontFamily: "R",
+                                                  ),
+                                                ),
+                                          onChanged: dropDownReadOnly == true
+                                              ? null
+                                              : (String? newValue) {
+                                                  setState(() {
+                                                    selectedAnswer = newValue;
+                                                  });
+                                                },
+                                          items: yon
+                                              .map<DropdownMenuItem<String>>(
+                                                  (String value) {
+                                            return DropdownMenuItem<String>(
+                                              value: value,
+                                              child: Padding(
+                                                padding: EdgeInsets.symmetric(
+                                                    vertical:
+                                                        4.0), // Add space between items
+                                                child: Text(value),
+                                              ),
+                                            );
+                                          }).toList(),
+                                          underline: SizedBox.shrink(),
+                                          isExpanded: true,
+                                          dropdownColor: Colors.white,
+                                          icon: Icon(Icons
+                                              .arrow_drop_down), // Use custom dropdown icon
+                                        ),
+                                      )
+                                    ],
+                                  ),
+                                  SizedBox(
+                                    width:
+                                        MediaQuery.of(context).size.width / 50,
                                   ),
                                   Container(
                                     width: MediaQuery.of(context).size.width /
-                                        12.1,
+                                        8.55,
                                     height:
-                                        MediaQuery.of(context).size.width / 35,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width /
-                                              150),
+                                        MediaQuery.of(context).size.width / 20,
+                                    child: Column(
+                                      children: [
+                                        Container(
+                                          height: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              40,
+                                          child: CheckboxListTile(
+                                            contentPadding: EdgeInsets
+                                                .zero, // Removes default padding
+                                            title: Text(
+                                              "By Birth",
+                                              style: TextStyle(
+                                                fontSize: MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    120,
+                                                color: Colors.black,
+                                                fontFamily: "R",
+                                              ),
+                                            ),
+                                            value: byBirthChecked,
+                                            onChanged: (_) {
+                                              _onCheckboxChanged('birth');
+                                            },
+                                            controlAffinity: ListTileControlAffinity
+                                                .leading, // Position the checkbox before the text
+                                          ),
+                                        ),
+                                        Container(
+                                          height: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              40,
+                                          child: CheckboxListTile(
+                                            contentPadding: EdgeInsets
+                                                .zero, // Removes default padding
+                                            title: Text(
+                                              "By Naturalize",
+                                              style: TextStyle(
+                                                fontSize: MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    120,
+                                                color: Colors.black,
+                                                fontFamily: "R",
+                                              ),
+                                            ),
+                                            value: byNaturalizedChecked,
+                                            onChanged: (_) {
+                                              _onCheckboxChanged('naturalize');
+                                            },
+                                            controlAffinity: ListTileControlAffinity
+                                                .leading, // Position the checkbox before the text
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    child: TextField(
-                                      style: TextStyle(
+                                  ),
+                                  SizedBox(
+                                    width:
+                                        MediaQuery.of(context).size.width / 50,
+                                  ),
+                                  Column(
+                                    children: [
+                                      Text(
+                                        "Specify Country",
+                                        style: TextStyle(
                                           fontSize: MediaQuery.of(context)
                                                   .size
                                                   .width /
-                                              110,
+                                              90,
                                           color: Colors.black,
-                                          fontFamily: "R"),
-                                      decoration: InputDecoration(
-                                        contentPadding: EdgeInsets.all(
+                                          fontFamily: "R",
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        height:
                                             MediaQuery.of(context).size.width /
-                                                120),
-                                        hintText: "Suffix",
-                                        hintStyle: TextStyle(
+                                                170,
+                                      ),
+                                      Container(
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                35, // Adjust height
+                                        width:
+                                            MediaQuery.of(context).size.width /
+                                                8.3, // Adjust width
+                                        decoration: BoxDecoration(
+                                          border:
+                                              Border.all(color: Colors.black54),
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                          color: dropDownSearchReadOnly == true
+                                              ? Colors.grey[300]
+                                              : Colors.white,
+                                        ),
+                                        child: DropDownTextField(
+                                          readOnly: dropDownSearchReadOnly,
+                                          enableSearch: dropDownSearchReadOnly,
+                                          searchTextStyle: TextStyle(
                                             fontSize: MediaQuery.of(context)
                                                     .size
                                                     .width /
                                                 110,
-                                            color: Colors.grey,
-                                            fontFamily: "R"),
-                                        border: OutlineInputBorder(
+                                            color: Colors.black,
+                                            fontFamily: "R",
+                                          ),
+                                          searchKeyboardType:
+                                              TextInputType.text,
+                                          searchDecoration: InputDecoration(
+                                            hintText:
+                                                dropDownSearchReadOnly == true
+                                                    ? null
+                                                    : "Search",
+                                            hintStyle: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  140,
+                                              color: Colors.black,
+                                              fontFamily: "R",
+                                            ),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      MediaQuery.of(context)
+                                                              .size
+                                                              .width /
+                                                          150),
+                                            ),
+                                          ),
+                                          clearOption: true,
+                                          listTextStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.black,
+                                            fontFamily: "R",
+                                          ),
+                                          textStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.black,
+                                            fontFamily: "R",
+                                          ),
+                                          validator: (value) {
+                                            if (value == null) {
+                                              return "Required field";
+                                            } else {
+                                              return null;
+                                            }
+                                          },
+                                          dropDownItemCount: 8,
+                                          listPadding:
+                                              ListPadding(top: 0, bottom: 0),
+                                          dropDownList:
+                                              dropDownSearchReadOnly == true
+                                                  ? []
+                                                  : [
+                                                      for (int i = 0;
+                                                          i < countries.length;
+                                                          i++)
+                                                        DropDownValueModel(
+                                                          name: countries[i]
+                                                              .toString(),
+                                                          value: countries[i]
+                                                              .toString(),
+                                                        ),
+                                                    ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              SizedBox(
+                                height: MediaQuery.of(context).size.width / 80,
+                              ),
+                              Row(
+                                children: [
+                                  Column(
+                                    children: [
+                                      Text("Civil Status",
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  90,
+                                              color: Colors.black,
+                                              fontFamily: "R")),
+                                      SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                170,
+                                      ),
+                                      Container(
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                35, // Adjust height
+                                        width:
+                                            MediaQuery.of(context).size.width /
+                                                10, // Adjust width
+                                        decoration: BoxDecoration(
+                                          border:
+                                              Border.all(color: Colors.black54),
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                          color: dropDownReadOnly == true
+                                              ? Colors.grey[300]
+                                              : Colors.white,
+                                        ),
+                                        child: DropdownButton<String>(
+                                          style: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.black,
+                                            fontFamily: "R",
+                                          ),
+                                          padding: EdgeInsets.symmetric(
+                                              horizontal: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  120),
+                                          value: selectedCivilStatus,
+                                          hint: dropDownReadOnly == true
+                                              ? null
+                                              : Text(
+                                                  'Select',
+                                                  style: TextStyle(
+                                                    fontSize:
+                                                        MediaQuery.of(context)
+                                                                .size
+                                                                .width /
+                                                            110,
+                                                    color: Colors.black,
+                                                    fontFamily: "R",
+                                                  ),
+                                                ),
+                                          onChanged: dropDownReadOnly == true
+                                              ? null
+                                              : (String? newValue) {
+                                                  setState(() {
+                                                    selectedCivilStatus =
+                                                        newValue;
+                                                  });
+                                                },
+                                          items: civilStatus
+                                              .map<DropdownMenuItem<String>>(
+                                                  (String value) {
+                                            return DropdownMenuItem<String>(
+                                              value: value,
+                                              child: Padding(
+                                                padding: EdgeInsets.symmetric(
+                                                    vertical:
+                                                        4.0), // Add space between items
+                                                child: Text(value),
+                                              ),
+                                            );
+                                          }).toList(),
+                                          underline: SizedBox.shrink(),
+                                          isExpanded: true,
+                                          dropdownColor: Colors.white,
+                                          icon: Icon(Icons
+                                              .arrow_drop_down), // Use custom dropdown icon
+                                        ),
+                                      )
+                                    ],
+                                  ),
+                                  SizedBox(
+                                    width:
+                                        MediaQuery.of(context).size.width / 50,
+                                  ),
+                                  Column(
+                                    children: [
+                                      Text("Mobile Number",
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  90,
+                                              color: Colors.black,
+                                              fontFamily: "R")),
+                                      SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                170,
+                                      ),
+                                      Container(
+                                        width:
+                                            MediaQuery.of(context).size.width /
+                                                9,
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                35,
+                                        decoration: BoxDecoration(
+                                          color: textFieldReadOnly == true
+                                              ? Colors.grey[300]
+                                              : Colors.white,
                                           borderRadius: BorderRadius.circular(
                                               MediaQuery.of(context)
                                                       .size
                                                       .width /
                                                   150),
                                         ),
+                                        child: TextField(
+                                          inputFormatters: [
+                                            FilteringTextInputFormatter
+                                                .digitsOnly, // This ensures only digits are allowed
+                                          ],
+                                          keyboardType: TextInputType.number,
+                                          readOnly: textFieldReadOnly,
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  110,
+                                              color: Colors.black,
+                                              fontFamily: "R"),
+                                          decoration: InputDecoration(
+                                            contentPadding: EdgeInsets.all(
+                                                MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    120),
+                                            hintText: textFieldReadOnly == true
+                                                ? null
+                                                : "Mobile Number",
+                                            hintStyle: TextStyle(
+                                                fontSize: MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    110,
+                                                color: Colors.grey,
+                                                fontFamily: "R"),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      MediaQuery.of(context)
+                                                              .size
+                                                              .width /
+                                                          150),
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                    ),
+                                    ],
+                                  ),
+                                  SizedBox(
+                                    width:
+                                        MediaQuery.of(context).size.width / 50,
+                                  ),
+                                  Column(
+                                    children: [
+                                      Text("Telephone Number",
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  90,
+                                              color: Colors.black,
+                                              fontFamily: "R")),
+                                      SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                170,
+                                      ),
+                                      Container(
+                                        width:
+                                            MediaQuery.of(context).size.width /
+                                                9,
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                35,
+                                        decoration: BoxDecoration(
+                                          color: textFieldReadOnly == true
+                                              ? Colors.grey[300]
+                                              : Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
+                                        child: TextField(
+                                          inputFormatters: [
+                                            FilteringTextInputFormatter
+                                                .digitsOnly, // This ensures only digits are allowed
+                                          ],
+                                          keyboardType: TextInputType.number,
+                                          readOnly: textFieldReadOnly,
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  110,
+                                              color: Colors.black,
+                                              fontFamily: "R"),
+                                          decoration: InputDecoration(
+                                            contentPadding: EdgeInsets.all(
+                                                MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    120),
+                                            hintText: textFieldReadOnly == true
+                                                ? null
+                                                : "Telephone Number",
+                                            hintStyle: TextStyle(
+                                                fontSize: MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    110,
+                                                color: Colors.grey,
+                                                fontFamily: "R"),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      MediaQuery.of(context)
+                                                              .size
+                                                              .width /
+                                                          150),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(
+                                    width:
+                                        MediaQuery.of(context).size.width / 50,
+                                  ),
+                                  Column(
+                                    children: [
+                                      Text("Email Address",
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  90,
+                                              color: Colors.black,
+                                              fontFamily: "R")),
+                                      SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                170,
+                                      ),
+                                      Container(
+                                        width:
+                                            MediaQuery.of(context).size.width /
+                                                5.29,
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                35,
+                                        decoration: BoxDecoration(
+                                          color: textFieldReadOnly == true
+                                              ? Colors.grey[300]
+                                              : Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
+                                        child: TextField(
+                                          readOnly: textFieldReadOnly,
+                                          keyboardType:
+                                              TextInputType.emailAddress,
+                                          inputFormatters: [
+                                            FilteringTextInputFormatter.allow(
+                                                RegExp(
+                                                    r'[a-zA-Z0-9@._-]')), // Allows letters, numbers, @, ., -, and _
+                                          ],
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  110,
+                                              color: Colors.black,
+                                              fontFamily: "R"),
+                                          decoration: InputDecoration(
+                                            contentPadding: EdgeInsets.all(
+                                                MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    120),
+                                            hintText: textFieldReadOnly == true
+                                                ? null
+                                                : "Email Address",
+                                            hintStyle: TextStyle(
+                                                fontSize: MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    110,
+                                                color: Colors.grey,
+                                                fontFamily: "R"),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      MediaQuery.of(context)
+                                                              .size
+                                                              .width /
+                                                          150),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
                             ],
                           ),
-                          SizedBox(
-                            height: MediaQuery.of(context).size.width / 80,
-                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(
+                      height: MediaQuery.of(context).size.width / 80,
+                    ),
+                    Container(
+                      width: MediaQuery.of(context).size.width / 1.326,
+                      padding: EdgeInsets.only(
+                          left: MediaQuery.of(context).size.width / 37),
+                      child: Column(
+                        children: [
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Column(
                                 children: [
-                                  Text("Sex",
+                                  Text(
+                                    "Birth Date",
+                                    style: TextStyle(
+                                      fontSize:
+                                          MediaQuery.of(context).size.width /
+                                              90,
+                                      color: Colors.black,
+                                      fontFamily: "R",
+                                    ),
+                                  ),
+                                  SizedBox(
+                                      height:
+                                          MediaQuery.of(context).size.width /
+                                              170),
+                                  Container(
+                                    width:
+                                        MediaQuery.of(context).size.width / 8,
+                                    height:
+                                        MediaQuery.of(context).size.width / 35,
+                                    decoration: BoxDecoration(
+                                      color: calendarReadOnly == true
+                                          ? Colors.grey[300]
+                                          : Colors.white,
+                                      borderRadius: BorderRadius.circular(
+                                          MediaQuery.of(context).size.width /
+                                              150),
+                                    ),
+                                    child: TextField(
+                                      controller: _dateController,
+                                      readOnly: true, // Prevents manual input
+                                      style: TextStyle(
+                                        fontSize:
+                                            MediaQuery.of(context).size.width /
+                                                110,
+                                        color: Colors.black,
+                                        fontFamily: "R",
+                                      ),
+                                      decoration: InputDecoration(
+                                        contentPadding: EdgeInsets.symmetric(
+                                            horizontal: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                60),
+                                        hintText: calendarReadOnly == true
+                                            ? null
+                                            : "Enter Birthdate",
+                                        hintStyle: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              110,
+                                          color: Colors.grey,
+                                          fontFamily: "R",
+                                        ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
+                                        suffixIcon: Icon(Icons
+                                            .calendar_today), // Calendar icon
+                                      ),
+                                      onTap: calendarReadOnly == true
+                                          ? null
+                                          : () => _selectDate(
+                                              context), // Open calendar on tap
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Column(
+                                children: [
+                                  Text("Place of Birth",
                                       style: TextStyle(
                                           fontSize: MediaQuery.of(context)
                                                   .size
@@ -988,16 +2028,217 @@ class _SettingsSUState extends State<SettingsSU> {
                                         MediaQuery.of(context).size.width / 170,
                                   ),
                                   Container(
-                                    height: MediaQuery.of(context).size.width /
-                                        35, // Adjust height
                                     width: MediaQuery.of(context).size.width /
-                                        13, // Adjust width
+                                        5.52,
+                                    height:
+                                        MediaQuery.of(context).size.width / 35,
+                                    decoration: BoxDecoration(
+                                      color: textFieldReadOnly == true
+                                          ? Colors.grey[300]
+                                          : Colors.white,
+                                      borderRadius: BorderRadius.circular(
+                                          MediaQuery.of(context).size.width /
+                                              150),
+                                    ),
+                                    child: TextField(
+                                      keyboardType: TextInputType.text,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.allow(RegExp(
+                                            r'[a-zA-Z ]')), // Allows letters and spaces only
+                                      ],
+                                      readOnly: textFieldReadOnly,
+                                      style: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              110,
+                                          color: Colors.black,
+                                          fontFamily: "R"),
+                                      decoration: InputDecoration(
+                                        contentPadding: EdgeInsets.all(
+                                            MediaQuery.of(context).size.width /
+                                                120),
+                                        hintText: textFieldReadOnly == true
+                                            ? null
+                                            : "Place of Birth",
+                                        hintStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.grey,
+                                            fontFamily: "R"),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Column(
+                                children: [
+                                  Text("Height",
+                                      style: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              90,
+                                          color: Colors.black,
+                                          fontFamily: "R")),
+                                  SizedBox(
+                                    height:
+                                        MediaQuery.of(context).size.width / 170,
+                                  ),
+                                  Container(
+                                    width:
+                                        MediaQuery.of(context).size.width / 15,
+                                    height:
+                                        MediaQuery.of(context).size.width / 35,
+                                    decoration: BoxDecoration(
+                                      color: textFieldReadOnly == true
+                                          ? Colors.grey[300]
+                                          : Colors.white,
+                                      borderRadius: BorderRadius.circular(
+                                          MediaQuery.of(context).size.width /
+                                              150),
+                                    ),
+                                    child: TextField(
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter
+                                            .digitsOnly, // This ensures only digits are allowed
+                                      ],
+                                      keyboardType: TextInputType.number,
+                                      readOnly: textFieldReadOnly,
+                                      style: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              110,
+                                          color: Colors.black,
+                                          fontFamily: "R"),
+                                      decoration: InputDecoration(
+                                        contentPadding: EdgeInsets.all(
+                                            MediaQuery.of(context).size.width /
+                                                120),
+                                        hintText: textFieldReadOnly == true
+                                            ? null
+                                            : "in cm",
+                                        hintStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.grey,
+                                            fontFamily: "R"),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Column(
+                                children: [
+                                  Text("Weight",
+                                      style: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              90,
+                                          color: Colors.black,
+                                          fontFamily: "R")),
+                                  SizedBox(
+                                    height:
+                                        MediaQuery.of(context).size.width / 170,
+                                  ),
+                                  Container(
+                                    width:
+                                        MediaQuery.of(context).size.width / 15,
+                                    height:
+                                        MediaQuery.of(context).size.width / 35,
+                                    decoration: BoxDecoration(
+                                      color: textFieldReadOnly == true
+                                          ? Colors.grey[300]
+                                          : Colors.white,
+                                      borderRadius: BorderRadius.circular(
+                                          MediaQuery.of(context).size.width /
+                                              150),
+                                    ),
+                                    child: TextField(
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter
+                                            .digitsOnly, // This ensures only digits are allowed
+                                      ],
+                                      keyboardType: TextInputType.number,
+                                      readOnly: textFieldReadOnly,
+                                      style: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              110,
+                                          color: Colors.black,
+                                          fontFamily: "R"),
+                                      decoration: InputDecoration(
+                                        contentPadding: EdgeInsets.all(
+                                            MediaQuery.of(context).size.width /
+                                                120),
+                                        hintText: textFieldReadOnly == true
+                                            ? null
+                                            : "in kg",
+                                        hintStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.grey,
+                                            fontFamily: "R"),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Column(
+                                children: [
+                                  Text("Blood Type",
+                                      style: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              90,
+                                          color: Colors.black,
+                                          fontFamily: "R")),
+                                  SizedBox(
+                                    height:
+                                        MediaQuery.of(context).size.width / 170,
+                                  ),
+                                  Container(
+                                    height:
+                                        MediaQuery.of(context).size.width / 35,
                                     decoration: BoxDecoration(
                                       border: Border.all(color: Colors.black54),
                                       borderRadius: BorderRadius.circular(
                                           MediaQuery.of(context).size.width /
                                               150),
-                                      color: Colors.white,
+                                      color: dropDownReadOnly == true
+                                          ? Colors.grey[300]
+                                          : Colors.white,
                                     ),
                                     child: DropdownButton<String>(
                                       style: TextStyle(
@@ -1008,56 +2249,71 @@ class _SettingsSUState extends State<SettingsSU> {
                                         fontFamily: "R",
                                       ),
                                       padding: EdgeInsets.symmetric(
-                                          horizontal: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              120),
-                                      value: selectedSex,
-                                      hint: Text(
-                                        'Select',
-                                        style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              110,
-                                          color: Colors.black,
-                                          fontFamily: "R",
-                                        ),
+                                        horizontal:
+                                            MediaQuery.of(context).size.width /
+                                                120,
+                                        vertical:
+                                            MediaQuery.of(context).size.width /
+                                                150,
                                       ),
-                                      onChanged: (String? newValue) {
-                                        setState(() {
-                                          selectedSex = newValue;
-                                        });
-                                      },
-                                      items: options
+                                      value: selectedBloodType,
+                                      hint: dropDownReadOnly == true
+                                          ? null
+                                          : Text(
+                                              'Select',
+                                              style: TextStyle(
+                                                fontSize: MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    110,
+                                                color: Colors.black,
+                                                fontFamily: "R",
+                                              ),
+                                            ),
+                                      onChanged: dropDownReadOnly == true
+                                          ? null
+                                          : (String? newValue) {
+                                              setState(() {
+                                                selectedBloodType = newValue;
+                                              });
+                                            },
+                                      items: bloodTypes
                                           .map<DropdownMenuItem<String>>(
                                               (String value) {
                                         return DropdownMenuItem<String>(
                                           value: value,
-                                          child: Padding(
-                                            padding: EdgeInsets.symmetric(
-                                                vertical:
-                                                    4.0), // Add space between items
-                                            child: Text(value),
-                                          ),
+                                          child: Text(value),
                                         );
                                       }).toList(),
                                       underline: SizedBox.shrink(),
-                                      isExpanded: true,
+                                      isExpanded:
+                                          false, // Make sure the dropdown is not fully expanded
                                       dropdownColor: Colors.white,
                                       icon: Icon(Icons
                                           .arrow_drop_down), // Use custom dropdown icon
+                                      isDense:
+                                          true, // Reduce the size of each item in the dropdown
+                                      selectedItemBuilder:
+                                          (BuildContext context) {
+                                        return bloodTypes
+                                            .map<Widget>((String value) {
+                                          return Text(value);
+                                        }).toList();
+                                      },
+                                      menuMaxHeight:
+                                          MediaQuery.of(context).size.width / 7,
+                                      menuWidth: MediaQuery.of(context)
+                                              .size
+                                              .width /
+                                          15, // Set the max height for the dropdown
                                     ),
                                   )
                                 ],
                               ),
-                              SizedBox(
-                                width: MediaQuery.of(context).size.width / 50,
-                              ),
                               Column(
                                 children: [
                                   Text(
-                                    "Citizenship",
+                                    "Religion",
                                     style: TextStyle(
                                       fontSize:
                                           MediaQuery.of(context).size.width /
@@ -1074,15 +2330,22 @@ class _SettingsSUState extends State<SettingsSU> {
                                     height: MediaQuery.of(context).size.width /
                                         35, // Adjust height
                                     width: MediaQuery.of(context).size.width /
-                                        10, // Adjust width
+                                        8.8, // Adjust width
                                     decoration: BoxDecoration(
                                       border: Border.all(color: Colors.black54),
                                       borderRadius: BorderRadius.circular(
                                           MediaQuery.of(context).size.width /
                                               150),
-                                      color: Colors.white,
+                                      color: dropDownSearchReadOnly == true
+                                          ? Colors.grey[300]
+                                          : Colors.white,
                                     ),
                                     child: DropDownTextField(
+                                      padding: EdgeInsets.all(
+                                              MediaQuery.of(context)
+                                                  .size
+                                                  .width) /
+                                          200,
                                       searchTextStyle: TextStyle(
                                         fontSize:
                                             MediaQuery.of(context).size.width /
@@ -1124,7 +2387,8 @@ class _SettingsSUState extends State<SettingsSU> {
                                         color: Colors.black,
                                         fontFamily: "R",
                                       ),
-                                      enableSearch: true,
+                                      enableSearch: dropDownSearchReadOnly,
+                                      readOnly: dropDownSearchReadOnly,
                                       validator: (value) {
                                         if (value == null) {
                                           return "Required field";
@@ -1135,1032 +2399,53 @@ class _SettingsSUState extends State<SettingsSU> {
                                       dropDownItemCount: 6,
                                       listPadding:
                                           ListPadding(top: 0, bottom: 0),
-                                      dropDownList: [
-                                        for (int i = 0;
-                                            i < citizenshipOptions.length;
-                                            i++)
-                                          DropDownValueModel(
-                                            name: citizenshipOptions[i]
-                                                .toString(),
-                                            value: citizenshipOptions[i]
-                                                .toString(),
-                                          ),
-                                      ],
+                                      dropDownList: dropDownSearchReadOnly ==
+                                              true
+                                          ? []
+                                          : [
+                                              for (int i = 0;
+                                                  i < religion.length;
+                                                  i++)
+                                                DropDownValueModel(
+                                                  name: religion[i].toString(),
+                                                  value: religion[i].toString(),
+                                                ),
+                                            ],
                                     ),
                                   ),
                                   //insert dropdrown here
                                 ],
                               ),
-                              SizedBox(
-                                width: MediaQuery.of(context).size.width / 50,
-                              ),
-                              Column(
-                                children: [
-                                  Text("Dual Citizen",
-                                      style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              90,
-                                          color: Colors.black,
-                                          fontFamily: "R")),
-                                  SizedBox(
-                                    height:
-                                        MediaQuery.of(context).size.width / 170,
-                                  ),
-                                  Container(
-                                    height: MediaQuery.of(context).size.width /
-                                        35, // Adjust height
-                                    width: MediaQuery.of(context).size.width /
-                                        13, // Adjust width
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: Colors.black54),
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width /
-                                              150),
-                                      color: Colors.white,
-                                    ),
-                                    child: DropdownButton<String>(
-                                      style: TextStyle(
-                                        fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                110,
-                                        color: Colors.black,
-                                        fontFamily: "R",
-                                      ),
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              120),
-                                      value: selectedAnswer,
-                                      hint: Text(
-                                        'Select',
-                                        style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              110,
-                                          color: Colors.black,
-                                          fontFamily: "R",
-                                        ),
-                                      ),
-                                      onChanged: (String? newValue) {
-                                        setState(() {
-                                          selectedAnswer = newValue;
-                                        });
-                                      },
-                                      items: yon.map<DropdownMenuItem<String>>(
-                                          (String value) {
-                                        return DropdownMenuItem<String>(
-                                          value: value,
-                                          child: Padding(
-                                            padding: EdgeInsets.symmetric(
-                                                vertical:
-                                                    4.0), // Add space between items
-                                            child: Text(value),
-                                          ),
-                                        );
-                                      }).toList(),
-                                      underline: SizedBox.shrink(),
-                                      isExpanded: true,
-                                      dropdownColor: Colors.white,
-                                      icon: Icon(Icons
-                                          .arrow_drop_down), // Use custom dropdown icon
-                                    ),
-                                  )
-                                ],
-                              ),
-                              SizedBox(
-                                width: MediaQuery.of(context).size.width / 50,
-                              ),
-                              Container(
-                                width: MediaQuery.of(context).size.width / 8.55,
-                                height: MediaQuery.of(context).size.width / 20,
-                                child: Column(
-                                  children: [
-                                    Container(
-                                      height:
-                                          MediaQuery.of(context).size.width /
-                                              40,
-                                      child: CheckboxListTile(
-                                        contentPadding: EdgeInsets
-                                            .zero, // Removes default padding
-                                        title: Text(
-                                          "By Birth",
-                                          style: TextStyle(
-                                            fontSize: MediaQuery.of(context)
-                                                    .size
-                                                    .width /
-                                                120,
-                                            color: Colors.black,
-                                            fontFamily: "R",
-                                          ),
-                                        ),
-                                        value: byBirthChecked,
-                                        onChanged: (_) {
-                                          _onCheckboxChanged('birth');
-                                        },
-                                        controlAffinity: ListTileControlAffinity
-                                            .leading, // Position the checkbox before the text
-                                      ),
-                                    ),
-                                    Container(
-                                      height:
-                                          MediaQuery.of(context).size.width /
-                                              40,
-                                      child: CheckboxListTile(
-                                        contentPadding: EdgeInsets
-                                            .zero, // Removes default padding
-                                        title: Text(
-                                          "By Naturalize",
-                                          style: TextStyle(
-                                            fontSize: MediaQuery.of(context)
-                                                    .size
-                                                    .width /
-                                                120,
-                                            color: Colors.black,
-                                            fontFamily: "R",
-                                          ),
-                                        ),
-                                        value: byNaturalizedChecked,
-                                        onChanged: (_) {
-                                          _onCheckboxChanged('naturalize');
-                                        },
-                                        controlAffinity: ListTileControlAffinity
-                                            .leading, // Position the checkbox before the text
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(
-                                width: MediaQuery.of(context).size.width / 50,
-                              ),
-                              Column(
-                                children: [
-                                  Text(
-                                    "Specify Country",
-                                    style: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
-                                              90,
-                                      color: Colors.black,
-                                      fontFamily: "R",
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    height:
-                                        MediaQuery.of(context).size.width / 170,
-                                  ),
-                                  Container(
-                                    height: MediaQuery.of(context).size.width /
-                                        35, // Adjust height
-                                    width: MediaQuery.of(context).size.width /
-                                        8.3, // Adjust width
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: Colors.black54),
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width /
-                                              150),
-                                      color: Colors.white,
-                                    ),
-                                    child: DropDownTextField(
-                                      searchTextStyle: TextStyle(
-                                        fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                110,
-                                        color: Colors.black,
-                                        fontFamily: "R",
-                                      ),
-                                      searchKeyboardType: TextInputType.text,
-                                      searchDecoration: InputDecoration(
-                                        hintText: "Search",
-                                        hintStyle: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              140,
-                                          color: Colors.black,
-                                          fontFamily: "R",
-                                        ),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                              MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  150),
-                                        ),
-                                      ),
-                                      clearOption: true,
-                                      listTextStyle: TextStyle(
-                                        fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                110,
-                                        color: Colors.black,
-                                        fontFamily: "R",
-                                      ),
-                                      textStyle: TextStyle(
-                                        fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                110,
-                                        color: Colors.black,
-                                        fontFamily: "R",
-                                      ),
-                                      enableSearch: true,
-                                      validator: (value) {
-                                        if (value == null) {
-                                          return "Required field";
-                                        } else {
-                                          return null;
-                                        }
-                                      },
-                                      dropDownItemCount: 8,
-                                      listPadding:
-                                          ListPadding(top: 0, bottom: 0),
-                                      dropDownList: [
-                                        for (int i = 0;
-                                            i < countries.length;
-                                            i++)
-                                          DropDownValueModel(
-                                            name: countries[i].toString(),
-                                            value: countries[i].toString(),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
                             ],
                           ),
                           SizedBox(
-                            height: MediaQuery.of(context).size.width / 80,
+                              height: MediaQuery.of(context).size.width / 80),
+                          Container(
+                            width: MediaQuery.of(context).size.width / 1.328,
+                            decoration: BoxDecoration(
+                              border: Border(
+                                  bottom: BorderSide(color: Colors.grey)),
+                            ),
+                            child: Text(
+                              "Current Address",
+                              style: TextStyle(
+                                  fontSize:
+                                      MediaQuery.of(context).size.width / 70,
+                                  color: Colors.black,
+                                  fontFamily: "SB"),
+                            ),
+                          ),
+                          SizedBox(
+                            height: MediaQuery.of(context).size.width / 100,
                           ),
                           Row(
+                            mainAxisAlignment: _axisRow,
                             children: [
-                              Column(
-                                children: [
-                                  Text("Civil Status",
-                                      style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              90,
-                                          color: Colors.black,
-                                          fontFamily: "R")),
-                                  SizedBox(
-                                    height:
-                                        MediaQuery.of(context).size.width / 170,
-                                  ),
-                                  Container(
-                                    height: MediaQuery.of(context).size.width /
-                                        35, // Adjust height
-                                    width: MediaQuery.of(context).size.width /
-                                        10, // Adjust width
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: Colors.black54),
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width /
-                                              150),
-                                      color: Colors.white,
-                                    ),
-                                    child: DropdownButton<String>(
-                                      style: TextStyle(
-                                        fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                110,
-                                        color: Colors.black,
-                                        fontFamily: "R",
-                                      ),
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              120),
-                                      value: selectedCivilStatus,
-                                      hint: Text(
-                                        'Select',
-                                        style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              110,
-                                          color: Colors.black,
-                                          fontFamily: "R",
-                                        ),
-                                      ),
-                                      onChanged: (String? newValue) {
-                                        setState(() {
-                                          selectedCivilStatus = newValue;
-                                        });
-                                      },
-                                      items: civilStatus
-                                          .map<DropdownMenuItem<String>>(
-                                              (String value) {
-                                        return DropdownMenuItem<String>(
-                                          value: value,
-                                          child: Padding(
-                                            padding: EdgeInsets.symmetric(
-                                                vertical:
-                                                    4.0), // Add space between items
-                                            child: Text(value),
-                                          ),
-                                        );
-                                      }).toList(),
-                                      underline: SizedBox.shrink(),
-                                      isExpanded: true,
-                                      dropdownColor: Colors.white,
-                                      icon: Icon(Icons
-                                          .arrow_drop_down), // Use custom dropdown icon
-                                    ),
-                                  )
-                                ],
-                              ),
-                              SizedBox(
-                                width: MediaQuery.of(context).size.width / 50,
-                              ),
-                              Column(
-                                children: [
-                                  Text("Mobile Number",
-                                      style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              90,
-                                          color: Colors.black,
-                                          fontFamily: "R")),
-                                  SizedBox(
-                                    height:
-                                        MediaQuery.of(context).size.width / 170,
-                                  ),
-                                  Container(
-                                    width:
-                                        MediaQuery.of(context).size.width / 9,
-                                    height:
-                                        MediaQuery.of(context).size.width / 35,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width /
-                                              150),
-                                    ),
-                                    child: TextField(
-                                      style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              110,
-                                          color: Colors.black,
-                                          fontFamily: "R"),
-                                      decoration: InputDecoration(
-                                        contentPadding: EdgeInsets.all(
-                                            MediaQuery.of(context).size.width /
-                                                120),
-                                        hintText: "Mobile Number",
-                                        hintStyle: TextStyle(
-                                            fontSize: MediaQuery.of(context)
-                                                    .size
-                                                    .width /
-                                                110,
-                                            color: Colors.grey,
-                                            fontFamily: "R"),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                              MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  150),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(
-                                width: MediaQuery.of(context).size.width / 50,
-                              ),
-                              Column(
-                                children: [
-                                  Text("Telephone Number",
-                                      style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              90,
-                                          color: Colors.black,
-                                          fontFamily: "R")),
-                                  SizedBox(
-                                    height:
-                                        MediaQuery.of(context).size.width / 170,
-                                  ),
-                                  Container(
-                                    width:
-                                        MediaQuery.of(context).size.width / 9,
-                                    height:
-                                        MediaQuery.of(context).size.width / 35,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width /
-                                              150),
-                                    ),
-                                    child: TextField(
-                                      style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              110,
-                                          color: Colors.black,
-                                          fontFamily: "R"),
-                                      decoration: InputDecoration(
-                                        contentPadding: EdgeInsets.all(
-                                            MediaQuery.of(context).size.width /
-                                                120),
-                                        hintText: "Telephone Number",
-                                        hintStyle: TextStyle(
-                                            fontSize: MediaQuery.of(context)
-                                                    .size
-                                                    .width /
-                                                110,
-                                            color: Colors.grey,
-                                            fontFamily: "R"),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                              MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  150),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(
-                                width: MediaQuery.of(context).size.width / 50,
-                              ),
-                              Column(
-                                children: [
-                                  Text("Email Address",
-                                      style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              90,
-                                          color: Colors.black,
-                                          fontFamily: "R")),
-                                  SizedBox(
-                                    height:
-                                        MediaQuery.of(context).size.width / 170,
-                                  ),
-                                  Container(
-                                    width: MediaQuery.of(context).size.width /
-                                        5.29,
-                                    height:
-                                        MediaQuery.of(context).size.width / 35,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width /
-                                              150),
-                                    ),
-                                    child: TextField(
-                                      style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              110,
-                                          color: Colors.black,
-                                          fontFamily: "R"),
-                                      decoration: InputDecoration(
-                                        contentPadding: EdgeInsets.all(
-                                            MediaQuery.of(context).size.width /
-                                                120),
-                                        hintText: "Email Address",
-                                        hintStyle: TextStyle(
-                                            fontSize: MediaQuery.of(context)
-                                                    .size
-                                                    .width /
-                                                110,
-                                            color: Colors.grey,
-                                            fontFamily: "R"),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                              MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  150),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                Container(
-                  width: MediaQuery.of(context).size.width / 1.375,
-                  margin: EdgeInsets.only(
-                      left: MediaQuery.of(context).size.width / 37),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            children: [
-                              Text(
-                                "Birth Date",
-                                style: TextStyle(
-                                  fontSize:
-                                      MediaQuery.of(context).size.width / 90,
-                                  color: Colors.black,
-                                  fontFamily: "R",
-                                ),
-                              ),
-                              SizedBox(
-                                  height:
-                                      MediaQuery.of(context).size.width / 170),
-                              Container(
-                                width: MediaQuery.of(context).size.width / 8,
-                                height: MediaQuery.of(context).size.width / 35,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(
-                                      MediaQuery.of(context).size.width / 150),
-                                ),
-                                child: TextField(
-                                  controller: _dateController,
-                                  readOnly: true, // Prevents manual input
-                                  style: TextStyle(
-                                    fontSize:
-                                        MediaQuery.of(context).size.width / 110,
-                                    color: Colors.black,
-                                    fontFamily: "R",
-                                  ),
-                                  decoration: InputDecoration(
-                                    contentPadding: EdgeInsets.symmetric(
-                                        horizontal:
-                                            MediaQuery.of(context).size.width /
-                                                60),
-                                    hintText: "Enter Birthdate",
-                                    hintStyle: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
-                                              110,
-                                      color: Colors.grey,
-                                      fontFamily: "R",
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width /
-                                              150),
-                                    ),
-                                    suffixIcon: Icon(
-                                        Icons.calendar_today), // Calendar icon
-                                  ),
-                                  onTap: () => _selectDate(
-                                      context), // Open calendar on tap
-                                ),
-                              ),
-                            ],
-                          ),
-                          Column(
-                            children: [
-                              Text("Place of Birth",
-                                  style: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
-                                              90,
-                                      color: Colors.black,
-                                      fontFamily: "R")),
-                              SizedBox(
-                                height: MediaQuery.of(context).size.width / 170,
-                              ),
-                              Container(
-                                width: MediaQuery.of(context).size.width / 5.52,
-                                height: MediaQuery.of(context).size.width / 35,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(
-                                      MediaQuery.of(context).size.width / 150),
-                                ),
-                                child: TextField(
-                                  style: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
-                                              110,
-                                      color: Colors.black,
-                                      fontFamily: "R"),
-                                  decoration: InputDecoration(
-                                    contentPadding: EdgeInsets.all(
-                                        MediaQuery.of(context).size.width /
-                                            120),
-                                    hintText: "Place of Birth",
-                                    hintStyle: TextStyle(
-                                        fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                110,
-                                        color: Colors.grey,
-                                        fontFamily: "R"),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width /
-                                              150),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          Column(
-                            children: [
-                              Text("Height",
-                                  style: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
-                                              90,
-                                      color: Colors.black,
-                                      fontFamily: "R")),
-                              SizedBox(
-                                height: MediaQuery.of(context).size.width / 170,
-                              ),
-                              Container(
-                                width: MediaQuery.of(context).size.width / 15,
-                                height: MediaQuery.of(context).size.width / 35,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(
-                                      MediaQuery.of(context).size.width / 150),
-                                ),
-                                child: TextField(
-                                  style: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
-                                              110,
-                                      color: Colors.black,
-                                      fontFamily: "R"),
-                                  decoration: InputDecoration(
-                                    contentPadding: EdgeInsets.all(
-                                        MediaQuery.of(context).size.width /
-                                            120),
-                                    hintText: "Height",
-                                    hintStyle: TextStyle(
-                                        fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                110,
-                                        color: Colors.grey,
-                                        fontFamily: "R"),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width /
-                                              150),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          Column(
-                            children: [
-                              Text("Weight",
-                                  style: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
-                                              90,
-                                      color: Colors.black,
-                                      fontFamily: "R")),
-                              SizedBox(
-                                height: MediaQuery.of(context).size.width / 170,
-                              ),
-                              Container(
-                                width: MediaQuery.of(context).size.width / 15,
-                                height: MediaQuery.of(context).size.width / 35,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(
-                                      MediaQuery.of(context).size.width / 150),
-                                ),
-                                child: TextField(
-                                  style: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
-                                              110,
-                                      color: Colors.black,
-                                      fontFamily: "R"),
-                                  decoration: InputDecoration(
-                                    contentPadding: EdgeInsets.all(
-                                        MediaQuery.of(context).size.width /
-                                            120),
-                                    hintText: "Weight",
-                                    hintStyle: TextStyle(
-                                        fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                110,
-                                        color: Colors.grey,
-                                        fontFamily: "R"),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width /
-                                              150),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          Column(
-                            children: [
-                              Text("Blood Type",
-                                  style: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
-                                              90,
-                                      color: Colors.black,
-                                      fontFamily: "R")),
-                              SizedBox(
-                                height: MediaQuery.of(context).size.width / 170,
-                              ),
-                              Container(
-                                height: MediaQuery.of(context).size.width / 35,
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.black54),
-                                  borderRadius: BorderRadius.circular(
-                                      MediaQuery.of(context).size.width / 150),
-                                  color: Colors.white,
-                                ),
-                                child: DropdownButton<String>(
-                                  style: TextStyle(
-                                    fontSize:
-                                        MediaQuery.of(context).size.width / 110,
-                                    color: Colors.black,
-                                    fontFamily: "R",
-                                  ),
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal:
-                                        MediaQuery.of(context).size.width / 120,
-                                    vertical:
-                                        MediaQuery.of(context).size.width / 150,
-                                  ),
-                                  value: selectedBloodType,
-                                  hint: Text(
-                                    'Select',
-                                    style: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
-                                              110,
-                                      color: Colors.black,
-                                      fontFamily: "R",
-                                    ),
-                                  ),
-                                  onChanged: (String? newValue) {
-                                    setState(() {
-                                      selectedBloodType = newValue;
-                                    });
-                                  },
-                                  items: bloodTypes
-                                      .map<DropdownMenuItem<String>>(
-                                          (String value) {
-                                    return DropdownMenuItem<String>(
-                                      value: value,
-                                      child: Text(value),
-                                    );
-                                  }).toList(),
-                                  underline: SizedBox.shrink(),
-                                  isExpanded:
-                                      false, // Make sure the dropdown is not fully expanded
-                                  dropdownColor: Colors.white,
-                                  icon: Icon(Icons
-                                      .arrow_drop_down), // Use custom dropdown icon
-                                  isDense:
-                                      true, // Reduce the size of each item in the dropdown
-                                  selectedItemBuilder: (BuildContext context) {
-                                    return bloodTypes
-                                        .map<Widget>((String value) {
-                                      return Text(value);
-                                    }).toList();
-                                  },
-                                  menuMaxHeight:
-                                      MediaQuery.of(context).size.width / 7,
-                                  menuWidth: MediaQuery.of(context).size.width /
-                                      15, // Set the max height for the dropdown
-                                ),
-                              )
-                            ],
-                          ),
-                          Column(
-                            children: [
-                              Text(
-                                "Religion",
-                                style: TextStyle(
-                                  fontSize:
-                                      MediaQuery.of(context).size.width / 90,
-                                  color: Colors.black,
-                                  fontFamily: "R",
-                                ),
-                              ),
-                              SizedBox(
-                                height: MediaQuery.of(context).size.width / 170,
-                              ),
-                              Container(
-                                height: MediaQuery.of(context).size.width /
-                                    35, // Adjust height
-                                width: MediaQuery.of(context).size.width /
-                                    8.8, // Adjust width
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.black54),
-                                  borderRadius: BorderRadius.circular(
-                                      MediaQuery.of(context).size.width / 150),
-                                  color: Colors.white,
-                                ),
-                                child: DropDownTextField(
-                                  padding: EdgeInsets.all(
-                                          MediaQuery.of(context).size.width) /
-                                      200,
-                                  searchTextStyle: TextStyle(
-                                    fontSize:
-                                        MediaQuery.of(context).size.width / 110,
-                                    color: Colors.black,
-                                    fontFamily: "R",
-                                  ),
-                                  searchKeyboardType: TextInputType.text,
-                                  searchDecoration: InputDecoration(
-                                    hintText: "Search",
-                                    hintStyle: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
-                                              140,
-                                      color: Colors.black,
-                                      fontFamily: "R",
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width /
-                                              150),
-                                    ),
-                                  ),
-                                  clearOption: true,
-                                  listTextStyle: TextStyle(
-                                    fontSize:
-                                        MediaQuery.of(context).size.width / 110,
-                                    color: Colors.black,
-                                    fontFamily: "R",
-                                  ),
-                                  textStyle: TextStyle(
-                                    fontSize:
-                                        MediaQuery.of(context).size.width / 110,
-                                    color: Colors.black,
-                                    fontFamily: "R",
-                                  ),
-                                  enableSearch: true,
-                                  validator: (value) {
-                                    if (value == null) {
-                                      return "Required field";
-                                    } else {
-                                      return null;
-                                    }
-                                  },
-                                  dropDownItemCount: 6,
-                                  listPadding: ListPadding(top: 0, bottom: 0),
-                                  dropDownList: [
-                                    for (int i = 0; i < religion.length; i++)
-                                      DropDownValueModel(
-                                        name: religion[i].toString(),
-                                        value: religion[i].toString(),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                              //insert dropdrown here
-                            ],
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: MediaQuery.of(context).size.width / 80),
-                      Container(
-                        width: MediaQuery.of(context).size.width / 1.328,
-                        decoration: BoxDecoration(
-                          border:
-                              Border(bottom: BorderSide(color: Colors.grey)),
-                        ),
-                        child: Text(
-                          "Current Address",
-                          style: TextStyle(
-                              fontSize: MediaQuery.of(context).size.width / 70,
-                              color: Colors.black,
-                              fontFamily: "SB"),
-                        ),
-                      ),
-                      SizedBox(
-                        height: MediaQuery.of(context).size.width / 100,
-                      ),
-                      Row(
-                        mainAxisAlignment: _axisRow,
-                        children: [
-                          // Region Dropdown
-                          Column(
-                            children: [
-                              Text(
-                                "Specify Region",
-                                style: TextStyle(
-                                    fontSize: width / 90,
-                                    color: Colors.black,
-                                    fontFamily: "R"),
-                              ),
-                              SizedBox(height: width / 170),
-                              Container(
-                                height: width / 35,
-                                width: width / 8,
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.black54),
-                                  borderRadius:
-                                      BorderRadius.circular(width / 150),
-                                  color: Colors.white,
-                                ),
-                                child: DropDownTextField(
-                                  searchTextStyle: TextStyle(
-                                    fontSize:
-                                        MediaQuery.of(context).size.width / 110,
-                                    color: Colors.black,
-                                    fontFamily: "R",
-                                  ),
-                                  searchKeyboardType: TextInputType.text,
-                                  searchDecoration: InputDecoration(
-                                    hintText: "Search",
-                                    hintStyle: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
-                                              140,
-                                      color: Colors.black,
-                                      fontFamily: "R",
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width /
-                                              150),
-                                    ),
-                                  ),
-                                  clearOption: true,
-                                  listTextStyle: TextStyle(
-                                    fontSize:
-                                        MediaQuery.of(context).size.width / 110,
-                                    color: Colors.black,
-                                    fontFamily: "R",
-                                  ),
-                                  textStyle: TextStyle(
-                                    fontSize:
-                                        MediaQuery.of(context).size.width / 110,
-                                    color: Colors.black,
-                                    fontFamily: "R",
-                                  ),
-                                  enableSearch: true,
-                                  validator: (value) {
-                                    if (value == null) {
-                                      return "Required field";
-                                    } else {
-                                      return null;
-                                    }
-                                  },
-                                  dropDownItemCount: 8,
-                                  listPadding: ListPadding(top: 0, bottom: 0),
-                                  dropDownList: [
-                                    for (var item in regions)
-                                      DropDownValueModel(
-                                          name: item['name'],
-                                          value: item['code']),
-                                  ],
-                                  onChanged: (selected) {
-                                    setState(() {
-                                      selectedRegion = selected?.value;
-                                      selectedProvince = null;
-                                      selectedCity = null;
-                                      selectedMunicipality = null;
-                                      selectedBarangay = null;
-                                      barangays = [];
-
-                                      _axisRow = MainAxisAlignment.start;
-                                    });
-                                    _loadProvincesOrCities(selectedRegion!);
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          if (selectedRegion != null) ...[
-                            SizedBox(width: width / 50),
-
-                            // Province Dropdown (Only if region has provinces)
-                            if (provinces.isNotEmpty) ...[
+                              // Region Dropdown
                               Column(
                                 children: [
                                   Text(
-                                    "Specify Province",
+                                    "Specify Region",
                                     style: TextStyle(
                                         fontSize: width / 90,
                                         color: Colors.black,
@@ -2174,7 +2459,9 @@ class _SettingsSUState extends State<SettingsSU> {
                                       border: Border.all(color: Colors.black54),
                                       borderRadius:
                                           BorderRadius.circular(width / 150),
-                                      color: Colors.white,
+                                      color: dropDownSearchReadOnly == true
+                                          ? Colors.grey[300]
+                                          : Colors.white,
                                     ),
                                     child: DropDownTextField(
                                       searchTextStyle: TextStyle(
@@ -2218,7 +2505,8 @@ class _SettingsSUState extends State<SettingsSU> {
                                         color: Colors.black,
                                         fontFamily: "R",
                                       ),
-                                      enableSearch: true,
+                                      enableSearch: dropDownSearchReadOnly,
+                                      readOnly: dropDownSearchReadOnly,
                                       validator: (value) {
                                         if (value == null) {
                                           return "Required field";
@@ -2229,671 +2517,903 @@ class _SettingsSUState extends State<SettingsSU> {
                                       dropDownItemCount: 8,
                                       listPadding:
                                           ListPadding(top: 0, bottom: 0),
-                                      dropDownList: [
-                                        for (var item in provinces)
-                                          DropDownValueModel(
-                                              name: item['name'],
-                                              value: item['code']),
-                                      ],
+                                      dropDownList:
+                                          dropDownSearchReadOnly == true
+                                              ? []
+                                              : [
+                                                  for (var item in regions)
+                                                    DropDownValueModel(
+                                                        name: item['name'],
+                                                        value: item['code']),
+                                                ],
                                       onChanged: (selected) {
                                         setState(() {
-                                          selectedProvince = selected?.value;
+                                          selectedRegion = selected?.value;
+                                          selectedProvince = null;
                                           selectedCity = null;
                                           selectedMunicipality = null;
                                           selectedBarangay = null;
                                           barangays = [];
+
+                                          _axisRow = MainAxisAlignment.start;
                                         });
-                                        _loadMunicipalities(selectedProvince!);
-                                        _loadCities(selectedProvince!);
+                                        _loadProvincesOrCities(selectedRegion!);
                                       },
                                     ),
                                   ),
                                 ],
                               ),
-                            ],
 
-                            SizedBox(width: width / 50),
+                              if (selectedRegion != null) ...[
+                                SizedBox(width: width / 50),
 
-                            // NCR Handling: If NCR is selected, show a single dropdown
-                            if (provinces.isEmpty) ...[
-                              Column(
-                                children: [
-                                  Text(
-                                    "Specify City/Municipality",
-                                    style: TextStyle(
-                                        fontSize: width / 90,
-                                        color: Colors.black,
-                                        fontFamily: "R"),
-                                  ),
-                                  SizedBox(height: width / 170),
-                                  Container(
-                                    height: width / 35,
-                                    width: width / 8,
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: Colors.black54),
-                                      borderRadius:
-                                          BorderRadius.circular(width / 150),
-                                      color: Colors.white,
-                                    ),
-                                    child: DropDownTextField(
-                                      searchTextStyle: TextStyle(
-                                        fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                110,
-                                        color: Colors.black,
-                                        fontFamily: "R",
+                                // Province Dropdown (Only if region has provinces)
+                                if (provinces.isNotEmpty) ...[
+                                  Column(
+                                    children: [
+                                      Text(
+                                        "Specify Province",
+                                        style: TextStyle(
+                                            fontSize: width / 90,
+                                            color: Colors.black,
+                                            fontFamily: "R"),
                                       ),
-                                      searchKeyboardType: TextInputType.text,
-                                      searchDecoration: InputDecoration(
-                                        hintText: "Search",
-                                        hintStyle: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              140,
-                                          color: Colors.black,
-                                          fontFamily: "R",
-                                        ),
-                                        border: OutlineInputBorder(
+                                      SizedBox(height: width / 170),
+                                      Container(
+                                        height: width / 35,
+                                        width: width / 8,
+                                        decoration: BoxDecoration(
+                                          border:
+                                              Border.all(color: Colors.black54),
                                           borderRadius: BorderRadius.circular(
-                                              MediaQuery.of(context)
+                                              width / 150),
+                                          color: Colors.white,
+                                        ),
+                                        child: DropDownTextField(
+                                          searchTextStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.black,
+                                            fontFamily: "R",
+                                          ),
+                                          searchKeyboardType:
+                                              TextInputType.text,
+                                          searchDecoration: InputDecoration(
+                                            hintText: "Search",
+                                            hintStyle: TextStyle(
+                                              fontSize: MediaQuery.of(context)
                                                       .size
                                                       .width /
-                                                  150),
+                                                  140,
+                                              color: Colors.black,
+                                              fontFamily: "R",
+                                            ),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      MediaQuery.of(context)
+                                                              .size
+                                                              .width /
+                                                          150),
+                                            ),
+                                          ),
+                                          clearOption: true,
+                                          listTextStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.black,
+                                            fontFamily: "R",
+                                          ),
+                                          textStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.black,
+                                            fontFamily: "R",
+                                          ),
+                                          enableSearch: true,
+                                          validator: (value) {
+                                            if (value == null) {
+                                              return "Required field";
+                                            } else {
+                                              return null;
+                                            }
+                                          },
+                                          dropDownItemCount: 8,
+                                          listPadding:
+                                              ListPadding(top: 0, bottom: 0),
+                                          dropDownList: [
+                                            for (var item in provinces)
+                                              DropDownValueModel(
+                                                  name: item['name'],
+                                                  value: item['code']),
+                                          ],
+                                          onChanged: (selected) {
+                                            setState(() {
+                                              selectedProvince =
+                                                  selected?.value;
+                                              selectedCity = null;
+                                              selectedMunicipality = null;
+                                              selectedBarangay = null;
+                                              barangays = [];
+                                            });
+                                            _loadMunicipalities(
+                                                selectedProvince!);
+                                            _loadCities(selectedProvince!);
+                                          },
                                         ),
                                       ),
-                                      clearOption: true,
-                                      listTextStyle: TextStyle(
-                                        fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                110,
-                                        color: Colors.black,
-                                        fontFamily: "R",
-                                      ),
-                                      textStyle: TextStyle(
-                                        fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                110,
-                                        color: Colors.black,
-                                        fontFamily: "R",
-                                      ),
-                                      enableSearch: true,
-                                      validator: (value) {
-                                        if (value == null) {
-                                          return "Required field";
-                                        } else {
-                                          return null;
-                                        }
-                                      },
-                                      dropDownItemCount: 8,
-                                      listPadding:
-                                          ListPadding(top: 0, bottom: 0),
-                                      dropDownList: [
-                                        for (var item in citiesMunicipalities)
-                                          DropDownValueModel(
-                                              name: item['name'],
-                                              value: item['code']),
-                                      ],
-                                      onChanged: (selected) {
-                                        setState(() {
-                                          selectedCity = selected?.value;
-                                          selectedMunicipality = null;
-                                          selectedBarangay = null;
-                                          barangays = [];
-                                        });
-                                        _loadBarangaysFromCity(selectedCity!);
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-
-                            // If NOT NCR, show separate City & Municipality dropdowns
-                            if (provinces.isNotEmpty) ...[
-                              Column(
-                                children: [
-                                  Text(
-                                    "Specify City",
-                                    style: TextStyle(
-                                        fontSize: width / 90,
-                                        color: Colors.black,
-                                        fontFamily: "R"),
-                                  ),
-                                  SizedBox(height: width / 170),
-                                  Container(
-                                    height: width / 35,
-                                    width: width / 8,
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: Colors.black54),
-                                      borderRadius:
-                                          BorderRadius.circular(width / 150),
-                                      color: selectedMunicipality == null
-                                          ? Colors.white
-                                          : Colors.grey[300],
-                                    ),
-                                    child: DropDownTextField(
-                                      isEnabled: selectedMunicipality ==
-                                          null, // Disable if municipality is selected
-                                      searchTextStyle: TextStyle(
-                                        fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                110,
-                                        color: Colors.black,
-                                        fontFamily: "R",
-                                      ),
-                                      searchKeyboardType: TextInputType.text,
-                                      searchDecoration: InputDecoration(
-                                        hintText: "Search",
-                                        hintStyle: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              140,
-                                          color: Colors.black,
-                                          fontFamily: "R",
-                                        ),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                              MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  150),
-                                        ),
-                                      ),
-                                      clearOption: true,
-                                      listTextStyle: TextStyle(
-                                        fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                110,
-                                        color: Colors.black,
-                                        fontFamily: "R",
-                                      ),
-                                      textStyle: TextStyle(
-                                        fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                110,
-                                        color: Colors.black,
-                                        fontFamily: "R",
-                                      ),
-                                      enableSearch: true,
-                                      validator: (value) {
-                                        if (value == null) {
-                                          return "Required field";
-                                        } else {
-                                          return null;
-                                        }
-                                      },
-                                      dropDownItemCount: 8,
-                                      listPadding:
-                                          ListPadding(top: 0, bottom: 0),
-                                      dropDownList: [
-                                        for (var item in cities)
-                                          DropDownValueModel(
-                                              name: item['name'],
-                                              value: item['code']),
-                                      ],
-                                      onChanged: (selected) {
-                                        setState(() {
-                                          selectedCity = selected?.value;
-                                          selectedMunicipality =
-                                              null; // Disable municipality dropdown
-                                          selectedBarangay = null;
-                                          barangays = [];
-
-                                          _axisRow =
-                                              MainAxisAlignment.spaceBetween;
-                                        });
-                                        _loadBarangaysFromCity(selectedCity!);
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(width: width / 50),
-                              Column(
-                                children: [
-                                  Text(
-                                    "Specify Municipality",
-                                    style: TextStyle(
-                                        fontSize: width / 90,
-                                        color: Colors.black,
-                                        fontFamily: "R"),
-                                  ),
-                                  SizedBox(height: width / 170),
-                                  Container(
-                                    height: width / 35,
-                                    width: width / 8,
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: Colors.black54),
-                                      borderRadius:
-                                          BorderRadius.circular(width / 150),
-                                      color: selectedCity == null
-                                          ? Colors.white
-                                          : Colors.grey[300],
-                                    ),
-                                    child: DropDownTextField(
-                                      isEnabled: selectedCity ==
-                                          null, // Disable if city is selected
-                                      searchTextStyle: TextStyle(
-                                        fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                110,
-                                        color: Colors.black,
-                                        fontFamily: "R",
-                                      ),
-                                      searchKeyboardType: TextInputType.text,
-                                      searchDecoration: InputDecoration(
-                                        hintText: "Search",
-                                        hintStyle: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              140,
-                                          color: Colors.black,
-                                          fontFamily: "R",
-                                        ),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                              MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  150),
-                                        ),
-                                      ),
-                                      clearOption: true,
-                                      listTextStyle: TextStyle(
-                                        fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                110,
-                                        color: Colors.black,
-                                        fontFamily: "R",
-                                      ),
-                                      textStyle: TextStyle(
-                                        fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                110,
-                                        color: Colors.black,
-                                        fontFamily: "R",
-                                      ),
-                                      enableSearch: true,
-                                      validator: (value) {
-                                        if (value == null) {
-                                          return "Required field";
-                                        } else {
-                                          return null;
-                                        }
-                                      },
-                                      dropDownItemCount: 8,
-                                      listPadding:
-                                          ListPadding(top: 0, bottom: 0),
-                                      dropDownList: [
-                                        for (var item in municipalities)
-                                          DropDownValueModel(
-                                              name: item['name'],
-                                              value: item['code']),
-                                      ],
-                                      onChanged: (selected) {
-                                        setState(() {
-                                          selectedMunicipality =
-                                              selected?.value;
-                                          selectedCity =
-                                              null; // Disable city dropdown
-                                          selectedBarangay = null;
-                                          barangays = [];
-
-                                          _axisRow =
-                                              MainAxisAlignment.spaceBetween;
-                                        });
-                                        _loadBarangaysFromMunicipality(
-                                            selectedMunicipality!);
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ],
-
-                          if (selectedCity != null ||
-                              selectedMunicipality != null) ...[
-                            SizedBox(width: width / 50),
-
-                            // Barangay Dropdown
-                            Column(
-                              children: [
-                                Text(
-                                  "Specify Barangay",
-                                  style: TextStyle(
-                                      fontSize: width / 90,
-                                      color: Colors.black,
-                                      fontFamily: "R"),
-                                ),
-                                SizedBox(height: width / 170),
-                                Container(
-                                  height: width / 35,
-                                  width: width / 8,
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.black54),
-                                    borderRadius:
-                                        BorderRadius.circular(width / 150),
-                                    color: Colors.white,
-                                  ),
-                                  child: DropDownTextField(
-                                    searchTextStyle: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
-                                              110,
-                                      color: Colors.black,
-                                      fontFamily: "R",
-                                    ),
-                                    searchKeyboardType: TextInputType.text,
-                                    searchDecoration: InputDecoration(
-                                      hintText: "Search",
-                                      hintStyle: TextStyle(
-                                        fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                140,
-                                        color: Colors.black,
-                                        fontFamily: "R",
-                                      ),
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(
-                                            MediaQuery.of(context).size.width /
-                                                150),
-                                      ),
-                                    ),
-                                    clearOption: true,
-                                    listTextStyle: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
-                                              110,
-                                      color: Colors.black,
-                                      fontFamily: "R",
-                                    ),
-                                    textStyle: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
-                                              110,
-                                      color: Colors.black,
-                                      fontFamily: "R",
-                                    ),
-                                    enableSearch: true,
-                                    validator: (value) {
-                                      if (value == null) {
-                                        return "Required field";
-                                      } else {
-                                        return null;
-                                      }
-                                    },
-                                    dropDownItemCount: 8,
-                                    listPadding: ListPadding(top: 0, bottom: 0),
-                                    dropDownList: [
-                                      for (var item in barangays)
-                                        DropDownValueModel(
-                                            name: item['name'],
-                                            value: item['code']),
                                     ],
-                                    onChanged: (selected) {
-                                      setState(() {
-                                        selectedBarangay = selected?.value;
-                                      });
-                                    },
                                   ),
+                                ],
+
+                                SizedBox(width: width / 50),
+
+                                // NCR Handling: If NCR is selected, show a single dropdown
+                                if (provinces.isEmpty) ...[
+                                  Column(
+                                    children: [
+                                      Text(
+                                        "Specify City/Municipality",
+                                        style: TextStyle(
+                                            fontSize: width / 90,
+                                            color: Colors.black,
+                                            fontFamily: "R"),
+                                      ),
+                                      SizedBox(height: width / 170),
+                                      Container(
+                                        height: width / 35,
+                                        width: width / 8,
+                                        decoration: BoxDecoration(
+                                          border:
+                                              Border.all(color: Colors.black54),
+                                          borderRadius: BorderRadius.circular(
+                                              width / 150),
+                                          color: Colors.white,
+                                        ),
+                                        child: DropDownTextField(
+                                          searchTextStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.black,
+                                            fontFamily: "R",
+                                          ),
+                                          searchKeyboardType:
+                                              TextInputType.text,
+                                          searchDecoration: InputDecoration(
+                                            hintText: "Search",
+                                            hintStyle: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  140,
+                                              color: Colors.black,
+                                              fontFamily: "R",
+                                            ),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      MediaQuery.of(context)
+                                                              .size
+                                                              .width /
+                                                          150),
+                                            ),
+                                          ),
+                                          clearOption: true,
+                                          listTextStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.black,
+                                            fontFamily: "R",
+                                          ),
+                                          textStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.black,
+                                            fontFamily: "R",
+                                          ),
+                                          enableSearch: true,
+                                          validator: (value) {
+                                            if (value == null) {
+                                              return "Required field";
+                                            } else {
+                                              return null;
+                                            }
+                                          },
+                                          dropDownItemCount: 8,
+                                          listPadding:
+                                              ListPadding(top: 0, bottom: 0),
+                                          dropDownList: [
+                                            for (var item
+                                                in citiesMunicipalities)
+                                              DropDownValueModel(
+                                                  name: item['name'],
+                                                  value: item['code']),
+                                          ],
+                                          onChanged: (selected) {
+                                            setState(() {
+                                              selectedCity = selected?.value;
+                                              selectedMunicipality = null;
+                                              selectedBarangay = null;
+                                              barangays = [];
+                                            });
+                                            _loadBarangaysFromCity(
+                                                selectedCity!);
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+
+                                // If NOT NCR, show separate City & Municipality dropdowns
+                                if (provinces.isNotEmpty) ...[
+                                  Column(
+                                    children: [
+                                      Text(
+                                        "Specify City",
+                                        style: TextStyle(
+                                            fontSize: width / 90,
+                                            color: Colors.black,
+                                            fontFamily: "R"),
+                                      ),
+                                      SizedBox(height: width / 170),
+                                      Container(
+                                        height: width / 35,
+                                        width: width / 8,
+                                        decoration: BoxDecoration(
+                                          border:
+                                              Border.all(color: Colors.black54),
+                                          borderRadius: BorderRadius.circular(
+                                              width / 150),
+                                          color: selectedMunicipality == null
+                                              ? Colors.white
+                                              : Colors.grey[300],
+                                        ),
+                                        child: DropDownTextField(
+                                          isEnabled: selectedMunicipality ==
+                                              null, // Disable if municipality is selected
+                                          searchTextStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.black,
+                                            fontFamily: "R",
+                                          ),
+                                          searchKeyboardType:
+                                              TextInputType.text,
+                                          searchDecoration: InputDecoration(
+                                            hintText: "Search",
+                                            hintStyle: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  140,
+                                              color: Colors.black,
+                                              fontFamily: "R",
+                                            ),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      MediaQuery.of(context)
+                                                              .size
+                                                              .width /
+                                                          150),
+                                            ),
+                                          ),
+                                          clearOption: true,
+                                          listTextStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.black,
+                                            fontFamily: "R",
+                                          ),
+                                          textStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.black,
+                                            fontFamily: "R",
+                                          ),
+                                          enableSearch: true,
+                                          validator: (value) {
+                                            if (value == null) {
+                                              return "Required field";
+                                            } else {
+                                              return null;
+                                            }
+                                          },
+                                          dropDownItemCount: 8,
+                                          listPadding:
+                                              ListPadding(top: 0, bottom: 0),
+                                          dropDownList: [
+                                            for (var item in cities)
+                                              DropDownValueModel(
+                                                  name: item['name'],
+                                                  value: item['code']),
+                                          ],
+                                          onChanged: (selected) {
+                                            setState(() {
+                                              selectedCity = selected?.value;
+                                              selectedMunicipality =
+                                                  null; // Disable municipality dropdown
+                                              selectedBarangay = null;
+                                              barangays = [];
+
+                                              _axisRow = MainAxisAlignment
+                                                  .spaceBetween;
+                                            });
+                                            _loadBarangaysFromCity(
+                                                selectedCity!);
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(width: width / 50),
+                                  Column(
+                                    children: [
+                                      Text(
+                                        "Specify Municipality",
+                                        style: TextStyle(
+                                            fontSize: width / 90,
+                                            color: Colors.black,
+                                            fontFamily: "R"),
+                                      ),
+                                      SizedBox(height: width / 170),
+                                      Container(
+                                        height: width / 35,
+                                        width: width / 8,
+                                        decoration: BoxDecoration(
+                                          border:
+                                              Border.all(color: Colors.black54),
+                                          borderRadius: BorderRadius.circular(
+                                              width / 150),
+                                          color: selectedCity == null
+                                              ? Colors.white
+                                              : Colors.grey[300],
+                                        ),
+                                        child: DropDownTextField(
+                                          isEnabled: selectedCity ==
+                                              null, // Disable if city is selected
+                                          searchTextStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.black,
+                                            fontFamily: "R",
+                                          ),
+                                          searchKeyboardType:
+                                              TextInputType.text,
+                                          searchDecoration: InputDecoration(
+                                            hintText: "Search",
+                                            hintStyle: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  140,
+                                              color: Colors.black,
+                                              fontFamily: "R",
+                                            ),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      MediaQuery.of(context)
+                                                              .size
+                                                              .width /
+                                                          150),
+                                            ),
+                                          ),
+                                          clearOption: true,
+                                          listTextStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.black,
+                                            fontFamily: "R",
+                                          ),
+                                          textStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.black,
+                                            fontFamily: "R",
+                                          ),
+                                          enableSearch: true,
+                                          validator: (value) {
+                                            if (value == null) {
+                                              return "Required field";
+                                            } else {
+                                              return null;
+                                            }
+                                          },
+                                          dropDownItemCount: 8,
+                                          listPadding:
+                                              ListPadding(top: 0, bottom: 0),
+                                          dropDownList: [
+                                            for (var item in municipalities)
+                                              DropDownValueModel(
+                                                  name: item['name'],
+                                                  value: item['code']),
+                                          ],
+                                          onChanged: (selected) {
+                                            setState(() {
+                                              selectedMunicipality =
+                                                  selected?.value;
+                                              selectedCity =
+                                                  null; // Disable city dropdown
+                                              selectedBarangay = null;
+                                              barangays = [];
+
+                                              _axisRow = MainAxisAlignment
+                                                  .spaceBetween;
+                                            });
+                                            _loadBarangaysFromMunicipality(
+                                                selectedMunicipality!);
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ],
+
+                              if (selectedCity != null ||
+                                  selectedMunicipality != null) ...[
+                                SizedBox(width: width / 50),
+
+                                // Barangay Dropdown
+                                Column(
+                                  children: [
+                                    Text(
+                                      "Specify Barangay",
+                                      style: TextStyle(
+                                          fontSize: width / 90,
+                                          color: Colors.black,
+                                          fontFamily: "R"),
+                                    ),
+                                    SizedBox(height: width / 170),
+                                    Container(
+                                      height: width / 35,
+                                      width: width / 8,
+                                      decoration: BoxDecoration(
+                                        border:
+                                            Border.all(color: Colors.black54),
+                                        borderRadius:
+                                            BorderRadius.circular(width / 150),
+                                        color: Colors.white,
+                                      ),
+                                      child: DropDownTextField(
+                                        searchTextStyle: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              110,
+                                          color: Colors.black,
+                                          fontFamily: "R",
+                                        ),
+                                        searchKeyboardType: TextInputType.text,
+                                        searchDecoration: InputDecoration(
+                                          hintText: "Search",
+                                          hintStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                140,
+                                            color: Colors.black,
+                                            fontFamily: "R",
+                                          ),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(
+                                                MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    150),
+                                          ),
+                                        ),
+                                        clearOption: true,
+                                        listTextStyle: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              110,
+                                          color: Colors.black,
+                                          fontFamily: "R",
+                                        ),
+                                        textStyle: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              110,
+                                          color: Colors.black,
+                                          fontFamily: "R",
+                                        ),
+                                        enableSearch: true,
+                                        validator: (value) {
+                                          if (value == null) {
+                                            return "Required field";
+                                          } else {
+                                            return null;
+                                          }
+                                        },
+                                        dropDownItemCount: 8,
+                                        listPadding:
+                                            ListPadding(top: 0, bottom: 0),
+                                        dropDownList: [
+                                          for (var item in barangays)
+                                            DropDownValueModel(
+                                                name: item['name'],
+                                                value: item['code']),
+                                        ],
+                                        onChanged: (selected) {
+                                          setState(() {
+                                            selectedBarangay = selected?.value;
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
-                            ),
+                            ],
+                          ),
+                          SizedBox(
+                              height: MediaQuery.of(context).size.height / 50),
+                          if (selectedBarangay != null) ...[
+                            Container(
+                                child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                  Column(
+                                    children: [
+                                      Text("Zipcode",
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  90,
+                                              color: Colors.black,
+                                              fontFamily: "R")),
+                                      SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                170,
+                                      ),
+                                      Container(
+                                        width:
+                                            MediaQuery.of(context).size.width /
+                                                6,
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                35,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
+                                        child: TextField(
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  110,
+                                              color: Colors.black,
+                                              fontFamily: "R"),
+                                          decoration: InputDecoration(
+                                            contentPadding: EdgeInsets.all(
+                                                MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    120),
+                                            hintText: "Zipcode",
+                                            hintStyle: TextStyle(
+                                                fontSize: MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    110,
+                                                color: Colors.grey,
+                                                fontFamily: "R"),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      MediaQuery.of(context)
+                                                              .size
+                                                              .width /
+                                                          150),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(
+                                      width: MediaQuery.of(context).size.width /
+                                          50),
+                                  Column(
+                                    children: [
+                                      Text("House/Block/Lot Number",
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  90,
+                                              color: Colors.black,
+                                              fontFamily: "R")),
+                                      SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                170,
+                                      ),
+                                      Container(
+                                        width:
+                                            MediaQuery.of(context).size.width /
+                                                6,
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                35,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
+                                        child: TextField(
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  110,
+                                              color: Colors.black,
+                                              fontFamily: "R"),
+                                          decoration: InputDecoration(
+                                            contentPadding: EdgeInsets.all(
+                                                MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    120),
+                                            hintText: "House/Block/Lot Number",
+                                            hintStyle: TextStyle(
+                                                fontSize: MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    110,
+                                                color: Colors.grey,
+                                                fontFamily: "R"),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      MediaQuery.of(context)
+                                                              .size
+                                                              .width /
+                                                          150),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(
+                                      width: MediaQuery.of(context).size.width /
+                                          50),
+                                  Column(
+                                    children: [
+                                      Text("Street",
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  90,
+                                              color: Colors.black,
+                                              fontFamily: "R")),
+                                      SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                170,
+                                      ),
+                                      Container(
+                                        width:
+                                            MediaQuery.of(context).size.width /
+                                                6,
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                35,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
+                                        child: TextField(
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  110,
+                                              color: Colors.black,
+                                              fontFamily: "R"),
+                                          decoration: InputDecoration(
+                                            contentPadding: EdgeInsets.all(
+                                                MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    120),
+                                            hintText: "Street",
+                                            hintStyle: TextStyle(
+                                                fontSize: MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    110,
+                                                color: Colors.grey,
+                                                fontFamily: "R"),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      MediaQuery.of(context)
+                                                              .size
+                                                              .width /
+                                                          150),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(
+                                      width: MediaQuery.of(context).size.width /
+                                          50),
+                                  Column(
+                                    children: [
+                                      Text("Subdivision",
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  90,
+                                              color: Colors.black,
+                                              fontFamily: "R")),
+                                      SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                170,
+                                      ),
+                                      Container(
+                                        width:
+                                            MediaQuery.of(context).size.width /
+                                                6,
+                                        height:
+                                            MediaQuery.of(context).size.width /
+                                                35,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
+                                        child: TextField(
+                                          style: TextStyle(
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  110,
+                                              color: Colors.black,
+                                              fontFamily: "R"),
+                                          decoration: InputDecoration(
+                                            contentPadding: EdgeInsets.all(
+                                                MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    120),
+                                            hintText: "Subdivision",
+                                            hintStyle: TextStyle(
+                                                fontSize: MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    110,
+                                                color: Colors.grey,
+                                                fontFamily: "R"),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      MediaQuery.of(context)
+                                                              .size
+                                                              .width /
+                                                          150),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ]))
                           ],
+                          SizedBox(
+                              height: MediaQuery.of(context).size.height / 50),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                if (_buttonColor ==
+                                    Color.fromARGB(255, 11, 55, 99)) {
+                                  setState(() {
+                                    _buttonColor = Colors.green;
+                                    _textContent = "Save Changes";
+                                    textFieldReadOnly = false;
+                                    dropDownReadOnly = false;
+                                    calendarReadOnly = false;
+                                    dropDownSearchReadOnly = false;
+                                  });
+                                } else if (_buttonColor == Colors.green) {
+                                  setState(() {
+                                    _textContent = "Edit Profile Information";
+                                    _buttonColor =
+                                        Color.fromARGB(255, 11, 55, 99);
+                                    textFieldReadOnly = true;
+                                    dropDownReadOnly = true;
+                                    calendarReadOnly = true;
+                                    dropDownSearchReadOnly = true;
+                                    Navigator.pushReplacement(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                SuperUserDashboard()));
+                                  });
+                                }
+                              });
+                            },
+                            child: Container(
+                                width:
+                                    MediaQuery.of(context).size.width / 1.328,
+                                height: MediaQuery.of(context).size.width / 25,
+                                decoration: BoxDecoration(
+                                    color: _buttonColor,
+                                    borderRadius: BorderRadius.circular(
+                                        MediaQuery.of(context).size.width /
+                                            150)),
+                                child: Center(
+                                  child: Text(
+                                    "$_textContent",
+                                    style: TextStyle(
+                                        fontSize:
+                                            MediaQuery.of(context).size.width /
+                                                70,
+                                        color: Colors.white,
+                                        fontFamily: "SB"),
+                                  ),
+                                )),
+                          ).showCursorOnHover,
+                          SizedBox(
+                              height: MediaQuery.of(context).size.height / 50),
                         ],
                       ),
-                      SizedBox(height: MediaQuery.of(context).size.height / 50),
-                      Container(
-                          child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                            if (selectedBarangay != null) ...[
-                              Column(
-                                children: [
-                                  Text("Zipcode",
-                                      style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              90,
-                                          color: Colors.black,
-                                          fontFamily: "R")),
-                                  SizedBox(
-                                    height:
-                                        MediaQuery.of(context).size.width / 170,
-                                  ),
-                                  Container(
-                                    width:
-                                        MediaQuery.of(context).size.width / 6,
-                                    height:
-                                        MediaQuery.of(context).size.width / 35,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width /
-                                              150),
-                                    ),
-                                    child: TextField(
-                                      style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              110,
-                                          color: Colors.black,
-                                          fontFamily: "R"),
-                                      decoration: InputDecoration(
-                                        contentPadding: EdgeInsets.all(
-                                            MediaQuery.of(context).size.width /
-                                                120),
-                                        hintText: "Zipcode",
-                                        hintStyle: TextStyle(
-                                            fontSize: MediaQuery.of(context)
-                                                    .size
-                                                    .width /
-                                                110,
-                                            color: Colors.grey,
-                                            fontFamily: "R"),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                              MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  150),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(
-                                  width:
-                                      MediaQuery.of(context).size.width / 50),
-                              Column(
-                                children: [
-                                  Text("House/Block/Lot Number",
-                                      style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              90,
-                                          color: Colors.black,
-                                          fontFamily: "R")),
-                                  SizedBox(
-                                    height:
-                                        MediaQuery.of(context).size.width / 170,
-                                  ),
-                                  Container(
-                                    width:
-                                        MediaQuery.of(context).size.width / 6,
-                                    height:
-                                        MediaQuery.of(context).size.width / 35,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width /
-                                              150),
-                                    ),
-                                    child: TextField(
-                                      style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              110,
-                                          color: Colors.black,
-                                          fontFamily: "R"),
-                                      decoration: InputDecoration(
-                                        contentPadding: EdgeInsets.all(
-                                            MediaQuery.of(context).size.width /
-                                                120),
-                                        hintText: "House/Block/Lot Number",
-                                        hintStyle: TextStyle(
-                                            fontSize: MediaQuery.of(context)
-                                                    .size
-                                                    .width /
-                                                110,
-                                            color: Colors.grey,
-                                            fontFamily: "R"),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                              MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  150),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(
-                                  width:
-                                      MediaQuery.of(context).size.width / 50),
-                              Column(
-                                children: [
-                                  Text("Street",
-                                      style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              90,
-                                          color: Colors.black,
-                                          fontFamily: "R")),
-                                  SizedBox(
-                                    height:
-                                        MediaQuery.of(context).size.width / 170,
-                                  ),
-                                  Container(
-                                    width:
-                                        MediaQuery.of(context).size.width / 6,
-                                    height:
-                                        MediaQuery.of(context).size.width / 35,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width /
-                                              150),
-                                    ),
-                                    child: TextField(
-                                      style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              110,
-                                          color: Colors.black,
-                                          fontFamily: "R"),
-                                      decoration: InputDecoration(
-                                        contentPadding: EdgeInsets.all(
-                                            MediaQuery.of(context).size.width /
-                                                120),
-                                        hintText: "Street",
-                                        hintStyle: TextStyle(
-                                            fontSize: MediaQuery.of(context)
-                                                    .size
-                                                    .width /
-                                                110,
-                                            color: Colors.grey,
-                                            fontFamily: "R"),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                              MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  150),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(
-                                  width:
-                                      MediaQuery.of(context).size.width / 50),
-                              Column(
-                                children: [
-                                  Text("Subdivision",
-                                      style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              90,
-                                          color: Colors.black,
-                                          fontFamily: "R")),
-                                  SizedBox(
-                                    height:
-                                        MediaQuery.of(context).size.width / 170,
-                                  ),
-                                  Container(
-                                    width:
-                                        MediaQuery.of(context).size.width / 6,
-                                    height:
-                                        MediaQuery.of(context).size.width / 35,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width /
-                                              150),
-                                    ),
-                                    child: TextField(
-                                      style: TextStyle(
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              110,
-                                          color: Colors.black,
-                                          fontFamily: "R"),
-                                      decoration: InputDecoration(
-                                        contentPadding: EdgeInsets.all(
-                                            MediaQuery.of(context).size.width /
-                                                120),
-                                        hintText: "Subdivision",
-                                        hintStyle: TextStyle(
-                                            fontSize: MediaQuery.of(context)
-                                                    .size
-                                                    .width /
-                                                110,
-                                            color: Colors.grey,
-                                            fontFamily: "R"),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                              MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  150),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ])),
-                      SizedBox(height: MediaQuery.of(context).size.height / 50),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
                 Container(
                   width: MediaQuery.of(context).size.width / 1.328,
@@ -2909,220 +3429,389 @@ class _SettingsSUState extends State<SettingsSU> {
                   ),
                 ),
                 Container(
-                    height: MediaQuery.of(context).size.width / 5,
                     width: MediaQuery.of(context).size.width / 1.328,
+                    padding: EdgeInsets.only(
+                        left: MediaQuery.of(context).size.width / 37,
+                        right: MediaQuery.of(context).size.width / 37),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(children: [
-                          SizedBox(
-                              height: MediaQuery.of(context).size.width / 80),
-                          Column(
-                            children: [
-                              Text("Email",
-                                  style: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
-                                              90,
-                                      color: Colors.black,
-                                      fontFamily: "R")),
-                              SizedBox(
-                                height: MediaQuery.of(context).size.width / 170,
-                              ),
-                              Container(
-                                width: MediaQuery.of(context).size.width / 5.52,
-                                height: MediaQuery.of(context).size.width / 35,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[300],
-                                  borderRadius: BorderRadius.circular(
-                                      MediaQuery.of(context).size.width / 150),
-                                ),
-                                child: TextField(
-                                  showCursor: false,
-                                  readOnly: true,
-                                  style: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
-                                              110,
-                                      color: Colors.black,
-                                      fontFamily: "R"),
-                                  decoration: InputDecoration(
-                                    contentPadding: EdgeInsets.all(
-                                        MediaQuery.of(context).size.width /
-                                            120),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width /
-                                              150),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(
-                              height: MediaQuery.of(context).size.width / 80),
-                          GestureDetector(
-                            onTap: () {},
-                            child: Container(
-                                width: MediaQuery.of(context).size.width / 5.52,
-                                height: MediaQuery.of(context).size.width / 35,
-                                decoration: BoxDecoration(
-                                  color: Colors.yellow,
-                                  borderRadius: BorderRadius.circular(
-                                      MediaQuery.of(context).size.width / 150),
-                                ),
-                                child: Center(
-                                    child: Text("Change Password",
+                        Container(
+                          height: MediaQuery.of(context).size.width / 4.2,
+                          child: Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                SizedBox(
+                                    height:
+                                        MediaQuery.of(context).size.width / 80),
+                                Column(
+                                  children: [
+                                    Text("Email",
                                         style: TextStyle(
-                                            color: Colors.black,
-                                            fontFamily: "M",
                                             fontSize: MediaQuery.of(context)
                                                     .size
                                                     .width /
-                                                100)))),
-                          ).showCursorOnHover.moveUpOnHover,
-                        ]),
-                        SizedBox(width: MediaQuery.of(context).size.width/50),
-                        Column(children: [
-                          SizedBox(
-                              height: MediaQuery.of(context).size.width / 80),
-                          Column(
-                            children: [
-                              Text("Password",
-                                  style: TextStyle(
-                                      fontSize:
+                                                90,
+                                            color: Colors.black,
+                                            fontFamily: "R")),
+                                    SizedBox(
+                                      height:
                                           MediaQuery.of(context).size.width /
-                                              90,
-                                      color: Colors.black,
-                                      fontFamily: "R")),
-                              SizedBox(
-                                height: MediaQuery.of(context).size.width / 170,
-                              ),
-                              Container(
-                                width: MediaQuery.of(context).size.width / 5.52,
-                                height: MediaQuery.of(context).size.width / 35,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[300],
-                                  borderRadius: BorderRadius.circular(
-                                      MediaQuery.of(context).size.width / 150),
+                                              170,
+                                    ),
+                                    Container(
+                                      width: MediaQuery.of(context).size.width /
+                                          5.52,
+                                      height:
+                                          MediaQuery.of(context).size.width /
+                                              35,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[300],
+                                        borderRadius: BorderRadius.circular(
+                                            MediaQuery.of(context).size.width /
+                                                150),
+                                      ),
+                                      child: TextField(
+                                        showCursor: false,
+                                        readOnly: true,
+                                        style: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                110,
+                                            color: Colors.black,
+                                            fontFamily: "R"),
+                                        decoration: InputDecoration(
+                                          contentPadding: EdgeInsets.all(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  120),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(
+                                                MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    150),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                child: TextField(
-                                  showCursor: false,
-                                  readOnly: true,
-                                  style: TextStyle(
-                                      fontSize:
+                                SizedBox(
+                                    height:
+                                        MediaQuery.of(context).size.width / 80),
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      if (isChangePassword == false) {
+                                        isChangePassword = true;
+                                      }
+                                    });
+                                  },
+                                  child: Container(
+                                      width: MediaQuery.of(context).size.width /
+                                          5.52,
+                                      height:
                                           MediaQuery.of(context).size.width /
-                                              110,
-                                      color: Colors.black,
-                                      fontFamily: "R"),
-                                  decoration: InputDecoration(
-                                    contentPadding: EdgeInsets.all(
-                                        MediaQuery.of(context).size.width /
-                                            120),
-                                    border: OutlineInputBorder(
+                                              35,
+                                      decoration: BoxDecoration(
+                                        color: Color.fromARGB(255, 11, 55, 99),
+                                        borderRadius: BorderRadius.circular(
+                                            MediaQuery.of(context).size.width /
+                                                150),
+                                      ),
+                                      child: Center(
+                                          child: Text("Change Password",
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontFamily: "M",
+                                                  fontSize:
+                                                      MediaQuery.of(context)
+                                                              .size
+                                                              .width /
+                                                          100)))),
+                                ).showCursorOnHover.moveUpOnHover,
+                              ]),
+                        ),
+                        VerticalDivider(),
+                        Visibility(
+                          visible: isChangePassword,
+                          child: Container(
+                            height: MediaQuery.of(context).size.width / 4.2,
+                            child: Column(children: [
+                              SizedBox(
+                                  height:
+                                      MediaQuery.of(context).size.width / 80),
+                              Column(
+                                children: [
+                                  Text("Old Password",
+                                      style: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              90,
+                                          color: Colors.black,
+                                          fontFamily: "R")),
+                                  SizedBox(
+                                    height:
+                                        MediaQuery.of(context).size.width / 170,
+                                  ),
+                                  Container(
+                                    width: MediaQuery.of(context).size.width /
+                                        4.75,
+                                    height:
+                                        MediaQuery.of(context).size.width / 35,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[300],
                                       borderRadius: BorderRadius.circular(
                                           MediaQuery.of(context).size.width /
                                               150),
                                     ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(
-                              height: MediaQuery.of(context).size.width / 80),
-                          Column(
-                            children: [
-                              Text("Confirm Password",
-                                  style: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
-                                              90,
-                                      color: Colors.black,
-                                      fontFamily: "R")),
-                              SizedBox(
-                                height: MediaQuery.of(context).size.width / 170,
-                              ),
-                              Container(
-                                width: MediaQuery.of(context).size.width / 5.52,
-                                height: MediaQuery.of(context).size.width / 35,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[300],
-                                  borderRadius: BorderRadius.circular(
-                                      MediaQuery.of(context).size.width / 150),
-                                ),
-                                child: TextField(
-                                  showCursor: false,
-                                  readOnly: true,
-                                  style: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
+                                    child: TextField(
+                                      showCursor: false,
+                                      style: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
                                               110,
-                                      color: Colors.black,
-                                      fontFamily: "R"),
-                                  decoration: InputDecoration(
-                                    contentPadding: EdgeInsets.all(
-                                        MediaQuery.of(context).size.width /
-                                            120),
-                                    border: OutlineInputBorder(
+                                          color: Colors.black,
+                                          fontFamily: "R"),
+                                      decoration: InputDecoration(
+                                        contentPadding: EdgeInsets.all(
+                                            MediaQuery.of(context).size.width /
+                                                120),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(
+                                  height:
+                                      MediaQuery.of(context).size.width / 80),
+                              Column(
+                                children: [
+                                  Text("New Password",
+                                      style: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              90,
+                                          color: Colors.black,
+                                          fontFamily: "R")),
+                                  SizedBox(
+                                    height:
+                                        MediaQuery.of(context).size.width / 170,
+                                  ),
+                                  Container(
+                                    width: MediaQuery.of(context).size.width /
+                                        4.75,
+                                    height:
+                                        MediaQuery.of(context).size.width / 35,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[300],
                                       borderRadius: BorderRadius.circular(
                                           MediaQuery.of(context).size.width /
                                               150),
                                     ),
+                                    child: TextField(
+                                      showCursor: false,
+                                      readOnly: true,
+                                      style: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              110,
+                                          color: Colors.black,
+                                          fontFamily: "R"),
+                                      decoration: InputDecoration(
+                                        contentPadding: EdgeInsets.all(
+                                            MediaQuery.of(context).size.width /
+                                                120),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
+                                      ),
+                                    ),
                                   ),
+                                ],
+                              ),
+                              SizedBox(
+                                  height:
+                                      MediaQuery.of(context).size.width / 80),
+                              Column(
+                                children: [
+                                  Text("Confirm Password",
+                                      style: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              90,
+                                          color: Colors.black,
+                                          fontFamily: "R")),
+                                  SizedBox(
+                                    height:
+                                        MediaQuery.of(context).size.width / 170,
+                                  ),
+                                  Container(
+                                    width: MediaQuery.of(context).size.width /
+                                        4.75,
+                                    height:
+                                        MediaQuery.of(context).size.width / 35,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[300],
+                                      borderRadius: BorderRadius.circular(
+                                          MediaQuery.of(context).size.width /
+                                              150),
+                                    ),
+                                    child: TextField(
+                                      showCursor: false,
+                                      readOnly: true,
+                                      style: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              110,
+                                          color: Colors.black,
+                                          fontFamily: "R"),
+                                      decoration: InputDecoration(
+                                        contentPadding: EdgeInsets.all(
+                                            MediaQuery.of(context).size.width /
+                                                120),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(
+                                  height:
+                                      MediaQuery.of(context).size.width / 80),
+                              Container(
+                                child: Row(
+                                  children: [
+                                    GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          if (isChangePassword == true) {
+                                            setState(() {
+                                              isChangePassword = false;
+                                              print("$isChangePassword");
+                                            });
+                                          }
+                                        });
+                                      },
+                                      child: Container(
+                                          width: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              10,
+                                          height: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              35,
+                                          decoration: BoxDecoration(
+                                            color: Colors.red,
+                                            borderRadius: BorderRadius.circular(
+                                                MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    150),
+                                          ),
+                                          child: Center(
+                                              child: Text("Cancel",
+                                                  style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontFamily: "M",
+                                                      fontSize:
+                                                          MediaQuery.of(context)
+                                                                  .size
+                                                                  .width /
+                                                              100)))),
+                                    ).showCursorOnHover.moveUpOnHover,
+                                    SizedBox(
+                                        width:
+                                            MediaQuery.of(context).size.width /
+                                                100),
+                                    GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          if (isChangePassword == true) {
+                                            setState(() {
+                                              isChangePassword = false;
+                                              print("$isChangePassword");
+                                            });
+                                          }
+                                        });
+                                      },
+                                      child: Container(
+                                          width: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              10,
+                                          height: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
+                                              35,
+                                          decoration: BoxDecoration(
+                                            color: Colors.green,
+                                            borderRadius: BorderRadius.circular(
+                                                MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    150),
+                                          ),
+                                          child: Center(
+                                              child: Text("Save",
+                                                  style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontFamily: "M",
+                                                      fontSize:
+                                                          MediaQuery.of(context)
+                                                                  .size
+                                                                  .width /
+                                                              100)))),
+                                    ).showCursorOnHover.moveUpOnHover,
+                                  ],
                                 ),
                               ),
-                            ],
+                            ]),
                           ),
-                          SizedBox(
-                              height: MediaQuery.of(context).size.width / 80),
-                          Row(
-                            children: [
-                              GestureDetector(
-                                onTap: () {},
-                                child: Container(
-                                    width: MediaQuery.of(context).size.width / 10,
-                                    height: MediaQuery.of(context).size.width / 35,
-                                    decoration: BoxDecoration(
-                                      color: Colors.red,
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width / 150),
-                                    ),
-                                    child: Center(
-                                        child: Text("Cancel",
-                                            style: TextStyle(
-                                                color: Colors.white,
-                                                fontFamily: "M",
-                                                fontSize: MediaQuery.of(context)
-                                                        .size
-                                                        .width /
-                                                    100)))),
-                              ).showCursorOnHover.moveUpOnHover,
-                              SizedBox(width: MediaQuery.of(context).size.width/100),
-                              GestureDetector(
-                                onTap: () {},
-                                child: Container(
-                                    width: MediaQuery.of(context).size.width / 10,
-                                    height: MediaQuery.of(context).size.width / 35,
-                                    decoration: BoxDecoration(
-                                      color: Colors.green,
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width / 150),
-                                    ),
-                                    child: Center(
-                                        child: Text("Save",
-                                            style: TextStyle(
-                                                color: Colors.white,
-                                                fontFamily: "M",
-                                                fontSize: MediaQuery.of(context)
-                                                        .size
-                                                        .width /
-                                                    100)))),
-                              ).showCursorOnHover.moveUpOnHover,
-                            ],
-                          ),
-                        ])
+                        ),
+                        VerticalDivider(),
+                        Container(
+                            height: MediaQuery.of(context).size.width / 4.2,
+                            width: MediaQuery.of(context).size.width / 4.2,
+                            padding: EdgeInsets.all(
+                                MediaQuery.of(context).size.width / 80),
+                            decoration: BoxDecoration(),
+                            child: Center(
+                              child: Text("Error show here",
+                                  style: TextStyle(
+                                      fontFamily: "M",
+                                      fontSize:
+                                          MediaQuery.of(context).size.width /
+                                              80,
+                                      color: Colors.red)),
+                            )),
                       ],
                     )),
               ],
