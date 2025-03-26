@@ -1,5 +1,7 @@
 import 'package:attendance_app/404.dart';
 import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_dashoard.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/su_address_provider.dart';
+import 'package:attendance_app/edit_mode_provider.dart';
 import 'package:attendance_app/firebase_options.dart';
 import 'package:attendance_app/form/form.dart';
 import 'package:attendance_app/Auth/Persistent.dart';
@@ -9,6 +11,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
@@ -22,7 +25,12 @@ void main() async {
 
   await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
 
-  runApp(MyApp());
+  runApp(MultiProvider(
+    providers: [
+      ChangeNotifierProvider(create: (context) => EditModeProvider(),),
+      ChangeNotifierProvider(create: (_) => AddressProvider()),
+    ],
+    child: MyApp()));
   _hideBar();
 }
 
