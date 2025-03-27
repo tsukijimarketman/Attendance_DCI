@@ -1,3 +1,4 @@
+import 'package:attendance_app/audit_function.dart';
 import 'package:attendance_app/encryption/encryption_helper.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -212,6 +213,11 @@ class _UserManagementState extends State<UserManagement> {
         'department': selectedDepartment, // STORE SELECTED DEPARTMENT
       });
 
+      await logAuditTrail(
+      "User Approved",
+      "Super User approved user $email and assigned to department: $selectedDepartment with role: ${rolesMap[selectedRoles]}"
+    );
+
       _showMessage("User approved and account created successfully!");
     } catch (e) {
       _showMessage("Error approving user: ${e.toString()}");
@@ -246,6 +252,11 @@ class _UserManagementState extends State<UserManagement> {
 
       // Delete from Firestore
       await _firestore.collection("users").doc(userId).delete();
+
+       await logAuditTrail(
+      "User Rejected",
+      "Superuser rejected user registration for email: $email"
+    );
 
       _showMessage("User rejected and removed from the system.");
     } catch (e) {

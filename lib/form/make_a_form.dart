@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:attendance_app/audit_function.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -59,7 +60,7 @@ class _MakeAFormState extends State<MakeAForm> {
     }
   }
 
-  void generateQRCode() {
+  void generateQRCode() async {
     if (widget.agenda.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Please select an expiration date and time")),
@@ -79,6 +80,13 @@ class _MakeAFormState extends State<MakeAForm> {
         "&first_name=${Uri.encodeComponent(firstName)}"
         "&last_name=${Uri.encodeComponent(lastName)}"
         "&expiryTime=${formExpiryTime}";
+        
+         try {
+    // ✅ Audit Trail: Log when a user generates a QR Code
+    await logAuditTrail(
+      "Generated Attendance Form",
+      "User $firstName $lastName generated a QR code for agenda: ${widget.agenda.text} in department: ${departmentController.text}"
+    );
 
     Navigator.push(
       context,
@@ -91,7 +99,11 @@ class _MakeAFormState extends State<MakeAForm> {
         ),
       ),
     );
+  }catch (e) {
+    print("Error logging audit trail: $e");
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

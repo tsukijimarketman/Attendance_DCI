@@ -1,5 +1,6 @@
 // ignore_for_file: unused_element
 
+import 'package:attendance_app/audit_function.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -354,6 +355,11 @@ class _ReferencesState extends State<References> {
           .doc(dataId)
           .update({"name": newName});
 
+       await logAuditTrail(
+      "Data Updated",
+      "Updated reference '$dataId' under category '$selectedCategoryId' with new name: $newName"
+    );
+
       setState(() => _selectedDataId = null); // Deselect after editing
     } catch (e) {
       print("Error updating data: $e");
@@ -404,15 +410,22 @@ class _ReferencesState extends State<References> {
   Future<void> _addData() async {
     if (selectedCategoryId == null) return;
 
-    try {
-      await _firestore
-          .collection("categories")
-          .doc(selectedCategoryId)
-          .collection("references")
-          .add({
-        "name": _nameController.text,
-        "timestamp": FieldValue.serverTimestamp(),
-      });
+   try {
+    // Add new document and capture the reference
+    DocumentReference docRef = await _firestore
+        .collection("categories")
+        .doc(selectedCategoryId)
+        .collection("references")
+        .add({
+      "name": _nameController.text,
+      "timestamp": FieldValue.serverTimestamp(),
+    });
+
+    // ✅ Now docRef is defined, so we can use it in the log
+    await logAuditTrail(
+      "Data Added",
+      "Added new reference '${docRef.id}' under category '$selectedCategoryId' with name: ${_nameController.text}"
+    );
     } catch (e) {
       print("Error adding data: $e");
     }
@@ -429,6 +442,12 @@ class _ReferencesState extends State<References> {
           .collection("references")
           .doc(id)
           .delete();
+
+           await logAuditTrail(
+      "Data Deleted",
+      "Deleted reference '$id' under category '$selectedCategoryId'"
+    );
+
     } catch (e) {
       print("Error deleting data: $e");
     }

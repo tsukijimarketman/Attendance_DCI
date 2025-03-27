@@ -1,16 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
-class AuditSU extends StatefulWidget {
-  const AuditSU({super.key});
+class AdminAudit extends StatefulWidget {
+  const AdminAudit({super.key});
 
   @override
-  State<AuditSU> createState() => _AuditSUState();
+  State<AdminAudit> createState() => _AdminAuditState();
 }
 
-class _AuditSUState extends State<AuditSU> {
-  Future<List<Map<String, dynamic>>>? _userAuditLogs;
+class _AdminAuditState extends State<AdminAudit> {
+   Future<List<Map<String, dynamic>>>? _userAuditLogs;
   String? userId;
   String? fullName;
 
@@ -19,6 +19,7 @@ class _AuditSUState extends State<AuditSU> {
     super.initState();
     _fetchUserData();
   }
+  
 Future<void> _fetchUserData() async {
   try {
     User? user = FirebaseAuth.instance.currentUser;
@@ -60,8 +61,6 @@ Future<List<Map<String, dynamic>>> fetchAuditLogsByUser(String uid, String fullN
 
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection("audit_logs")
-        .where("userId", isEqualTo: uid)
-        .where("fullName", isEqualTo: fullName)
         .orderBy("timestamp", descending: true)
         .get();
 

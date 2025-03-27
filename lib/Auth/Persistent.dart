@@ -35,7 +35,6 @@ class AuthPersistent extends StatelessWidget {
     );
   }
 
-  /// **Function to check user role and return appropriate screen**
   Future<Widget> checkUserRole(User user, BuildContext context) async {
     try {
       QuerySnapshot userSnapshot = await FirebaseFirestore.instance

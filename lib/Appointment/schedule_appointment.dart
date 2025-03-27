@@ -1,3 +1,5 @@
+import 'package:attendance_app/audit_function.dart';
+import 'package:attendance_app/calendar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -41,10 +43,21 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
   }
 
   void submitForm() async {
-      String fullName = "$firstName $lastName".trim(); // Generate fullName
+  try {
+    String fullName = "$firstName $lastName".trim(); 
+    String agendaText = agendaController.text.trim(); 
 
+    List<String> guestEmails = (selectedGuests ?? [])
+        .map((guest) => guest['emailAdd'] as String?)
+        .whereType<String>()
+        .toList();
+
+         DateTime startDateTime = DateTime.parse(scheduleController.text); // This should work now!
+    DateTime endDateTime = startDateTime.add(Duration(hours: 1));
+
+    // Store appointment in Firestore
     await FirebaseFirestore.instance.collection('appointment').add({
-      'agenda': agendaController.text,
+      'agenda': agendaText,
       'department': departmentController.text,
       'schedule': scheduleController.text,
       'agendaDescript': descriptionAgendaController.text,
@@ -52,11 +65,40 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
       'status': 'Scheduled',
       'createdBy': fullName
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Form submitted successfully!")));
 
-    clearText(); // Ensure UI updates after clearing the form
+    await logAuditTrail("Created Appointment", "User $fullName scheduled an appointment with agenda: $agendaText");
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Form submitted successfully!"))
+    );
+
+    // 🌟 Retrieve or Authenticate Google Token 
+    GoogleCalendarService googleCalendarService = GoogleCalendarService();
+    String? accessToken = await googleCalendarService.authenticateUser();
+
+   if (accessToken == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Google authentication required!")));
+      return;
+    }
+
+    print("✅ Using Access Token: $accessToken");
+
+    // 🌟 Create Google Calendar Event
+    await googleCalendarService.createCalendarEvent(
+      accessToken,
+      agendaText,
+      startDateTime,
+      endDateTime,
+      guestEmails,
+    );
+
+    clearText(); 
+  } catch (e) {
+    print("❌ Error in submitForm: $e");
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
   }
+}
 
   Future<void> fetchUserData() async {
     User? user = FirebaseAuth.instance.currentUser;
@@ -91,37 +133,39 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
   }
 
   void pickScheduleDateTime() async {
-    DateTime now = DateTime.now();
+  DateTime now = DateTime.now();
 
-    DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: now,
-      firstDate: now,
-      lastDate: DateTime(2100),
-    );
+  DateTime? pickedDate = await showDatePicker(
+    context: context,
+    initialDate: now,
+    firstDate: now,
+    lastDate: DateTime(2100),
+  );
 
-    if (pickedDate == null) return;
+  if (pickedDate == null) return;
 
-    TimeOfDay? pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
+  TimeOfDay? pickedTime = await showTimePicker(
+    context: context,
+    initialTime: TimeOfDay.now(),
+  );
 
-    if (pickedTime == null) return;
+  if (pickedTime == null) return;
 
-    DateTime fullDateTime = DateTime(
-      pickedDate.year,
-      pickedDate.month,
-      pickedDate.day,
-      pickedTime.hour,
-      pickedTime.minute,
-    );
+  // Combine Date and Time
+  DateTime fullDateTime = DateTime(
+    pickedDate.year,
+    pickedDate.month,
+    pickedDate.day,
+    pickedTime.hour,
+    pickedTime.minute,
+  );
 
-    setState(() {
-      selectedScheduleTime = fullDateTime;
-      scheduleController.text = formatDateTime(fullDateTime);
-    });
-  }
+  setState(() {
+    selectedScheduleTime = fullDateTime;
+    scheduleController.text = fullDateTime.toIso8601String(); // Store in ISO format
+  });
+}
+
 
 // Function to format date-time
   String formatDateTime(DateTime dateTime) {
