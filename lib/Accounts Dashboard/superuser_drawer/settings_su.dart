@@ -1,4 +1,6 @@
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/account_info.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/caddress.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/profile.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/su_address_provider.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/super_user_dashboard.dart';
 import 'package:attendance_app/Animation/Animation.dart';
@@ -38,7 +40,6 @@ class _SettingsSUState extends State<SettingsSU> {
   final TextEditingController heightController = TextEditingController();
   final TextEditingController weightController = TextEditingController();
 
-  bool isChangePassword = false;
   String _textContent = "Edit Profile Information";
   Color _buttonColor = Color.fromARGB(255, 11, 55, 99);
 
@@ -526,7 +527,8 @@ class _SettingsSUState extends State<SettingsSU> {
   String? selectedBarangay;
 
   Future<void> _updateUserData() async {
-    final addressProvider = Provider.of<AddressProvider>(context, listen: false);
+    final addressProvider =
+        Provider.of<AddressProvider>(context, listen: false);
     final String? currentUserUid = FirebaseAuth.instance.currentUser?.uid;
     if (currentUserUid == null) return;
 
@@ -552,6 +554,10 @@ class _SettingsSUState extends State<SettingsSU> {
         "place_of_birth": placeOfBirthController.text,
         "height": heightController.text,
         "weight": weightController.text,
+        "house_number": addressProvider.houseNumber,
+        "street": addressProvider.street,
+        "subdivision": addressProvider.subdivision,
+        "zip_code": addressProvider.zipcode,
 
         // Dropdowns
         "sex": selectedSex,
@@ -564,10 +570,10 @@ class _SettingsSUState extends State<SettingsSU> {
         "country": selectedCountry,
         "religion": selectedReligion,
         "region": addressProvider.selectedRegionName ?? "",
-        "province": selectedProvince ?? "",
-        "city": selectedCity ?? "",
-        "municipality": selectedMunicipality ?? "",
-        "barangay": selectedBarangay ?? "",
+        "province": addressProvider.selectedProvinceName ?? "",
+        "city": addressProvider.selectedCityName ?? "",
+        "municipality": addressProvider.selectedMunicipalityName ?? "",
+        "barangay": addressProvider.selectedBarangayName ?? "",
 
         // Special Widgets
         "birthdate": _dateController.text,
@@ -588,12 +594,12 @@ class _SettingsSUState extends State<SettingsSU> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Profile updated successfully!")),
+          SnackBar(content: Text("Profile updated successfully!", style: TextStyle(color: Colors.white, fontFamily: "SB"),), backgroundColor: Colors.green,),
         );
       } catch (e) {
         print("Error updating profile: $e");
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to update profile!")),
+          SnackBar(content: Text("Failed to update profile!", style: TextStyle(color: Colors.white, fontFamily: "SB")), backgroundColor: Colors.red,),
         );
       }
     }
@@ -688,57 +694,9 @@ class _SettingsSUState extends State<SettingsSU> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Container(
-                              width: MediaQuery.of(context).size.width / 5.5,
-                              height: MediaQuery.of(context).size.width / 5.28,
-                              child: Column(
-                                children: [
-                                  Spacer(),
-                                  CircleAvatar(
-                                    radius:
-                                        MediaQuery.of(context).size.width / 17,
-                                    backgroundColor: Colors.grey,
-                                    child: Icon(
-                                      Icons.person,
-                                      size: MediaQuery.of(context).size.width /
-                                          12,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    height:
-                                        MediaQuery.of(context).size.width / 40,
-                                  ),
-                                  GestureDetector(
-                                    onTap: () {},
-                                    child: Container(
-                                      height:
-                                          MediaQuery.of(context).size.width /
-                                              35,
-                                      width:
-                                          MediaQuery.of(context).size.width / 8,
-                                      decoration: BoxDecoration(
-                                        color: Color.fromARGB(255, 11, 55, 99),
-                                        borderRadius: BorderRadius.circular(
-                                            MediaQuery.of(context).size.width /
-                                                150),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          "Edit Photo",
-                                          style: TextStyle(
-                                              fontSize: MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  80,
-                                              color: Colors.white,
-                                              fontFamily: "R"),
-                                        ),
-                                      ),
-                                    ),
-                                  ).showCursorOnHover,
-                                ],
-                              ),
-                            ),
+                              height: MediaQuery.of(context).size.width/5,
+                              width: MediaQuery.of(context).size.width/5.5,
+                              child: Profile()),
                             Container(
                               height: MediaQuery.of(context).size.width / 5,
                               width: MediaQuery.of(context).size.width / 1.75,
@@ -1783,10 +1741,9 @@ class _SettingsSUState extends State<SettingsSU> {
                                 height: MediaQuery.of(context).size.width / 100,
                               ),
                               Container(
-                                  color: Colors.green,
                                   width:
                                       MediaQuery.of(context).size.width / 1.328,
-                                  height: MediaQuery.of(context).size.width / 6,
+                                  height: MediaQuery.of(context).size.width / 8,
                                   child: CurrentAddress()),
                               SizedBox(
                                   height:
@@ -1796,7 +1753,9 @@ class _SettingsSUState extends State<SettingsSU> {
                                   final editModeProvider =
                                       Provider.of<EditModeProvider>(context,
                                           listen: false);
-                                  final addressProvider = Provider.of<AddressProvider>(context, listen:false);        
+                                  final addressProvider =
+                                      Provider.of<AddressProvider>(context,
+                                          listen: false);
 
                                   if (!editModeProvider.isEditing) {
                                     // Enable editing mode
@@ -1808,12 +1767,12 @@ class _SettingsSUState extends State<SettingsSU> {
                                       dropDownReadOnly = false;
                                       calendarReadOnly = false;
                                       dropDownSearchReadOnly = false;
-                                      
                                     });
                                   } else {
                                     // Save changes first, then disable editing mode
                                     await _updateUserData();
-                                    print("Selected Regions: ${addressProvider.selectedRegionName}");
+                                    print(
+                                        "Selected Regions: ${addressProvider.selectedRegionName}");
 
                                     editModeProvider.toggleEditMode();
                                     setState(() {
@@ -1876,434 +1835,7 @@ class _SettingsSUState extends State<SettingsSU> {
                         padding: EdgeInsets.only(
                             left: MediaQuery.of(context).size.width / 37,
                             right: MediaQuery.of(context).size.width / 37),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Container(
-                              height: MediaQuery.of(context).size.width / 4.2,
-                              child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    SizedBox(
-                                        height:
-                                            MediaQuery.of(context).size.width /
-                                                80),
-                                    Column(
-                                      children: [
-                                        Text("Email",
-                                            style: TextStyle(
-                                                fontSize: MediaQuery.of(context)
-                                                        .size
-                                                        .width /
-                                                    90,
-                                                color: Colors.black,
-                                                fontFamily: "R")),
-                                        SizedBox(
-                                          height: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              170,
-                                        ),
-                                        Container(
-                                          width: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              5.52,
-                                          height: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              35,
-                                          decoration: BoxDecoration(
-                                            color: Colors.grey[300],
-                                            borderRadius: BorderRadius.circular(
-                                                MediaQuery.of(context)
-                                                        .size
-                                                        .width /
-                                                    150),
-                                          ),
-                                          child: TextField(
-                                            showCursor: false,
-                                            readOnly: true,
-                                            style: TextStyle(
-                                                fontSize: MediaQuery.of(context)
-                                                        .size
-                                                        .width /
-                                                    110,
-                                                color: Colors.black,
-                                                fontFamily: "R"),
-                                            decoration: InputDecoration(
-                                              contentPadding: EdgeInsets.all(
-                                                  MediaQuery.of(context)
-                                                          .size
-                                                          .width /
-                                                      120),
-                                              border: OutlineInputBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(
-                                                        MediaQuery.of(context)
-                                                                .size
-                                                                .width /
-                                                            150),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(
-                                        height:
-                                            MediaQuery.of(context).size.width /
-                                                80),
-                                    GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          if (isChangePassword == false) {
-                                            isChangePassword = true;
-                                          }
-                                        });
-                                      },
-                                      child: Container(
-                                          width: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              5.52,
-                                          height: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              35,
-                                          decoration: BoxDecoration(
-                                            color:
-                                                Color.fromARGB(255, 11, 55, 99),
-                                            borderRadius: BorderRadius.circular(
-                                                MediaQuery.of(context)
-                                                        .size
-                                                        .width /
-                                                    150),
-                                          ),
-                                          child: Center(
-                                              child: Text("Change Password",
-                                                  style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontFamily: "M",
-                                                      fontSize:
-                                                          MediaQuery.of(context)
-                                                                  .size
-                                                                  .width /
-                                                              100)))),
-                                    ).showCursorOnHover.moveUpOnHover,
-                                  ]),
-                            ),
-                            VerticalDivider(),
-                            Visibility(
-                              visible: isChangePassword,
-                              child: Container(
-                                height: MediaQuery.of(context).size.width / 4.2,
-                                child: Column(children: [
-                                  SizedBox(
-                                      height:
-                                          MediaQuery.of(context).size.width /
-                                              80),
-                                  Column(
-                                    children: [
-                                      Text("Old Password",
-                                          style: TextStyle(
-                                              fontSize: MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  90,
-                                              color: Colors.black,
-                                              fontFamily: "R")),
-                                      SizedBox(
-                                        height:
-                                            MediaQuery.of(context).size.width /
-                                                170,
-                                      ),
-                                      Container(
-                                        width:
-                                            MediaQuery.of(context).size.width /
-                                                4.75,
-                                        height:
-                                            MediaQuery.of(context).size.width /
-                                                35,
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[300],
-                                          borderRadius: BorderRadius.circular(
-                                              MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  150),
-                                        ),
-                                        child: TextField(
-                                          showCursor: false,
-                                          style: TextStyle(
-                                              fontSize: MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  110,
-                                              color: Colors.black,
-                                              fontFamily: "R"),
-                                          decoration: InputDecoration(
-                                            contentPadding: EdgeInsets.all(
-                                                MediaQuery.of(context)
-                                                        .size
-                                                        .width /
-                                                    120),
-                                            border: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(
-                                                      MediaQuery.of(context)
-                                                              .size
-                                                              .width /
-                                                          150),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(
-                                      height:
-                                          MediaQuery.of(context).size.width /
-                                              80),
-                                  Column(
-                                    children: [
-                                      Text("New Password",
-                                          style: TextStyle(
-                                              fontSize: MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  90,
-                                              color: Colors.black,
-                                              fontFamily: "R")),
-                                      SizedBox(
-                                        height:
-                                            MediaQuery.of(context).size.width /
-                                                170,
-                                      ),
-                                      Container(
-                                        width:
-                                            MediaQuery.of(context).size.width /
-                                                4.75,
-                                        height:
-                                            MediaQuery.of(context).size.width /
-                                                35,
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[300],
-                                          borderRadius: BorderRadius.circular(
-                                              MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  150),
-                                        ),
-                                        child: TextField(
-                                          showCursor: false,
-                                          readOnly: true,
-                                          style: TextStyle(
-                                              fontSize: MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  110,
-                                              color: Colors.black,
-                                              fontFamily: "R"),
-                                          decoration: InputDecoration(
-                                            contentPadding: EdgeInsets.all(
-                                                MediaQuery.of(context)
-                                                        .size
-                                                        .width /
-                                                    120),
-                                            border: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(
-                                                      MediaQuery.of(context)
-                                                              .size
-                                                              .width /
-                                                          150),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(
-                                      height:
-                                          MediaQuery.of(context).size.width /
-                                              80),
-                                  Column(
-                                    children: [
-                                      Text("Confirm Password",
-                                          style: TextStyle(
-                                              fontSize: MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  90,
-                                              color: Colors.black,
-                                              fontFamily: "R")),
-                                      SizedBox(
-                                        height:
-                                            MediaQuery.of(context).size.width /
-                                                170,
-                                      ),
-                                      Container(
-                                        width:
-                                            MediaQuery.of(context).size.width /
-                                                4.75,
-                                        height:
-                                            MediaQuery.of(context).size.width /
-                                                35,
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[300],
-                                          borderRadius: BorderRadius.circular(
-                                              MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  150),
-                                        ),
-                                        child: TextField(
-                                          showCursor: false,
-                                          readOnly: true,
-                                          style: TextStyle(
-                                              fontSize: MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  110,
-                                              color: Colors.black,
-                                              fontFamily: "R"),
-                                          decoration: InputDecoration(
-                                            contentPadding: EdgeInsets.all(
-                                                MediaQuery.of(context)
-                                                        .size
-                                                        .width /
-                                                    120),
-                                            border: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(
-                                                      MediaQuery.of(context)
-                                                              .size
-                                                              .width /
-                                                          150),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(
-                                      height:
-                                          MediaQuery.of(context).size.width /
-                                              80),
-                                  Container(
-                                    child: Row(
-                                      children: [
-                                        GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              if (isChangePassword == true) {
-                                                setState(() {
-                                                  isChangePassword = false;
-                                                  print("$isChangePassword");
-                                                });
-                                              }
-                                            });
-                                          },
-                                          child: Container(
-                                              width: MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  10,
-                                              height: MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  35,
-                                              decoration: BoxDecoration(
-                                                color: Colors.red,
-                                                borderRadius:
-                                                    BorderRadius.circular(
-                                                        MediaQuery.of(context)
-                                                                .size
-                                                                .width /
-                                                            150),
-                                              ),
-                                              child: Center(
-                                                  child: Text("Cancel",
-                                                      style: TextStyle(
-                                                          color: Colors.white,
-                                                          fontFamily: "M",
-                                                          fontSize: MediaQuery.of(
-                                                                      context)
-                                                                  .size
-                                                                  .width /
-                                                              100)))),
-                                        ).showCursorOnHover.moveUpOnHover,
-                                        SizedBox(
-                                            width: MediaQuery.of(context)
-                                                    .size
-                                                    .width /
-                                                100),
-                                        GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              if (isChangePassword == true) {
-                                                setState(() {
-                                                  isChangePassword = false;
-                                                  print("$isChangePassword");
-                                                });
-                                              }
-                                            });
-                                          },
-                                          child: Container(
-                                              width: MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  10,
-                                              height: MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  35,
-                                              decoration: BoxDecoration(
-                                                color: Colors.green,
-                                                borderRadius:
-                                                    BorderRadius.circular(
-                                                        MediaQuery.of(context)
-                                                                .size
-                                                                .width /
-                                                            150),
-                                              ),
-                                              child: Center(
-                                                  child: Text("Save",
-                                                      style: TextStyle(
-                                                          color: Colors.white,
-                                                          fontFamily: "M",
-                                                          fontSize: MediaQuery.of(
-                                                                      context)
-                                                                  .size
-                                                                  .width /
-                                                              100)))),
-                                        ).showCursorOnHover.moveUpOnHover,
-                                      ],
-                                    ),
-                                  ),
-                                ]),
-                              ),
-                            ),
-                            VerticalDivider(),
-                            Container(
-                                height: MediaQuery.of(context).size.width / 4.2,
-                                width: MediaQuery.of(context).size.width / 4.2,
-                                padding: EdgeInsets.all(
-                                    MediaQuery.of(context).size.width / 80),
-                                decoration: BoxDecoration(),
-                                child: Center(
-                                  child: Text("Error show here",
-                                      style: TextStyle(
-                                          fontFamily: "M",
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              80,
-                                          color: Colors.red)),
-                                )),
-                          ],
-                        )),
+                        child: AccountInfo()),
                   ],
                 ),
               ),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/auditSU.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/notification_su.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/settings_su.dart';
@@ -7,6 +9,7 @@ import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/usermanagem
 import 'package:attendance_app/Auth/login.dart';
 import 'package:attendance_app/Auth/showDialogSignOut.dart';
 import 'package:attendance_app/hover_extensions.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:sidebarx/sidebarx.dart';
@@ -32,16 +35,65 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
   @override
   void initState() {
     super.initState();
+    _subscribeToUserData();
     _controller.addListener(() {
-      setState(() {}); // Rebuild UI when selected index changes
+      setState(() {
+        
+      });
     });
   }
 
   bool isHeadersClicked = false;
   String selectedOption = "";
 
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  StreamSubscription<QuerySnapshot>? _userSubscription;
+
+  String firstName = "Loading...";
+  String lastName = "";
+  String role = "Fetching...";
+  bool isLoading = true;
+
+  void _subscribeToUserData() {
+    final String? currentUserUid = _auth.currentUser?.uid;
+    if (currentUserUid == null) return;
+
+    _userSubscription = _firestore
+        .collection("users")
+        .where("uid", isEqualTo: currentUserUid)
+        .limit(1)
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.docs.isNotEmpty) {
+        final userData = snapshot.docs.first.data() as Map<String, dynamic>;
+        setState(() {
+          firstName = userData['first_name'] ?? "No Name";
+          lastName = userData['last_name'] ?? "";
+          role = userData['roles'] ?? "Unknown Role";
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          firstName = "No Data";
+          lastName = "";
+          role = "N/A";
+          isLoading = false;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _userSubscription?.cancel(); // Cancel subscription to prevent memory leaks
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final String? currentUserUid = FirebaseAuth.instance.currentUser?.uid;
+
     return Scaffold(
         backgroundColor: Color(0xFFf2edf3),
         appBar: AppBar(
@@ -51,54 +103,58 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
             GestureDetector(
               onTap: () {
                 Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SuperUserDashboard(),
-                    ));
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SuperUserDashboard(),
+                  ),
+                );
               },
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width / 40,
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                        vertical: MediaQuery.of(context).size.width / 140),
-                    child: Image.asset("assets/dci_logo.png",
-                        height: MediaQuery.of(context).size.width / 20),
-                  ),
+                  // SizedBox(width: MediaQuery.of(context).size.width / 40),
+                  // Padding(
+                  //   padding: EdgeInsets.symmetric(
+                  //       vertical: MediaQuery.of(context).size.width / 140),
+                  //   child: Image.asset("assets/dci_logo.png",
+                  //       height: MediaQuery.of(context).size.width / 20),
+                  // ),
                 ],
               ),
             ).showCursorOnHover,
             Spacer(),
-            CircleAvatar(
-              backgroundColor: Colors.grey,
-              radius: MediaQuery.of(context).size.width / 60,
-              child: Icon(Icons.person,
-                  color: Colors.white,
-                  size: MediaQuery.of(context).size.width / 50),
-            ),
-            SizedBox(
-              width: MediaQuery.of(context).size.width / 60,
-            ),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            Row(
               children: [
-                Text("Super User",
+                CircleAvatar(
+                  backgroundColor: Colors.grey,
+                  radius: MediaQuery.of(context).size.width / 60,
+                  child: Icon(Icons.person,
+                      color: Colors.white,
+                      size: MediaQuery.of(context).size.width / 50),
+                ),
+                SizedBox(width: MediaQuery.of(context).size.width / 60),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                    isLoading ? "Loading..." : "$firstName $lastName",
                     style: TextStyle(
                         color: Colors.black,
                         fontSize: MediaQuery.of(context).size.height / 50,
-                        fontFamily: "M")),
-                Text("Superuser",
+                        fontFamily: "M"),
+                  ),
+                     Text(
+                    isLoading ? "Fetching..." : role,
                     style: TextStyle(
                         color: Colors.grey,
                         fontSize: MediaQuery.of(context).size.height / 70,
-                        fontFamily: "R"))
+                        fontFamily: "R"),),
+                  ],
+                ),
               ],
             ),
             SizedBox(
-              width: MediaQuery.of(context).size.width / 30,
+              width: MediaQuery.of(context).size.width / 50,
             ),
             GestureDetector(
                     onTap: () {
@@ -227,7 +283,7 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
               width: MediaQuery.of(context).size.width / 40,
             ),
             GestureDetector(
-              onTap:  (){
+              onTap: () {
                 showSignOutDialog(context);
               },
               child: MouseRegion(

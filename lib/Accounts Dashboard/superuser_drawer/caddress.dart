@@ -2,6 +2,7 @@ import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/su_address_
 import 'package:attendance_app/edit_mode_provider.dart';
 import 'package:dropdown_textfield/dropdown_textfield.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
@@ -171,473 +172,207 @@ class _CurrentAddressState extends State<CurrentAddress> {
     return Scaffold(
       body: Container(
         color: Color(0xFFf2edf3),
-        child: Row(
-          mainAxisAlignment: _axisRow,
+        child: Column(
           children: [
-            // Region Dropdown
-            RegionDropdown(
-              initialValue: selectedRegion,
-              regions: regions
-                  .map<Map<String, String>>((region) => {
-                        'name': region['name'].toString(),
-                        'code': region['code'].toString(),
-                      })
-                  .toList(),
-              onChanged: (String? newRegion) {
-                setState(() {
-                  selectedRegion = newRegion;
-                  selectedProvince = null;
-                  selectedCity = null;
-                  selectedMunicipality = null;
-                  selectedBarangay = null;
-                  barangays = [];
-                  _axisRow = MainAxisAlignment.start;
-                });
+            Row(
+              mainAxisAlignment: _axisRow,
+              children: [
+                // Region Dropdown
+                RegionDropdown(
+                  initialValue: selectedRegion,
+                  regions: regions
+                      .map<Map<String, String>>((region) => {
+                            'name': region['name'].toString(),
+                            'code': region['code'].toString(),
+                          })
+                      .toList(),
+                  onChanged: (String? newRegion) {
+                    setState(() {
+                      selectedRegion = newRegion;
+                      selectedProvince = null;
+                      selectedCity = null;
+                      selectedMunicipality = null;
+                      selectedBarangay = null;
+                      barangays = [];
+                      _axisRow = MainAxisAlignment.start;
+                    });
 
-                _loadProvincesOrCities(
-                    Provider.of<AddressProvider>(context, listen: false)
-                        .selectedRegionCode!);
-              },
+                    _loadProvincesOrCities(
+                        Provider.of<AddressProvider>(context, listen: false)
+                            .selectedRegionCode!);
+                  },
+                ),
+
+                if (selectedRegion != null) ...[
+                  SizedBox(width: width / 50),
+
+                  // Province Dropdown (Only if region has provinces)
+                  if (provinces.isNotEmpty) ...[
+                    ProvinceDropdown(
+                      initialValue: selectedProvince,
+                      provinces: provinces
+                          .map<Map<String, String>>((province) => {
+                                'name': province['name'].toString(),
+                                'code': province['code'].toString(),
+                              })
+                          .toList(),
+                      onChanged: (String? newProvince) {
+                        setState(() {
+                          selectedProvince = newProvince;
+                          selectedCity = null;
+                          selectedMunicipality = null;
+                          selectedBarangay = null;
+                          barangays = [];
+                        });
+
+                        // Get province code from provider
+                        String? selectedProvinceCode =
+                            Provider.of<AddressProvider>(context, listen: false)
+                                .selectedProvinceCode;
+
+                        _loadMunicipalities(selectedProvinceCode!);
+                        _loadCities(selectedProvinceCode!);
+                      },
+                    ),
+                  ],
+
+                  SizedBox(width: width / 50),
+
+                  // NCR Handling: If NCR is selected, show a single dropdown
+                  if (provinces.isEmpty) ...[
+                    CityMunicipalityDropdown(
+                      initialValue: selectedCity,
+                      citiesMunicipalities: citiesMunicipalities
+                          .map<Map<String, String>>((city) => {
+                                'name': city['name'].toString(),
+                                'code': city['code'].toString(),
+                              })
+                          .toList(),
+                      onChanged: (String? newCity) {
+                        setState(() {
+                          selectedCity = newCity;
+                          selectedBarangay = null;
+                          barangays = [];
+                        });
+
+                        // Pass city to provider
+                        String? selectedCityCode =
+                            Provider.of<AddressProvider>(context, listen: false)
+                                .selectedCityCode;
+
+                        _loadBarangaysFromCity(selectedCityCode!);
+                      },
+                    ),
+                  ],
+
+                  // If NOT NCR, show separate City & Municipality dropdowns
+                  if (provinces.isNotEmpty) ...[
+                    CityDropdown(
+                      initialValue: selectedCity,
+                      selectedMunicipality:
+                          selectedMunicipality, // Pass municipality state
+                      cities: cities
+                          .map<Map<String, String>>((city) => {
+                                'name': city['name'].toString(),
+                                'code': city['code'].toString(),
+                              })
+                          .toList(),
+                      onChanged: (String? newCity) {
+                        setState(() {
+                          selectedCity = newCity;
+                          selectedBarangay = null;
+                          barangays = [];
+                        });
+
+                        // Pass city to provider
+                        String? selectedCityCode =
+                            Provider.of<AddressProvider>(context, listen: false)
+                                .selectedCityCode;
+
+                        _loadBarangaysFromCity(selectedCityCode!);
+                      },
+                    ),
+                    SizedBox(width: width / 50),
+                    MunicipalityDropdown(
+                      initialValue: selectedMunicipality,
+                      selectedCity: selectedCity, // Pass city state
+                      municipalities: municipalities
+                          .map<Map<String, String>>((municipality) => {
+                                'name': municipality['name'].toString(),
+                                'code': municipality['code'].toString(),
+                              })
+                          .toList(),
+                      onChanged: (String? newMunicipality) {
+                        setState(() {
+                          selectedMunicipality = newMunicipality;
+                          selectedBarangay = null;
+                          barangays = [];
+                        });
+
+                        // Pass municipality to provider
+                        String? selectedMunicipalityCode =
+                            Provider.of<AddressProvider>(context, listen: false)
+                                .selectedMunicipalityCode;
+
+                        _loadBarangaysFromMunicipality(
+                            selectedMunicipalityCode!);
+                      },
+                    ),
+                  ],
+                ],
+
+                if (selectedCity != null || selectedMunicipality != null) ...[
+                  SizedBox(width: width / 50),
+
+                  // Barangay Dropdown
+                  BarangayDropdown(
+                    initialValue: selectedBarangay,
+                    barangays: barangays
+                        .map<Map<String, String>>((barangay) => {
+                              'name': barangay['name'].toString(),
+                              'code': barangay['code'].toString(),
+                            })
+                        .toList(),
+                    onChanged: (String? newBarangay) {
+                      setState(() {
+                        selectedBarangay = newBarangay;
+                      });
+
+                      // Pass barangay to provider
+                      String? selectedBarangayCode =
+                          Provider.of<AddressProvider>(context, listen: false)
+                              .selectedBarangayCode;
+
+                      print(
+                          "Selected Barangay: $selectedBarangay ($selectedBarangayCode)");
+                    },
+                  ),
+                ],
+              ],
             ),
-
-            if (selectedRegion != null) ...[
-              SizedBox(width: width / 50),
-
-              // Province Dropdown (Only if region has provinces)
-              if (provinces.isNotEmpty) ...[
-                ProvinceDropdown(
-                  initialValue: selectedProvince,
-                  provinces: provinces
-                      .map<Map<String, String>>((province) => {
-                            'name': province['name'].toString(),
-                            'code': province['code'].toString(),
-                          })
-                      .toList(),
-                  onChanged: (String? newProvince) {
-                    setState(() {
-                      selectedProvince = newProvince;
-                      selectedCity = null;
-                      selectedMunicipality = null;
-                      selectedBarangay = null;
-                      barangays = [];
-                    });
-                    _loadMunicipalities(selectedProvince!);
-                    _loadCities(selectedProvince!);
-                  },
-                ),
-              ],
-
-              SizedBox(width: width / 50),
-
-              // NCR Handling: If NCR is selected, show a single dropdown
-              if (provinces.isEmpty) ...[
-                CityMunicipalityDropdown(
-                  initialValue: selectedCity,
-                  citiesMunicipalities: citiesMunicipalities
-                      .map((item) => {
-                            'name':
-                                item['name'].toString(), // Ensure it's a String
-                            'code':
-                                item['code'].toString(), // Ensure it's a String
-                          })
-                      .toList(),
-                  onChanged: (String? newCity) {
-                    setState(() {
-                      selectedCity = newCity;
-                      selectedMunicipality = null;
-                      selectedBarangay = null;
-                      barangays = [];
-                    });
-                    _loadBarangaysFromCity(selectedCity!);
-                  },
-                ),
-              ],
-
-              // If NOT NCR, show separate City & Municipality dropdowns
-              if (provinces.isNotEmpty) ...[
-                CityDropdown(
-                  initialValue: selectedCity,
-                  selectedMunicipality: selectedMunicipality,
-                  cities: cities
-                      .map((item) => {
-                            'name': item['name'].toString(),
-                            'code': item['code'].toString(),
-                          })
-                      .toList(),
-                  onChanged: (String? newCity) {
-                    setState(() {
-                      selectedCity = newCity;
-                      selectedMunicipality = null;
-                      selectedBarangay = null;
-                      barangays = [];
-                      _axisRow = MainAxisAlignment.spaceBetween;
-                    });
-                    _loadBarangaysFromCity(selectedCity!);
-                  },
-                ),
-                SizedBox(width: width / 50),
-                MunicipalityDropdown(
-                  initialValue: selectedMunicipality,
-                  selectedCity: selectedCity,
-                  municipalities: municipalities
-                      .map((item) => {
-                            'name': item['name'].toString(),
-                            'code': item['code'].toString(),
-                          })
-                      .toList(),
-                  onChanged: (String? newMunicipality) {
-                    setState(() {
-                      selectedMunicipality = newMunicipality;
-                      selectedCity = null;
-                      selectedBarangay = null;
-                      barangays = [];
-                      _axisRow = MainAxisAlignment.spaceBetween;
-                    });
-                    _loadBarangaysFromMunicipality(selectedMunicipality!);
-                  },
-                ),
-              ],
-            ],
-
-            if (selectedCity != null || selectedMunicipality != null) ...[
-              SizedBox(width: width / 50),
-
-              // Barangay Dropdown
-              BarangayDropdown(
-                initialValue: selectedBarangay,
-                barangays: barangays
-                    .map((item) => {
-                          'name': item['name'].toString(),
-                          'code': item['code'].toString(),
-                        })
-                    .toList(),
-                onChanged: (String? newBarangay) {
-                  setState(() {
-                    selectedBarangay = newBarangay;
-                  });
-                },
-              ),
+            SizedBox(height: MediaQuery.of(context).size.height / 50),
+            if (selectedBarangay != null) ...[
+              Container(
+                  child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                    ZipcodeTextField(
+                        initialValue:
+                            Provider.of<AddressProvider>(context).zipcode),
+                    SizedBox(width: MediaQuery.of(context).size.width / 50),
+                    HouseNumberTextField(
+                        initialValue:
+                            Provider.of<AddressProvider>(context).houseNumber),
+                    SizedBox(width: MediaQuery.of(context).size.width / 50),
+                    StreetTextField(initialValue: Provider.of<AddressProvider>(context).street),
+                    SizedBox(width: MediaQuery.of(context).size.width / 50),
+                    //here
+                    SubdivisionTextField(initialValue: Provider.of<AddressProvider>(context).subdivision),
+                  ]))
             ],
           ],
         ),
       ),
-      // SizedBox(height: MediaQuery.of(context).size.height / 50),
-      // if (selectedBarangay != null) ...[
-      //   Container(
-      //       child: Row(
-      //           mainAxisAlignment:
-      //               MainAxisAlignment.spaceBetween,
-      //           children: [
-      //         Column(
-      //           children: [
-      //             Text("Zipcode",
-      //                 style: TextStyle(
-      //                     fontSize:
-      //                         MediaQuery.of(context)
-      //                                 .size
-      //                                 .width /
-      //                             90,
-      //                     color: Colors.black,
-      //                     fontFamily: "R")),
-      //             SizedBox(
-      //               height: MediaQuery.of(context)
-      //                       .size
-      //                       .width /
-      //                   170,
-      //             ),
-      //             Container(
-      //               width: MediaQuery.of(context)
-      //                       .size
-      //                       .width /
-      //                   6,
-      //               height: MediaQuery.of(context)
-      //                       .size
-      //                       .width /
-      //                   35,
-      //               decoration: BoxDecoration(
-      //                 color: Colors.white,
-      //                 borderRadius:
-      //                     BorderRadius.circular(
-      //                         MediaQuery.of(context)
-      //                                 .size
-      //                                 .width /
-      //                             150),
-      //               ),
-      //               child: TextField(
-      //                 controller: zipCodeController,
-      //                 style: TextStyle(
-      //                     fontSize:
-      //                         MediaQuery.of(context)
-      //                                 .size
-      //                                 .width /
-      //                             110,
-      //                     color: Colors.black,
-      //                     fontFamily: "R"),
-      //                 decoration: InputDecoration(
-      //                   contentPadding: EdgeInsets.all(
-      //                       MediaQuery.of(context)
-      //                               .size
-      //                               .width /
-      //                           120),
-      //                   hintText: "Zipcode",
-      //                   hintStyle: TextStyle(
-      //                       fontSize:
-      //                           MediaQuery.of(context)
-      //                                   .size
-      //                                   .width /
-      //                               110,
-      //                       color: Colors.grey,
-      //                       fontFamily: "R"),
-      //                   border: OutlineInputBorder(
-      //                     borderRadius:
-      //                         BorderRadius.circular(
-      //                             MediaQuery.of(context)
-      //                                     .size
-      //                                     .width /
-      //                                 150),
-      //                   ),
-      //                 ),
-      //               ),
-      //             ),
-      //           ],
-      //         ),
-      //         SizedBox(
-      //             width: MediaQuery.of(context)
-      //                     .size
-      //                     .width /
-      //                 50),
-      //         Column(
-      //           children: [
-      //             Text("House/Block/Lot Number",
-      //                 style: TextStyle(
-      //                     fontSize:
-      //                         MediaQuery.of(context)
-      //                                 .size
-      //                                 .width /
-      //                             90,
-      //                     color: Colors.black,
-      //                     fontFamily: "R")),
-      //             SizedBox(
-      //               height: MediaQuery.of(context)
-      //                       .size
-      //                       .width /
-      //                   170,
-      //             ),
-      //             Container(
-      //               width: MediaQuery.of(context)
-      //                       .size
-      //                       .width /
-      //                   6,
-      //               height: MediaQuery.of(context)
-      //                       .size
-      //                       .width /
-      //                   35,
-      //               decoration: BoxDecoration(
-      //                 color: Colors.white,
-      //                 borderRadius:
-      //                     BorderRadius.circular(
-      //                         MediaQuery.of(context)
-      //                                 .size
-      //                                 .width /
-      //                             150),
-      //               ),
-      //               child: TextField(
-      //                 controller: houseNumberController,
-      //                 style: TextStyle(
-      //                     fontSize:
-      //                         MediaQuery.of(context)
-      //                                 .size
-      //                                 .width /
-      //                             110,
-      //                     color: Colors.black,
-      //                     fontFamily: "R"),
-      //                 decoration: InputDecoration(
-      //                   contentPadding: EdgeInsets.all(
-      //                       MediaQuery.of(context)
-      //                               .size
-      //                               .width /
-      //                           120),
-      //                   hintText:
-      //                       "House/Block/Lot Number",
-      //                   hintStyle: TextStyle(
-      //                       fontSize:
-      //                           MediaQuery.of(context)
-      //                                   .size
-      //                                   .width /
-      //                               110,
-      //                       color: Colors.grey,
-      //                       fontFamily: "R"),
-      //                   border: OutlineInputBorder(
-      //                     borderRadius:
-      //                         BorderRadius.circular(
-      //                             MediaQuery.of(context)
-      //                                     .size
-      //                                     .width /
-      //                                 150),
-      //                   ),
-      //                 ),
-      //               ),
-      //             ),
-      //           ],
-      //         ),
-      //         SizedBox(
-      //             width: MediaQuery.of(context)
-      //                     .size
-      //                     .width /
-      //                 50),
-      //         Column(
-      //           children: [
-      //             Text("Street",
-      //                 style: TextStyle(
-      //                     fontSize:
-      //                         MediaQuery.of(context)
-      //                                 .size
-      //                                 .width /
-      //                             90,
-      //                     color: Colors.black,
-      //                     fontFamily: "R")),
-      //             SizedBox(
-      //               height: MediaQuery.of(context)
-      //                       .size
-      //                       .width /
-      //                   170,
-      //             ),
-      //             Container(
-      //               width: MediaQuery.of(context)
-      //                       .size
-      //                       .width /
-      //                   6,
-      //               height: MediaQuery.of(context)
-      //                       .size
-      //                       .width /
-      //                   35,
-      //               decoration: BoxDecoration(
-      //                 color: Colors.white,
-      //                 borderRadius:
-      //                     BorderRadius.circular(
-      //                         MediaQuery.of(context)
-      //                                 .size
-      //                                 .width /
-      //                             150),
-      //               ),
-      //               child: TextField(
-      //                 controller: streetController,
-      //                 style: TextStyle(
-      //                     fontSize:
-      //                         MediaQuery.of(context)
-      //                                 .size
-      //                                 .width /
-      //                             110,
-      //                     color: Colors.black,
-      //                     fontFamily: "R"),
-      //                 decoration: InputDecoration(
-      //                   contentPadding: EdgeInsets.all(
-      //                       MediaQuery.of(context)
-      //                               .size
-      //                               .width /
-      //                           120),
-      //                   hintText: "Street",
-      //                   hintStyle: TextStyle(
-      //                       fontSize:
-      //                           MediaQuery.of(context)
-      //                                   .size
-      //                                   .width /
-      //                               110,
-      //                       color: Colors.grey,
-      //                       fontFamily: "R"),
-      //                   border: OutlineInputBorder(
-      //                     borderRadius:
-      //                         BorderRadius.circular(
-      //                             MediaQuery.of(context)
-      //                                     .size
-      //                                     .width /
-      //                                 150),
-      //                   ),
-      //                 ),
-      //               ),
-      //             ),
-      //           ],
-      //         ),
-      //         SizedBox(
-      //             width: MediaQuery.of(context)
-      //                     .size
-      //                     .width /
-      //                 50),
-      //         Column(
-      //           children: [
-      //             Text("Subdivision",
-      //                 style: TextStyle(
-      //                     fontSize:
-      //                         MediaQuery.of(context)
-      //                                 .size
-      //                                 .width /
-      //                             90,
-      //                     color: Colors.black,
-      //                     fontFamily: "R")),
-      //             SizedBox(
-      //               height: MediaQuery.of(context)
-      //                       .size
-      //                       .width /
-      //                   170,
-      //             ),
-      //             Container(
-      //               width: MediaQuery.of(context)
-      //                       .size
-      //                       .width /
-      //                   6,
-      //               height: MediaQuery.of(context)
-      //                       .size
-      //                       .width /
-      //                   35,
-      //               decoration: BoxDecoration(
-      //                 color: Colors.white,
-      //                 borderRadius:
-      //                     BorderRadius.circular(
-      //                         MediaQuery.of(context)
-      //                                 .size
-      //                                 .width /
-      //                             150),
-      //               ),
-      //               child: TextField(
-      //                 controller: subdivisionController,
-      //                 style: TextStyle(
-      //                     fontSize:
-      //                         MediaQuery.of(context)
-      //                                 .size
-      //                                 .width /
-      //                             110,
-      //                     color: Colors.black,
-      //                     fontFamily: "R"),
-      //                 decoration: InputDecoration(
-      //                   contentPadding: EdgeInsets.all(
-      //                       MediaQuery.of(context)
-      //                               .size
-      //                               .width /
-      //                           120),
-      //                   hintText: "Subdivision",
-      //                   hintStyle: TextStyle(
-      //                       fontSize:
-      //                           MediaQuery.of(context)
-      //                                   .size
-      //                                   .width /
-      //                               110,
-      //                       color: Colors.grey,
-      //                       fontFamily: "R"),
-      //                   border: OutlineInputBorder(
-      //                     borderRadius:
-      //                         BorderRadius.circular(
-      //                             MediaQuery.of(context)
-      //                                     .size
-      //                                     .width /
-      //                                 150),
-      //                   ),
-      //                 ),
-      //               ),
-      //             ),
-      //           ],
-      //         ),
-      //       ]))
-      // ],
     );
   }
 }
@@ -762,9 +497,9 @@ class _RegionDropdownState extends State<RegionDropdown> {
 }
 
 class ProvinceDropdown extends StatefulWidget {
+  final String? initialValue;
   final List<Map<String, String>> provinces;
   final Function(String?) onChanged;
-  final String? initialValue;
 
   const ProvinceDropdown({
     Key? key,
@@ -778,10 +513,23 @@ class ProvinceDropdown extends StatefulWidget {
 }
 
 class _ProvinceDropdownState extends State<ProvinceDropdown> {
+  String? selectedProvince;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedProvince = widget.initialValue; // Initialize with passed value
+  }
+
   @override
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
+    final editModeProvider = Provider.of<EditModeProvider>(context);
+    final addressProvider =
+        Provider.of<AddressProvider>(context, listen: false);
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           "Specify Province",
@@ -792,67 +540,75 @@ class _ProvinceDropdownState extends State<ProvinceDropdown> {
           ),
         ),
         SizedBox(height: width / 170),
-        Consumer<EditModeProvider>(
-          builder: (context, editModeProvider, child) {
-            return Container(
-              height: width / 35,
-              width: width / 8,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.black54),
+        Container(
+          height: width / 35,
+          width: width / 8,
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.black54),
+            borderRadius: BorderRadius.circular(width / 150),
+            color: editModeProvider.isEditing ? Colors.white : Colors.grey[300],
+          ),
+          child: DropDownTextField(
+            onChanged: (selected) {
+              setState(() {
+                selectedProvince = selected?.value; // Store province NAME
+              });
+
+              // Find the selected province's code
+              String? selectedProvinceCode = widget.provinces.firstWhere(
+                  (province) => province['name'] == selectedProvince,
+                  orElse: () => {'code': ''})['code'];
+
+              // Update provider with both name & code
+              addressProvider.updateProvince(
+                  selectedProvince, selectedProvinceCode);
+
+              widget.onChanged(selectedProvince);
+            },
+            initialValue: selectedProvince, // Keep value persistent
+            readOnly:
+                !editModeProvider.isEditing, // Disable when not in edit mode
+            enableSearch: false, // Enable search only in edit mode
+            listTextStyle: TextStyle(
+              fontSize: width / 110,
+              color: Colors.black,
+              fontFamily: "R",
+            ),
+            textStyle: TextStyle(
+              fontSize: width / 110,
+              color: Colors.black,
+              fontFamily: "R",
+            ),
+            searchTextStyle: TextStyle(
+              fontSize: width / 110,
+              color: Colors.black,
+              fontFamily: "R",
+            ),
+            searchKeyboardType: TextInputType.text,
+            searchDecoration: InputDecoration(
+              hintText: editModeProvider.isEditing ? "Search" : "",
+              hintStyle: TextStyle(
+                fontSize: width / 140,
+                color: Colors.black,
+                fontFamily: "R",
+              ),
+              border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(width / 150),
-                color: !editModeProvider.isEditing
-                    ? Colors.grey[300]
-                    : Colors.white,
               ),
-              child: DropDownTextField(
-                onChanged: (selected) {
-                  setState(() {
-                    widget.onChanged(selected?.value);
-                  });
-                },
-                initialValue: widget.initialValue,
-                listTextStyle: TextStyle(
-                  fontSize: width / 110,
-                  color: Colors.black,
-                  fontFamily: "R",
-                ),
-                textStyle: TextStyle(
-                  fontSize: width / 110,
-                  color: Colors.black,
-                  fontFamily: "R",
-                ),
-                searchTextStyle: TextStyle(
-                  fontSize: width / 110,
-                  color: Colors.black,
-                  fontFamily: "R",
-                ),
-                searchKeyboardType: TextInputType.text,
-                searchDecoration: InputDecoration(
-                  hintText: editModeProvider.isEditing ? null : "Search",
-                  hintStyle: TextStyle(
-                    fontSize: width / 140,
-                    color: Colors.black,
-                    fontFamily: "R",
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(width / 150),
-                  ),
-                ),
-                clearOption: true,
-                validator: (value) => value == null ? "Required field" : null,
-                dropDownItemCount: 8,
-                listPadding: ListPadding(top: 0, bottom: 0),
-                dropDownList: !editModeProvider.isEditing
-                    ? []
-                    : widget.provinces
-                        .map((province) => DropDownValueModel(
-                              name: province['name']!,
-                              value: province['code']!,
-                            ))
-                        .toList(),
-              ),
-            );
-          },
+            ),
+            clearOption: true,
+            validator: (value) => value == null ? "Required field" : null,
+            dropDownItemCount: 8,
+            listPadding: ListPadding(top: 0, bottom: 0),
+            dropDownList: editModeProvider.isEditing
+                ? widget.provinces
+                    .map((province) => DropDownValueModel(
+                          name: province['name']!,
+                          value: province['name']!, // Store the name
+                        ))
+                    .toList()
+                : [], // Show empty list when not in edit mode
+          ),
         ),
       ],
     );
@@ -877,10 +633,24 @@ class CityMunicipalityDropdown extends StatefulWidget {
 }
 
 class _CityMunicipalityDropdownState extends State<CityMunicipalityDropdown> {
+  String? selectedCityMunicipality;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedCityMunicipality =
+        widget.initialValue; // Initialize with passed value
+  }
+
   @override
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
+    final editModeProvider = Provider.of<EditModeProvider>(context);
+    final addressProvider =
+        Provider.of<AddressProvider>(context, listen: false);
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           "Specify City/Municipality",
@@ -891,67 +661,76 @@ class _CityMunicipalityDropdownState extends State<CityMunicipalityDropdown> {
           ),
         ),
         SizedBox(height: width / 170),
-        Consumer<EditModeProvider>(
-          builder: (context, editModeProvider, child) {
-            return Container(
-              height: width / 35,
-              width: width / 8,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.black54),
+        Container(
+          height: width / 35,
+          width: width / 8,
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.black54),
+            borderRadius: BorderRadius.circular(width / 150),
+            color: editModeProvider.isEditing ? Colors.white : Colors.grey[300],
+          ),
+          child: DropDownTextField(
+            onChanged: (selected) {
+              setState(() {
+                selectedCityMunicipality = selected?.value; // Store name
+              });
+
+              // Find the selected city's code
+              String? selectedCityMunicipalityCode = widget.citiesMunicipalities
+                  .firstWhere(
+                      (city) => city['name'] == selectedCityMunicipality,
+                      orElse: () => {'code': ''})['code'];
+
+              // Update provider with both name and code
+              addressProvider.updateCity(
+                  selectedCityMunicipality, selectedCityMunicipalityCode);
+
+              widget.onChanged(selectedCityMunicipality);
+            },
+            initialValue: selectedCityMunicipality, // Keep value persistent
+            readOnly:
+                !editModeProvider.isEditing, // Disable when not in edit mode
+            enableSearch: false, // Disable search
+            listTextStyle: TextStyle(
+              fontSize: width / 110,
+              color: Colors.black,
+              fontFamily: "R",
+            ),
+            textStyle: TextStyle(
+              fontSize: width / 110,
+              color: Colors.black,
+              fontFamily: "R",
+            ),
+            searchTextStyle: TextStyle(
+              fontSize: width / 110,
+              color: Colors.black,
+              fontFamily: "R",
+            ),
+            searchKeyboardType: TextInputType.text,
+            searchDecoration: InputDecoration(
+              hintText: editModeProvider.isEditing ? "Search" : "",
+              hintStyle: TextStyle(
+                fontSize: width / 140,
+                color: Colors.black,
+                fontFamily: "R",
+              ),
+              border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(width / 150),
-                color: !editModeProvider.isEditing
-                    ? Colors.grey[300]
-                    : Colors.white,
               ),
-              child: DropDownTextField(
-                initialValue: widget.initialValue,
-                searchTextStyle: TextStyle(
-                  fontSize: width / 110,
-                  color: Colors.black,
-                  fontFamily: "R",
-                ),
-                searchKeyboardType: TextInputType.text,
-                searchDecoration: InputDecoration(
-                  hintText: editModeProvider.isEditing ? null : "Search",
-                  hintStyle: TextStyle(
-                    fontSize: width / 140,
-                    color: Colors.black,
-                    fontFamily: "R",
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(width / 150),
-                  ),
-                ),
-                clearOption: true,
-                listTextStyle: TextStyle(
-                  fontSize: width / 110,
-                  color: Colors.black,
-                  fontFamily: "R",
-                ),
-                textStyle: TextStyle(
-                  fontSize: width / 110,
-                  color: Colors.black,
-                  fontFamily: "R",
-                ),
-                validator: (value) => value == null ? "Required field" : null,
-                dropDownItemCount: 8,
-                listPadding: ListPadding(top: 0, bottom: 0),
-                dropDownList: !editModeProvider.isEditing
-                    ? []
-                    : widget.citiesMunicipalities
-                        .map((city) => DropDownValueModel(
-                              name: city['name']!,
-                              value: city['code']!,
-                            ))
-                        .toList(),
-                onChanged: (selected) {
-                  setState(() {
-                    widget.onChanged(selected?.value);
-                  });
-                },
-              ),
-            );
-          },
+            ),
+            clearOption: true,
+            validator: (value) => value == null ? "Required field" : null,
+            dropDownItemCount: 8,
+            listPadding: ListPadding(top: 0, bottom: 0),
+            dropDownList: editModeProvider.isEditing
+                ? widget.citiesMunicipalities
+                    .map((city) => DropDownValueModel(
+                          name: city['name']!,
+                          value: city['name']!, // Store name instead of code
+                        ))
+                    .toList()
+                : [],
+          ),
         ),
       ],
     );
@@ -977,11 +756,23 @@ class CityDropdown extends StatefulWidget {
 }
 
 class _CityDropdownState extends State<CityDropdown> {
+  String? selectedCity;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedCity = widget.initialValue; // Initialize with passed value
+  }
+
   @override
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
+    final editModeProvider = Provider.of<EditModeProvider>(context);
+    final addressProvider =
+        Provider.of<AddressProvider>(context, listen: false);
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           "Specify City",
@@ -992,70 +783,78 @@ class _CityDropdownState extends State<CityDropdown> {
           ),
         ),
         SizedBox(height: width / 170),
-        Consumer<EditModeProvider>(
-          builder: (context, editModeProvider, child) {
-            return Container(
-              height: width / 35,
-              width: width / 8,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.black54),
+        Container(
+          height: width / 35,
+          width: width / 8,
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.black54),
+            borderRadius: BorderRadius.circular(width / 150),
+            color: widget.selectedMunicipality == null
+                ? (editModeProvider.isEditing ? Colors.white : Colors.grey[300])
+                : Colors.grey[300], // Disable if municipality is selected
+          ),
+          child: DropDownTextField(
+            onChanged: (selected) {
+              setState(() {
+                selectedCity = selected?.value; // Store name
+              });
+
+              // Find the selected city's code
+              String? selectedCityCode = widget.cities.firstWhere(
+                  (city) => city['name'] == selectedCity,
+                  orElse: () => {'code': ''})['code'];
+
+              // Update provider with both name and code
+              addressProvider.updateCity(selectedCity, selectedCityCode);
+
+              widget.onChanged(selectedCity);
+            },
+            initialValue: selectedCity, // Keep value persistent
+            isEnabled: widget.selectedMunicipality == null,
+            readOnly: widget.selectedMunicipality != null ||
+                !editModeProvider
+                    .isEditing, // Disable if municipality is selected
+            enableSearch: false, // Disable search
+            listTextStyle: TextStyle(
+              fontSize: width / 110,
+              color: Colors.black,
+              fontFamily: "R",
+            ),
+            textStyle: TextStyle(
+              fontSize: width / 110,
+              color: Colors.black,
+              fontFamily: "R",
+            ),
+            searchTextStyle: TextStyle(
+              fontSize: width / 110,
+              color: Colors.black,
+              fontFamily: "R",
+            ),
+            searchKeyboardType: TextInputType.text,
+            searchDecoration: InputDecoration(
+              hintText: editModeProvider.isEditing ? "Search" : "",
+              hintStyle: TextStyle(
+                fontSize: width / 140,
+                color: Colors.black,
+                fontFamily: "R",
+              ),
+              border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(width / 150),
-                color: widget.selectedMunicipality == null
-                    ? Colors.white
-                    : Colors.grey[300],
               ),
-              child: DropDownTextField(
-                onChanged: (selected) {
-                  setState(() {
-                    widget.onChanged(selected?.value);
-                  });
-                },
-                initialValue: widget.initialValue,
-                isEnabled: widget.selectedMunicipality ==
-                    null, // Disable if municipality is selected
-                readOnly: widget.selectedMunicipality !=
-                    null, // Make it read-only if municipality is selected
-                enableSearch: widget.selectedMunicipality != null,
-                searchTextStyle: TextStyle(
-                  fontSize: width / 110,
-                  color: Colors.black,
-                  fontFamily: "R",
-                ),
-                searchKeyboardType: TextInputType.text,
-                searchDecoration: InputDecoration(
-                  hintText: editModeProvider.isEditing ? "Search" : null,
-                  hintStyle: TextStyle(
-                    fontSize: width / 140,
-                    color: Colors.black,
-                    fontFamily: "R",
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(width / 150),
-                  ),
-                ),
-                clearOption: true,
-                listTextStyle: TextStyle(
-                  fontSize: width / 110,
-                  color: Colors.black,
-                  fontFamily: "R",
-                ),
-                textStyle: TextStyle(
-                  fontSize: width / 110,
-                  color: Colors.black,
-                  fontFamily: "R",
-                ),
-                validator: (value) => value == null ? "Required field" : null,
-                dropDownItemCount: 8,
-                listPadding: ListPadding(top: 0, bottom: 0),
-                dropDownList: widget.cities
-                    .map((item) => DropDownValueModel(
-                          name: item['name']!,
-                          value: item['code']!,
+            ),
+            clearOption: true,
+            validator: (value) => value == null ? "Required field" : null,
+            dropDownItemCount: 8,
+            listPadding: ListPadding(top: 0, bottom: 0),
+            dropDownList: editModeProvider.isEditing
+                ? widget.cities
+                    .map((city) => DropDownValueModel(
+                          name: city['name']!,
+                          value: city['name']!, // Store name instead of code
                         ))
-                    .toList(),
-              ),
-            );
-          },
+                    .toList()
+                : [],
+          ),
         ),
       ],
     );
@@ -1081,11 +880,23 @@ class MunicipalityDropdown extends StatefulWidget {
 }
 
 class _MunicipalityDropdownState extends State<MunicipalityDropdown> {
+  String? selectedMunicipality;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedMunicipality = widget.initialValue; // Initialize with passed value
+  }
+
   @override
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
+    final editModeProvider = Provider.of<EditModeProvider>(context);
+    final addressProvider =
+        Provider.of<AddressProvider>(context, listen: false);
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           "Specify Municipality",
@@ -1096,70 +907,81 @@ class _MunicipalityDropdownState extends State<MunicipalityDropdown> {
           ),
         ),
         SizedBox(height: width / 170),
-        Consumer<EditModeProvider>(
-          builder: (context, editModeProvider, child) {
-            return Container(
-              height: width / 35,
-              width: width / 8,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.black54),
+        Container(
+          height: width / 35,
+          width: width / 8,
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.black54),
+            borderRadius: BorderRadius.circular(width / 150),
+            color: widget.selectedCity == null
+                ? (editModeProvider.isEditing ? Colors.white : Colors.grey[300])
+                : Colors.grey[300], // Disable if city is selected
+          ),
+          child: DropDownTextField(
+            onChanged: (selected) {
+              setState(() {
+                selectedMunicipality = selected?.value; // Store name
+              });
+
+              // Find the selected municipality's code
+              String? selectedMunicipalityCode = widget.municipalities
+                  .firstWhere(
+                      (municipality) =>
+                          municipality['name'] == selectedMunicipality,
+                      orElse: () => {'code': ''})['code'];
+
+              // Update provider with both name and code
+              addressProvider.updateMunicipality(
+                  selectedMunicipality, selectedMunicipalityCode);
+
+              widget.onChanged(selectedMunicipality);
+            },
+            initialValue: selectedMunicipality, // Keep value persistent
+            isEnabled: widget.selectedCity == null,
+            readOnly: widget.selectedCity != null ||
+                !editModeProvider.isEditing, // Disable if city is selected
+            enableSearch: false, // Disable search
+            listTextStyle: TextStyle(
+              fontSize: width / 110,
+              color: Colors.black,
+              fontFamily: "R",
+            ),
+            textStyle: TextStyle(
+              fontSize: width / 110,
+              color: Colors.black,
+              fontFamily: "R",
+            ),
+            searchTextStyle: TextStyle(
+              fontSize: width / 110,
+              color: Colors.black,
+              fontFamily: "R",
+            ),
+            searchKeyboardType: TextInputType.text,
+            searchDecoration: InputDecoration(
+              hintText: editModeProvider.isEditing ? "Search" : "",
+              hintStyle: TextStyle(
+                fontSize: width / 140,
+                color: Colors.black,
+                fontFamily: "R",
+              ),
+              border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(width / 150),
-                color: widget.selectedCity == null
-                    ? Colors.white
-                    : Colors.grey[300],
               ),
-              child: DropDownTextField(
-                onChanged: (selected) {
-                  setState(() {
-                    widget.onChanged(selected?.value);
-                  });
-                },
-                initialValue: widget.initialValue,
-                isEnabled:
-                    widget.selectedCity == null, // Disable if city is selected
-                readOnly: widget.selectedCity !=
-                    null, // Make it read-only if city is selected
-                enableSearch: widget.selectedCity != null,
-                searchTextStyle: TextStyle(
-                  fontSize: width / 110,
-                  color: Colors.black,
-                  fontFamily: "R",
-                ),
-                searchKeyboardType: TextInputType.text,
-                searchDecoration: InputDecoration(
-                  hintText: editModeProvider.isEditing ? "Search" : null,
-                  hintStyle: TextStyle(
-                    fontSize: width / 140,
-                    color: Colors.black,
-                    fontFamily: "R",
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(width / 150),
-                  ),
-                ),
-                clearOption: true,
-                listTextStyle: TextStyle(
-                  fontSize: width / 110,
-                  color: Colors.black,
-                  fontFamily: "R",
-                ),
-                textStyle: TextStyle(
-                  fontSize: width / 110,
-                  color: Colors.black,
-                  fontFamily: "R",
-                ),
-                validator: (value) => value == null ? "Required field" : null,
-                dropDownItemCount: 8,
-                listPadding: ListPadding(top: 0, bottom: 0),
-                dropDownList: widget.municipalities
-                    .map((item) => DropDownValueModel(
-                          name: item['name']!,
-                          value: item['code']!,
+            ),
+            clearOption: true,
+            validator: (value) => value == null ? "Required field" : null,
+            dropDownItemCount: 8,
+            listPadding: ListPadding(top: 0, bottom: 0),
+            dropDownList: editModeProvider.isEditing
+                ? widget.municipalities
+                    .map((municipality) => DropDownValueModel(
+                          name: municipality['name']!,
+                          value: municipality[
+                              'name']!, // Store name instead of code
                         ))
-                    .toList(),
-              ),
-            );
-          },
+                    .toList()
+                : [],
+          ),
         ),
       ],
     );
@@ -1183,11 +1005,23 @@ class BarangayDropdown extends StatefulWidget {
 }
 
 class _BarangayDropdownState extends State<BarangayDropdown> {
+  String? selectedBarangay;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedBarangay = widget.initialValue; // Initialize with passed value
+  }
+
   @override
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
+    final editModeProvider = Provider.of<EditModeProvider>(context);
+    final addressProvider =
+        Provider.of<AddressProvider>(context, listen: false);
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           "Specify Barangay",
@@ -1198,64 +1032,76 @@ class _BarangayDropdownState extends State<BarangayDropdown> {
           ),
         ),
         SizedBox(height: width / 170),
-        Consumer<EditModeProvider>(
-          builder: (context, editModeProvider, child) {
-            return Container(
-              height: width / 35,
-              width: width / 8,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.black54),
+        Container(
+          height: width / 35,
+          width: width / 8,
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.black54),
+            borderRadius: BorderRadius.circular(width / 150),
+            color: editModeProvider.isEditing ? Colors.white : Colors.grey[300],
+          ),
+          child: DropDownTextField(
+            onChanged: (selected) {
+              setState(() {
+                selectedBarangay = selected?.value; // Store name
+              });
+
+              // Find the selected barangay's code
+              String? selectedBarangayCode = widget.barangays.firstWhere(
+                  (barangay) => barangay['name'] == selectedBarangay,
+                  orElse: () => {'code': ''})['code'];
+
+              // Update provider with both name and code
+              addressProvider.updateBarangay(
+                  selectedBarangay, selectedBarangayCode);
+
+              widget.onChanged(selectedBarangay);
+            },
+            initialValue: selectedBarangay, // Keep value persistent
+            readOnly:
+                !editModeProvider.isEditing, // Disable when not in edit mode
+            enableSearch: false, // Disable search
+            listTextStyle: TextStyle(
+              fontSize: width / 110,
+              color: Colors.black,
+              fontFamily: "R",
+            ),
+            textStyle: TextStyle(
+              fontSize: width / 110,
+              color: Colors.black,
+              fontFamily: "R",
+            ),
+            searchTextStyle: TextStyle(
+              fontSize: width / 110,
+              color: Colors.black,
+              fontFamily: "R",
+            ),
+            searchKeyboardType: TextInputType.text,
+            searchDecoration: InputDecoration(
+              hintText: editModeProvider.isEditing ? "Search" : "",
+              hintStyle: TextStyle(
+                fontSize: width / 140,
+                color: Colors.black,
+                fontFamily: "R",
+              ),
+              border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(width / 150),
-                color: Colors.white,
               ),
-              child: DropDownTextField(
-                onChanged: (selected) {
-                  setState(() {
-                    widget.onChanged(selected?.value);
-                  });
-                },
-                initialValue: widget.initialValue,
-                enableSearch: false,
-                searchTextStyle: TextStyle(
-                  fontSize: width / 110,
-                  color: Colors.black,
-                  fontFamily: "R",
-                ),
-                searchKeyboardType: TextInputType.text,
-                searchDecoration: InputDecoration(
-                  hintText: editModeProvider.isEditing ? "Search" : null,
-                  hintStyle: TextStyle(
-                    fontSize: width / 140,
-                    color: Colors.black,
-                    fontFamily: "R",
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(width / 150),
-                  ),
-                ),
-                clearOption: true,
-                listTextStyle: TextStyle(
-                  fontSize: width / 110,
-                  color: Colors.black,
-                  fontFamily: "R",
-                ),
-                textStyle: TextStyle(
-                  fontSize: width / 110,
-                  color: Colors.black,
-                  fontFamily: "R",
-                ),
-                validator: (value) => value == null ? "Required field" : null,
-                dropDownItemCount: 8,
-                listPadding: ListPadding(top: 0, bottom: 0),
-                dropDownList: widget.barangays
-                    .map((item) => DropDownValueModel(
-                          name: item['name']!,
-                          value: item['code']!,
+            ),
+            clearOption: true,
+            validator: (value) => value == null ? "Required field" : null,
+            dropDownItemCount: 8,
+            listPadding: ListPadding(top: 0, bottom: 0),
+            dropDownList: editModeProvider.isEditing
+                ? widget.barangays
+                    .map((barangay) => DropDownValueModel(
+                          name: barangay['name']!,
+                          value:
+                              barangay['name']!, // Store name instead of code
                         ))
-                    .toList(),
-              ),
-            );
-          },
+                    .toList()
+                : [],
+          ),
         ),
       ],
     );
@@ -1384,5 +1230,323 @@ class PSGCService {
     } else {
       throw Exception('Failed to load barangays for municipality');
     }
+  }
+}
+
+class ZipcodeTextField extends StatefulWidget {
+  final String? initialValue;
+
+  const ZipcodeTextField({
+    Key? key,
+    required this.initialValue,
+  }) : super(key: key);
+
+  @override
+  _ZipcodeTextFieldState createState() => _ZipcodeTextFieldState();
+}
+
+class _ZipcodeTextFieldState extends State<ZipcodeTextField> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue ?? "");
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    double width = MediaQuery.of(context).size.width;
+    final addressProvider =
+        Provider.of<AddressProvider>(context, listen: false);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Zipcode",
+          style: TextStyle(
+            fontSize: width / 90,
+            color: Colors.black,
+            fontFamily: "R",
+          ),
+        ),
+        SizedBox(height: width / 170),
+        Container(
+          width: width / 6,
+          height: width / 35,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(width / 150),
+          ),
+          child: TextField(
+            controller: _controller,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly, // Allows numbers only
+              LengthLimitingTextInputFormatter(4), // Limits length to 6 digits
+            ],
+            style: TextStyle(
+              fontSize: width / 110,
+              color: Colors.black,
+              fontFamily: "R",
+            ),
+            decoration: InputDecoration(
+              contentPadding: EdgeInsets.all(width / 120),
+              hintText: "Zipcode",
+              hintStyle: TextStyle(
+                fontSize: width / 110,
+                color: Colors.grey,
+                fontFamily: "R",
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(width / 150),
+              ),
+            ),
+            onChanged: (value) {
+              addressProvider.updateZipcode(value); // Update provider value
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class HouseNumberTextField extends StatefulWidget {
+  final String? initialValue;
+
+  const HouseNumberTextField({
+    Key? key,
+    required this.initialValue,
+  }) : super(key: key);
+
+  @override
+  _HouseNumberTextFieldState createState() => _HouseNumberTextFieldState();
+}
+
+class _HouseNumberTextFieldState extends State<HouseNumberTextField> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue ?? "");
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    double width = MediaQuery.of(context).size.width;
+    final addressProvider =
+        Provider.of<AddressProvider>(context, listen: false);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "House/Block/Lot Number",
+          style: TextStyle(
+            fontSize: width / 90,
+            color: Colors.black,
+            fontFamily: "R",
+          ),
+        ),
+        SizedBox(height: width / 170),
+        Container(
+          width: width / 6,
+          height: width / 35,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(width / 150),
+          ),
+          child: TextField(
+            controller: _controller,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly, // Allows numbers only
+              LengthLimitingTextInputFormatter(6), // Limits length to 6 digits
+            ],
+            style: TextStyle(
+              fontSize: width / 110,
+              color: Colors.black,
+              fontFamily: "R",
+            ),
+            decoration: InputDecoration(
+              contentPadding: EdgeInsets.all(width / 120),
+              hintText: "House/Block/Lot Number",
+              hintStyle: TextStyle(
+                fontSize: width / 110,
+                color: Colors.grey,
+                fontFamily: "R",
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(width / 150),
+              ),
+            ),
+            onChanged: (value) {
+              addressProvider.updateHouseNumber(value); // Update provider value
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class StreetTextField extends StatefulWidget {
+  final String? initialValue;
+
+  const StreetTextField({
+    Key? key,
+    required this.initialValue,
+  }) : super(key: key);
+
+  @override
+  _StreetTextFieldState createState() => _StreetTextFieldState();
+}
+
+class _StreetTextFieldState extends State<StreetTextField> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue ?? "");
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    double width = MediaQuery.of(context).size.width;
+    final addressProvider = Provider.of<AddressProvider>(context, listen: false);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Street",
+          style: TextStyle(
+            fontSize: width / 90,
+            color: Colors.black,
+            fontFamily: "R",
+          ),
+        ),
+        SizedBox(height: width / 170),
+        Container(
+          width: width / 6,
+          height: width / 35,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(width / 150),
+          ),
+          child: TextField(
+            controller: _controller,
+            keyboardType: TextInputType.text,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'^[a-zA-Z0-9 ]*$')), // Allows letters, numbers & spaces
+              LengthLimitingTextInputFormatter(50), // Limits length to 50 characters
+            ],
+            style: TextStyle(
+              fontSize: width / 110,
+              color: Colors.black,
+              fontFamily: "R",
+            ),
+            decoration: InputDecoration(
+              contentPadding: EdgeInsets.all(width / 120),
+              hintText: "Street",
+              hintStyle: TextStyle(
+                fontSize: width / 110,
+                color: Colors.grey,
+                fontFamily: "R",
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(width / 150),
+              ),
+            ),
+            onChanged: (value) {
+              addressProvider.updateStreet(value); // Update provider value
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class SubdivisionTextField extends StatefulWidget {
+  final String? initialValue;
+
+  const SubdivisionTextField({
+    Key? key,
+    required this.initialValue,
+  }) : super(key: key);
+
+  @override
+  _SubdivisionTextFieldState createState() => _SubdivisionTextFieldState();
+}
+
+class _SubdivisionTextFieldState extends State<SubdivisionTextField> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue ?? "");
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    double width = MediaQuery.of(context).size.width;
+    final addressProvider = Provider.of<AddressProvider>(context, listen: false);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Subdivision",
+          style: TextStyle(
+            fontSize: width / 90,
+            color: Colors.black,
+            fontFamily: "R",
+          ),
+        ),
+        SizedBox(height: width / 170),
+        Container(
+          width: width / 6,
+          height: width / 35,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(width / 150),
+          ),
+          child: TextField(
+            controller: _controller,
+            keyboardType: TextInputType.text,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'^[a-zA-Z0-9 ]*$')), // Allows letters, numbers & spaces
+              LengthLimitingTextInputFormatter(50), // Limits length to 50 characters
+            ],
+            style: TextStyle(
+              fontSize: width / 110,
+              color: Colors.black,
+              fontFamily: "R",
+            ),
+            decoration: InputDecoration(
+              contentPadding: EdgeInsets.all(width / 120),
+              hintText: "Subdivision",
+              hintStyle: TextStyle(
+                fontSize: width / 110,
+                color: Colors.grey,
+                fontFamily: "R",
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(width / 150),
+              ),
+            ),
+            onChanged: (value) {
+              addressProvider.updateSubdivision(value); // Update provider value
+            },
+          ),
+        ),
+      ],
+    );
   }
 }
