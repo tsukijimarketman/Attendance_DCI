@@ -620,9 +620,7 @@ class _SettingsSUState extends State<SettingsSU> {
           .limit(1)
           .snapshots(), // Real-time Firestore updates
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator()); // Show loading
-        }
+        
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return Center(child: Text("No data available"));

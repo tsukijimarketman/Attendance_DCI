@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_dashboard.dart';
 import 'package:attendance_app/hover_extensions.dart';
@@ -5,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:typed_data';
 
 class Profile extends StatefulWidget {
   const Profile({super.key});
@@ -19,59 +21,91 @@ class _ProfileState extends State<Profile> {
   String? _imageUrl;
 
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+  final picker = ImagePicker();
+  final pickedFile = await picker.pickImage(source: ImageSource.gallery);
 
-    if (pickedFile != null) {
-      setState(() {
-        _image = File(pickedFile.path);
-      });
-      await _uploadImage(pickedFile);
-    }
+  if (pickedFile != null) {
+    setState(() {
+      _image = null; // Flutter Web doesn't support File, so don't store it
+    });
+
+    // ✅ Pass `pickedFile` directly to upload function
+    await _uploadImage(pickedFile);
   }
+}
 
   Future<void> _fetchProfileImage() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final fileName = 'profile_${user.uid}.jpg'; // Use Firebase UID
-      final imageUrl =
-          supabase.storage.from('profile-pictures').getPublicUrl(fileName);
-      setState(() {
-        _imageUrl = imageUrl;
-      });
-    }
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  final filePrefix = 'profile_${user.uid}'; // Match all files starting with this
+  final response = await supabase.storage.from('profile-pictures').list();
+
+  FileObject? userFile;
+  try {
+    userFile = response.firstWhere((file) => file.name.startsWith(filePrefix));
+  } catch (e) {
+    userFile = null; // Handle case where no file is found
   }
+
+  if (userFile != null) {
+    String imageUrl = supabase.storage.from('profile-pictures').getPublicUrl(userFile.name);
+
+    // 🛠️ Ensure URL does NOT contain an extra ":http:"
+    if (imageUrl.contains(':http:')) {
+      imageUrl = imageUrl.replaceAll(':http:', ''); // Fix malformed URL
+    }
+
+    // 🔄 Add timestamp to force refresh
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    imageUrl = "$imageUrl?t=$timestamp";
+
+    setState(() {
+      _imageUrl = imageUrl;
+    });
+
+    print("✅ Fixed Profile Image URL: $_imageUrl");
+  } else {
+    print("❌ No profile image found for user: ${user.uid}");
+  }
+}
+
 
   Future<void> _uploadImage(XFile pickedFile) async {
-    final firebaseUser = FirebaseAuth.instance.currentUser;
-    if (firebaseUser == null) {
-      print("User is not authenticated");
-      return;
-    }
-
-    try {
-      final bytes = await pickedFile.readAsBytes();
-      final fileExt = pickedFile.path.split('.').last;
-      final fileName =
-          'profile_${firebaseUser.uid}.$fileExt'; // Use Firebase UID
-
-      await supabase.storage.from('profile-pictures').uploadBinary(
-          fileName, bytes,
-          fileOptions: const FileOptions(upsert: true) // Allow overwriting
-          );
-
-      final imageUrl =
-          supabase.storage.from('profile-pictures').getPublicUrl(fileName);
-
-      setState(() {
-        _imageUrl = imageUrl;
-      });
-
-      print("Uploaded Image URL: $_imageUrl");
-    } catch (e) {
-      print("Error uploading image: $e");
-    }
+  final firebaseUser = FirebaseAuth.instance.currentUser;
+  if (firebaseUser == null) {
+    print("❌ User is not authenticated");
+    return;
   }
+
+  try {
+    // ✅ Read the image as bytes (Works on Flutter Web & Mobile)
+    Uint8List bytes = await pickedFile.readAsBytes();
+
+    // ✅ Extract file extension correctly
+    String fileExt = pickedFile.name.split('.').last;
+    String fileName = 'profile_${firebaseUser.uid}.$fileExt';
+
+    // ✅ Determine MIME type properly
+    String mimeType = "image/$fileExt";
+    if (fileExt == "jpg") mimeType = "image/jpeg"; // Special case for JPG
+
+    await supabase.storage.from('profile-pictures').uploadBinary(
+      fileName, 
+      bytes,
+      fileOptions: FileOptions(upsert: true, contentType: mimeType),
+    );
+
+    print("✅ Image uploaded successfully: $fileName");
+
+    // 🔄 Fetch latest profile image
+    await _fetchProfileImage();
+  } catch (e) {
+    print("❌ Error uploading image: $e");
+  }
+}
+
+
 
   @override
   void initState() {
@@ -90,18 +124,10 @@ class _ProfileState extends State<Profile> {
           backgroundImage: _imageUrl != null && _imageUrl!.isNotEmpty
               ? NetworkImage(_imageUrl!)
               : null,
-          child: _imageUrl == null
+          child: _imageUrl == null || _imageUrl!.isEmpty
               ? Icon(Icons.person,
                   size: MediaQuery.of(context).size.width / 12,
                   color: Colors.white)
-              : null,
-          // Only apply error handling if there is an image URL
-          onBackgroundImageError: _imageUrl != null && _imageUrl!.isNotEmpty
-              ? (_, __) {
-                  setState(() {
-                    _imageUrl = null; // Reset image if loading fails
-                  });
-                }
               : null,
         ),
         SizedBox(height: MediaQuery.of(context).size.width / 40),

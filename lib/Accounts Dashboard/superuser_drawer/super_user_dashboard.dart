@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/auditSU.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/notification_su.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/settings_su.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/sidebar_provider.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/sidebarx_usage.dart';
 import 'package:attendance_app/Animation/Animation.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/references_su.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/usermanagement_su.dart';
@@ -12,6 +14,7 @@ import 'package:attendance_app/hover_extensions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sidebarx/sidebarx.dart';
 
 class SuperUserDashboard extends StatefulWidget {
@@ -22,8 +25,7 @@ class SuperUserDashboard extends StatefulWidget {
 }
 
 class _SuperUserDashboardState extends State<SuperUserDashboard> {
-  final _controller =
-      SidebarXController(selectedIndex: 0); // Start with Dashboard
+ // Start with Dashboard
 
   Color color1 = Colors.grey;
   Color color2 = Colors.grey;
@@ -36,11 +38,7 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
   void initState() {
     super.initState();
     _subscribeToUserData();
-    _controller.addListener(() {
-      setState(() {
-        
-      });
-    });
+    
   }
 
   bool isHeadersClicked = false;
@@ -93,7 +91,7 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
   @override
   Widget build(BuildContext context) {
     final String? currentUserUid = FirebaseAuth.instance.currentUser?.uid;
-
+    final sidebarProvider = Provider.of<SidebarProvider>(context);
     return Scaffold(
         backgroundColor: Color(0xFFf2edf3),
         appBar: AppBar(
@@ -286,33 +284,21 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
               onTap: () {
                 showSignOutDialog(context);
               },
-              child: MouseRegion(
-                onEnter: (event) {
-                  setState(() {
-                    color4 = Color.fromARGB(255, 11, 55, 99);
-                  });
-                },
-                onExit: (event) {
-                  setState(() {
-                    color4 = Colors.grey;
-                  });
-                },
-                child: Tooltip(
-                  message: 'Sign Out',
-                  preferBelow: false,
-                  decoration: BoxDecoration(color: Colors.transparent),
-                  textStyle: TextStyle(
-                      color: Color.fromARGB(255, 11, 55, 99),
-                      fontFamily: "B",
-                      fontSize: MediaQuery.of(context).size.width / 140),
-                  padding: EdgeInsets.symmetric(
-                      horizontal: MediaQuery.of(context).size.width / 120,
-                      vertical: MediaQuery.of(context).size.width / 160),
-                  child: Icon(
-                    Icons.logout_outlined,
-                    color: color4,
-                    size: MediaQuery.of(context).size.width / 60,
-                  ),
+              child: Tooltip(
+                message: 'Sign Out',
+                preferBelow: false,
+                decoration: BoxDecoration(color: Colors.transparent),
+                textStyle: TextStyle(
+                    color: Color.fromARGB(255, 11, 55, 99),
+                    fontFamily: "B",
+                    fontSize: MediaQuery.of(context).size.width / 140),
+                padding: EdgeInsets.symmetric(
+                    horizontal: MediaQuery.of(context).size.width / 120,
+                    vertical: MediaQuery.of(context).size.width / 160),
+                child: Icon(
+                  Icons.logout_outlined,
+                  color: color4,
+                  size: MediaQuery.of(context).size.width / 60,
                 ),
               ),
             ).showCursorOnHover,
@@ -323,39 +309,7 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
         ),
         body: Row(
           children: [
-            SidebarX(
-              controller: _controller,
-              extendedTheme: SidebarXTheme(
-                  itemPadding: EdgeInsets.all(10),
-                  hoverColor: Colors.amber,
-                  width: MediaQuery.of(context).size.width / 5.3),
-              theme: SidebarXTheme(
-                margin: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                textStyle: const TextStyle(color: Colors.black),
-                selectedTextStyle: const TextStyle(color: Colors.amber),
-                itemTextPadding: const EdgeInsets.symmetric(horizontal: 20),
-                selectedItemDecoration: BoxDecoration(
-                  color: const Color.fromARGB(255, 11, 55, 99),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                iconTheme:
-                    const IconThemeData(color: Color(0xFFbeabc2), size: 24),
-                selectedIconTheme:
-                    const IconThemeData(color: Colors.amber, size: 26),
-                selectedItemTextPadding:
-                    const EdgeInsets.symmetric(horizontal: 20),
-              ),
-              headerDivider: const Divider(thickness: 2, color: Colors.black12),
-              items: [
-                SidebarXItem(icon: Icons.dashboard, label: 'Dashboard'),
-                SidebarXItem(icon: Icons.person_2, label: 'User Management'),
-                SidebarXItem(icon: Icons.room_preferences, label: 'References'),
-              ],
-            ),
+            SideBarXUsage(),
 
             /// Page Content Area
             Expanded(
@@ -374,16 +328,15 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
                       ],
                     )
                   : Center(
-                      child: _buildPageContent(),
+                      child: _buildPageContent(sidebarProvider.selectedIndex)
                     ),
             ),
           ],
         ));
   }
 
-  /// Function to render different pages based on sidebar selection
-  Widget _buildPageContent() {
-    switch (_controller.selectedIndex) {
+  Widget _buildPageContent(int index) {
+    switch (index) {
       case 0:
         return const Text('Dashboard Page',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold));
@@ -396,4 +349,5 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
             style: TextStyle(fontSize: 20));
     }
   }
+  
 }
