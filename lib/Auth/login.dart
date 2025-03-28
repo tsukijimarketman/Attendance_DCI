@@ -6,7 +6,7 @@ import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_dasho
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/super_user_dashboard.dart';
 import 'package:attendance_app/Animation/text_reveal.dart';
 import 'package:attendance_app/Auth/Persistent.dart';
-import 'package:attendance_app/audit_function.dart';
+import 'package:attendance_app/Auth/audit_function.dart';
 import 'package:attendance_app/encryption/encryption_helper.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:attendance_app/widget/animated_textfield.dart';

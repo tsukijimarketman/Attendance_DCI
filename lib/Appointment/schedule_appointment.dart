@@ -1,5 +1,5 @@
-import 'package:attendance_app/audit_function.dart';
-import 'package:attendance_app/calendar.dart';
+import 'package:attendance_app/Auth/audit_function.dart';
+import 'package:attendance_app/Calendar/calendar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -42,63 +42,63 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
     });
   }
 
-//   void submitForm() async {
-//   try {
-//     String fullName = "$firstName $lastName".trim(); 
-//     String agendaText = agendaController.text.trim(); 
+  void submitForm() async {
+  try {
+    String fullName = "$firstName $lastName".trim(); 
+    String agendaText = agendaController.text.trim(); 
 
-//     List<String> guestEmails = (selectedGuests ?? [])
-//         .map((guest) => guest['emailAdd'] as String?)
-//         .whereType<String>()
-//         .toList();
+    List<String> guestEmails = (selectedGuests ?? [])
+        .map((guest) => guest['emailAdd'] as String?)
+        .whereType<String>()
+        .toList();
 
-//          DateTime startDateTime = DateTime.parse(scheduleController.text); // This should work now!
-//     DateTime endDateTime = startDateTime.add(Duration(hours: 1));
+         DateTime startDateTime = DateTime.parse(scheduleController.text); // This should work now!
+    DateTime endDateTime = startDateTime.add(Duration(hours: 1));
 
-//     // Store appointment in Firestore
-//     await FirebaseFirestore.instance.collection('appointment').add({
-//       'agenda': agendaText,
-//       'department': departmentController.text,
-//       'schedule': scheduleController.text,
-//       'agendaDescript': descriptionAgendaController.text,
-//       'guest': selectedGuests,
-//       'status': 'Scheduled',
-//       'createdBy': fullName
-//     });
+    // Store appointment in Firestore
+    await FirebaseFirestore.instance.collection('appointment').add({
+      'agenda': agendaText,
+      'department': departmentController.text,
+      'schedule': scheduleController.text,
+      'agendaDescript': descriptionAgendaController.text,
+      'guest': selectedGuests,
+      'status': 'Scheduled',
+      'createdBy': fullName
+    });
 
-//     await logAuditTrail("Created Appointment", "User $fullName scheduled an appointment with agenda: $agendaText");
+    await logAuditTrail("Created Appointment", "User $fullName scheduled an appointment with agenda: $agendaText");
 
-//     ScaffoldMessenger.of(context).showSnackBar(
-//       const SnackBar(content: Text("Form submitted successfully!"))
-//     );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Form submitted successfully!"))
+    );
 
-//     // 🌟 Retrieve or Authenticate Google Token 
-//     // GoogleCalendarService googleCalendarService = GoogleCalendarService();
-//     // String? accessToken = await googleCalendarService.authenticateUser();
+    // 🌟 Retrieve or Authenticate Google Token 
+    GoogleCalendarService googleCalendarService = GoogleCalendarService();
+    String? accessToken = await googleCalendarService.authenticateUser();
 
-//    if (accessToken == null) {
-//       ScaffoldMessenger.of(context).showSnackBar(
-//           const SnackBar(content: Text("Google authentication required!")));
-//       return;
-//     }
+   if (accessToken == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Google authentication required!")));
+      return;
+    }
 
-//     print("✅ Using Access Token: $accessToken");
+    print("✅ Using Access Token: $accessToken");
 
-//     // 🌟 Create Google Calendar Event
-//     await googleCalendarService.createCalendarEvent(
-//       accessToken,
-//       agendaText,
-//       startDateTime,
-//       endDateTime,
-//       guestEmails,
-//     );
+    // 🌟 Create Google Calendar Event
+    await googleCalendarService.createCalendarEvent(
+      accessToken,
+      agendaText,
+      startDateTime,
+      endDateTime,
+      guestEmails,
+    );
 
-//     clearText(); 
-//   } catch (e) {
-//     print("❌ Error in submitForm: $e");
-//     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
-//   }
-// }
+    clearText(); 
+  } catch (e) {
+    print("❌ Error in submitForm: $e");
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+  }
+}
 
   Future<void> fetchUserData() async {
     User? user = FirebaseAuth.instance.currentUser;
@@ -218,7 +218,7 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                   )),
               TextButton(
                   onPressed: (){
-                    // submitForm();
+                    submitForm();
                     clearText(); // Ensure UI updates after clearing the form
                     Navigator.pop(context);
                   },

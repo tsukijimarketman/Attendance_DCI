@@ -1,6 +1,6 @@
 // ignore_for_file: no_leading_underscores_for_local_identifiers
 
-import 'package:attendance_app/audit_function.dart';
+import 'package:attendance_app/Auth/audit_function.dart';
 import 'package:attendance_app/widget/animated_textfield.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';

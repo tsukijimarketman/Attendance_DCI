@@ -1,4 +1,4 @@
-import 'package:attendance_app/audit_function.dart';
+import 'package:attendance_app/Auth/audit_function.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:attendance_app/Auth/login.dart';

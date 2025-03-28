@@ -1,4 +1,4 @@
-import 'package:attendance_app/audit_function.dart';
+import 'package:attendance_app/Auth/audit_function.dart';
 import 'package:attendance_app/encryption/encryption_helper.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';

@@ -1,6 +1,6 @@
 // ignore_for_file: unused_element
 
-import 'package:attendance_app/audit_function.dart';
+import 'package:attendance_app/Auth/audit_function.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
