@@ -1,3 +1,5 @@
+import 'package:attendance_app/Auth/audit_function.dart';
+import 'package:attendance_app/Calendar/calendar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -27,7 +29,7 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
   @override
   void initState() {
     super.initState();
-    fetchUserData();
+    // fetchUserData();
   }
 
   void clearText() {
@@ -40,88 +42,130 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
     });
   }
 
-  void submitForm() async {
-      String fullName = "$firstName $lastName".trim(); // Generate fullName
+//   void submitForm() async {
+//   try {
+//     String fullName = "$firstName $lastName".trim(); 
+//     String agendaText = agendaController.text.trim(); 
 
-    await FirebaseFirestore.instance.collection('appointment').add({
-      'agenda': agendaController.text,
-      'department': departmentController.text,
-      'schedule': scheduleController.text,
-      'agendaDescript': descriptionAgendaController.text,
-      'guest': selectedGuests,
-      'status': 'Scheduled',
-      'createdBy': fullName
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Form submitted successfully!")));
+//     List<String> guestEmails = (selectedGuests ?? [])
+//         .map((guest) => guest['emailAdd'] as String?)
+//         .whereType<String>()
+//         .toList();
 
-    clearText(); // Ensure UI updates after clearing the form
-  }
+//          DateTime startDateTime = DateTime.parse(scheduleController.text); // This should work now!
+//     DateTime endDateTime = startDateTime.add(Duration(hours: 1));
 
-  Future<void> fetchUserData() async {
-    User? user = FirebaseAuth.instance.currentUser;
+//     // Store appointment in Firestore
+//     await FirebaseFirestore.instance.collection('appointment').add({
+//       'agenda': agendaText,
+//       'department': departmentController.text,
+//       'schedule': scheduleController.text,
+//       'agendaDescript': descriptionAgendaController.text,
+//       'guest': selectedGuests,
+//       'status': 'Scheduled',
+//       'createdBy': fullName
+//     });
 
-    if (user != null) {
-      try {
-        QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .where('uid', isEqualTo: user.uid)
-            .limit(1)
-            .get();
+//     await logAuditTrail("Created Appointment", "User $fullName scheduled an appointment with agenda: $agendaText");
 
-        if (querySnapshot.docs.isNotEmpty) {
-          var userData =
-              querySnapshot.docs.first.data() as Map<String, dynamic>;
+//     ScaffoldMessenger.of(context).showSnackBar(
+//       const SnackBar(content: Text("Form submitted successfully!"))
+//     );
 
-          setState(() {
-            firstName = userData['first_name'] ?? "N/A";
-            lastName = userData['last_name'] ?? "N/A";
-            departmentController.text =
-                userData['department'] ?? ""; // Set department field
-          });
-        } else {
-          print("No user document found.");
-        }
-      } catch (e) {
-        print("Error fetching user data: $e");
-      }
-    } else {
-      print("No user is logged in.");
-    }
-  }
+//     // 🌟 Retrieve or Authenticate Google Token 
+//     GoogleCalendarService googleCalendarService = GoogleCalendarService();
+//     String? accessToken = await googleCalendarService.authenticateUser();
 
-  void pickScheduleDateTime() async {
-    DateTime now = DateTime.now();
+//    if (accessToken == null) {
+//       ScaffoldMessenger.of(context).showSnackBar(
+//           const SnackBar(content: Text("Google authentication required!")));
+//       return;
+//     }
 
-    DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: now,
-      firstDate: now,
-      lastDate: DateTime(2100),
-    );
+//     print("✅ Using Access Token: $accessToken");
 
-    if (pickedDate == null) return;
+//     // 🌟 Create Google Calendar Event
+//     await googleCalendarService.createCalendarEvent(
+//       accessToken,
+//       agendaText,
+//       startDateTime,
+//       endDateTime,
+//       guestEmails,
+//     );
 
-    TimeOfDay? pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
+//     clearText(); 
+//   } catch (e) {
+//     print("❌ Error in submitForm: $e");
+//     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+//   }
+// }
 
-    if (pickedTime == null) return;
+//   Future<void> fetchUserData() async {
+//     User? user = FirebaseAuth.instance.currentUser;
 
-    DateTime fullDateTime = DateTime(
-      pickedDate.year,
-      pickedDate.month,
-      pickedDate.day,
-      pickedTime.hour,
-      pickedTime.minute,
-    );
+//     if (user != null) {
+//       try {
+//         QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+//             .collection('users')
+//             .where('uid', isEqualTo: user.uid)
+//             .limit(1)
+//             .get();
 
-    setState(() {
-      selectedScheduleTime = fullDateTime;
-      scheduleController.text = formatDateTime(fullDateTime);
-    });
-  }
+//         if (querySnapshot.docs.isNotEmpty) {
+//           var userData =
+//               querySnapshot.docs.first.data() as Map<String, dynamic>;
+
+//           setState(() {
+//             firstName = userData['first_name'] ?? "N/A";
+//             lastName = userData['last_name'] ?? "N/A";
+//             departmentController.text =
+//                 userData['department'] ?? ""; // Set department field
+//           });
+//         } else {
+//           print("No user document found.");
+//         }
+//       } catch (e) {
+//         print("Error fetching user data: $e");
+//       }
+//     } else {
+//       print("No user is logged in.");
+//     }
+//   }
+
+//   void pickScheduleDateTime() async {
+//   DateTime now = DateTime.now();
+
+//   DateTime? pickedDate = await showDatePicker(
+//     context: context,
+//     initialDate: now,
+//     firstDate: now,
+//     lastDate: DateTime(2100),
+//   );
+
+//   if (pickedDate == null) return;
+
+//   TimeOfDay? pickedTime = await showTimePicker(
+//     context: context,
+//     initialTime: TimeOfDay.now(),
+//   );
+
+//   if (pickedTime == null) return;
+
+//   // Combine Date and Time
+//   DateTime fullDateTime = DateTime(
+//     pickedDate.year,
+//     pickedDate.month,
+//     pickedDate.day,
+//     pickedTime.hour,
+//     pickedTime.minute,
+//   );
+
+//   setState(() {
+//     selectedScheduleTime = fullDateTime;
+//     scheduleController.text = fullDateTime.toIso8601String(); // Store in ISO format
+//   });
+// }
+
 
 // Function to format date-time
   String formatDateTime(DateTime dateTime) {
@@ -174,7 +218,7 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                   )),
               TextButton(
                   onPressed: (){
-                    submitForm();
+                    // submitForm();
                     clearText(); // Ensure UI updates after clearing the form
                     Navigator.pop(context);
                   },
@@ -267,7 +311,7 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                 height: 10,
               ),
               GestureDetector(
-                onTap: pickScheduleDateTime,
+                // onTap: pickScheduleDateTime,
                 child: Container(
                   height: 50,
                   width: 400,

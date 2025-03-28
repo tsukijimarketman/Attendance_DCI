@@ -34,6 +34,23 @@
   <title>attendance_app</title>
   <link rel="manifest" href="manifest.json">
   <script type="module" src="./assets/packages/model_viewer_plus/assets/model-viewer.min.js" defer></script>
+  <script>
+    // Check if the URL contains an authorization code
+    window.onload = function () {
+      const params = new URLSearchParams(window.location.search);
+      const authCode = params.get("code");
+
+      if (authCode) {
+        console.log("🔑 Google OAuth Code Received:", authCode);
+
+        // Send the auth code back to the Flutter app
+        window.opener?.postMessage({ authCode }, "*");
+
+        // Close the current tab after sending the code
+        window.close();
+      }
+    };
+  </script>
 </head>
 <body id="app-container">
   <script src="flutter_bootstrap.js" async></script>

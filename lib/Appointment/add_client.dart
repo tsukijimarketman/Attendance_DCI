@@ -1,5 +1,6 @@
 // ignore_for_file: no_leading_underscores_for_local_identifiers
 
+import 'package:attendance_app/Auth/audit_function.dart';
 import 'package:attendance_app/widget/animated_textfield.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
@@ -35,6 +36,11 @@ class _AddClientState extends State<AddClient> {
         'emailAdd': emailAdd.text,
         'companyName': companyName.text,
       });
+      
+  await logAuditTrail(
+      "Added Guest",
+      "User added guest ${fullName.text} (Email: ${emailAdd.text})"
+  );
       _clearFields();
     }
 
@@ -46,12 +52,21 @@ class _AddClientState extends State<AddClient> {
         'emailAdd': email,
         'companyName': company,
       });
+       await logAuditTrail(
+      "Updated Guest",
+      "User updated guest $name (Email: $email)"
+  );
       _clearFields();
     }
 
-    void _deleteGuest(String docId) async {
-      await _firestore.collection('clients').doc(docId).delete();
-    }
+    void _deleteGuest(String docId, String guestName, String guestEmail) async {
+  await _firestore.collection('clients').doc(docId).delete();
+
+  await logAuditTrail(
+      "Deleted Guest",
+      "User deleted guest $guestName (Email: $guestEmail)"
+  );
+}
 
     void _showdialogUpdate(String docId, Map<String, dynamic> data) {
       TextEditingController updateFullName =
@@ -305,7 +320,7 @@ class _AddClientState extends State<AddClient> {
                                 ),
                                 IconButton(
                                   icon: Icon(Icons.delete, color: Colors.red),
-                                  onPressed: () => _deleteGuest(doc.id),
+                                  onPressed: () => _deleteGuest(doc.id, doc['fullName'], doc['emailAdd']),
                                 ),
                               ],
                             ),

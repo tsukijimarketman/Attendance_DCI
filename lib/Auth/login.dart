@@ -5,6 +5,8 @@ import 'package:attendance_app/Accounts%20Dashboard/head_drawer/department_head_
 import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_dashoard.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/super_user_dashboard.dart';
 import 'package:attendance_app/Animation/text_reveal.dart';
+import 'package:attendance_app/Auth/Persistent.dart';
+import 'package:attendance_app/Auth/audit_function.dart';
 import 'package:attendance_app/encryption/encryption_helper.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:attendance_app/widget/animated_textfield.dart';
@@ -112,16 +114,18 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
   }
 
   void showLoading() {
+     if (!mounted) return;
     setState(() {
       isLoading = true;
     });
   }
 
   void hideLoading() {
-    setState(() {
-      isLoading = false;
-    });
-  }
+  if (!mounted) return;
+  setState(() {
+    isLoading = false;
+  });
+}
 
   @override
   Widget build(BuildContext context) {
@@ -233,38 +237,6 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
     );
   }
 
-  Future<Widget> checkUserRole(User user) async {
-  try {
-    QuerySnapshot userSnapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .where('uid', isEqualTo: user.uid)
-        .get();
-
-    if (userSnapshot.docs.isEmpty) {
-      print("User not found in Firestore");
-      return Login(); // If user not found, return to login screen
-    }
-
-    DocumentSnapshot userDoc = userSnapshot.docs.first;
-    String role = userDoc['roles'];
-
-    if (role == "Manager") {
-      return Manager_Dashboard();
-    } else if (role == "DepartmentHead") {
-      return Deparment_Head_Dashboard();
-    } else if (role == "Admin") {
-      return Admin_Dashboard();
-    } else if (role == "Superuser") {
-      return SuperUserDashboard();
-    } else {
-      return Login();
-    }
-  } catch (e) {
-    print("Error checking user role: $e");
-    return Login();
-  }
-}
-
   Widget SignIn() {
     return FadeTransition(
       opacity: _textOpacitycontrollerSignin,
@@ -358,37 +330,7 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
                 });
               },
               child: GestureDetector(
-                onTap: () async {
-                  String email = emailController.text;
-                  String password = passwordController.text;
-                  showLoading();
-                  try {
-                    // Attempt login
-                    UserCredential userCredential = await FirebaseAuth.instance
-                        .signInWithEmailAndPassword(
-                            email: email, password: password);
-
-                    // Call checkUserRole once login is successful
-                    checkUserRole(userCredential.user!);
-                  } on FirebaseAuthException catch (e) {
-                    // Check for email not found or wrong password error
-                    hideLoading();
-                    if (e.code == 'user-not-found') {
-                      setState(() {
-                        passwordError = "No user found with this email.";
-                      });
-                    } else if (e.code == 'wrong-password') {
-                      setState(() {
-                        passwordError = "Incorrect password.";
-                      });
-                    } else {
-                      setState(() {
-                        passwordError =
-                            "Wrong credentials! Invalid email or password.";
-                      });
-                    }
-                  }
-                },
+                onTap: handleSignIn,
                 child: Container(
                   width: MediaQuery.of(context).size.width / 3.5,
                   decoration: BoxDecoration(
@@ -445,6 +387,48 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
       ),
     );
   }
+
+ Future<void> handleSignIn() async {
+  String email = emailController.text.trim();
+  String password = passwordController.text.trim();
+  showLoading();
+
+  try {
+    UserCredential userCredential = await FirebaseAuth.instance
+        .signInWithEmailAndPassword(email: email, password: password);
+
+    if (userCredential.user != null) {
+      print("User logged in: ${userCredential.user!.email}");
+      await logAuditTrail("User Logged In", "User with email $email logged in.");
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => AuthPersistent()),
+      );
+    } else {
+      throw FirebaseAuthException(
+        code: "null-user",
+        message: "User is null after login.",
+      );
+    }
+  } on FirebaseAuthException catch (e) {
+    hideLoading();
+    setState(() {
+      if (e.code == 'user-not-found') {
+        passwordError = "No user found with this email.";
+      } else if (e.code == 'wrong-password') {
+        passwordError = "Incorrect password.";
+      } else {
+        passwordError = "Authentication failed: ${e.message}";
+      }
+    });
+  } catch (e) {
+    hideLoading();
+    setState(() {
+      passwordError = "An unexpected error occurred: ${e.toString()}";
+    });
+  }
+}
 
   Widget Register() {
     return Container(

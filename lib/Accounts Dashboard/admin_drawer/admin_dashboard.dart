@@ -1,4 +1,5 @@
 import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_appointment.dart';
+import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_audit.dart';
 import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/manage_all_appointments.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/auditSU.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/notification_su.dart';
@@ -9,6 +10,7 @@ import 'package:attendance_app/Appointment/add_client.dart';
 import 'package:attendance_app/Appointment/schedule_appointment.dart';
 import 'package:attendance_app/Auth/showDialogSignOut.dart';
 import 'package:attendance_app/hover_extensions.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:sidebarx/sidebarx.dart';
@@ -32,6 +34,7 @@ class _Admin_DashboardState extends State<Admin_Dashboard> {
   @override
   void initState() {
     super.initState();
+    _fetchUserData();
     _controller.addListener(() {
       setState(() {}); // Rebuild UI when selected index changes
     });
@@ -39,6 +42,47 @@ class _Admin_DashboardState extends State<Admin_Dashboard> {
 
   bool isHeadersClicked = false;
   String selectedOption = "";
+  String fullName = 'Loading...';
+  String email = 'Loading...';
+
+  Future<void> _fetchUserData() async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print("⚠️ No authenticated user found.");
+        return;
+      }
+
+      String uid = user.uid;
+      String? userEmail = user.email;
+
+      QuerySnapshot userQuery = await FirebaseFirestore.instance
+          .collection("users")
+          .where("uid", isEqualTo: uid)
+          .limit(1)
+          .get();
+
+      if (userQuery.docs.isNotEmpty) {
+        var userDoc = userQuery.docs.first;
+        String fetchedFullName =
+            "${userDoc["first_name"] ?? ""} ${userDoc["last_name"] ?? ""}".trim();
+
+        print("✅ Found User: ${userDoc.id}, Name: $fetchedFullName, Email: ${userEmail ?? 'N/A'}");
+
+        if (mounted) {
+          setState(() {
+            fullName = fetchedFullName.isNotEmpty ? fetchedFullName : "Unknown User";
+            email = userEmail ?? "No Email Available";
+          });
+        }
+      } else {
+        print("⚠️ No user document found for UID: $uid");
+      }
+    } catch (e) {
+      print("❌ Error fetching user data: $e");
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -84,13 +128,14 @@ class _Admin_DashboardState extends State<Admin_Dashboard> {
             ),
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Admin",
+                Text(fullName,
                     style: TextStyle(
                         color: Colors.black,
                         fontSize: MediaQuery.of(context).size.height / 50,
                         fontFamily: "M")),
-                Text("Admin",
+                Text(email,
                     style: TextStyle(
                         color: Colors.grey,
                         fontSize: MediaQuery.of(context).size.height / 70,
@@ -354,7 +399,7 @@ class _Admin_DashboardState extends State<Admin_Dashboard> {
                             : selectedOption == "Settings"
                                 ? SettingsSU()
                                 : selectedOption == "Audit Logs"
-                                    ? AuditSU()
+                                    ? AdminAudit()
                                     : Container(),
                       ],
                     )
