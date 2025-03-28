@@ -9,10 +9,7 @@ import 'dart:html' as html; // Only for web (ensure this runs only on web)
 
 
 class GoogleCalendarService {
-  final String clientId = "794795546739-gerc0clp04h1qbg5gfphjmsjcvgq6jga.apps.googleusercontent.com";
-  final String clientSecret = "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";
-  final String redirectUri = "https://attendance-dci.web.app";
-  final String scopes = "https://www.googleapis.com/auth/calendar.events";
+
 
   final _secureStorage = FlutterSecureStorage(); // For mobile
   // You can also use SharedPreferences for web if needed
