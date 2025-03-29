@@ -4,6 +4,7 @@ import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/profile.dar
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/su_address_provider.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/super_user_dashboard.dart';
 import 'package:attendance_app/Animation/Animation.dart';
+import 'package:attendance_app/Animation/loader.dart';
 import 'package:attendance_app/edit_mode_provider.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
@@ -623,7 +624,7 @@ class _SettingsSUState extends State<SettingsSU> {
         
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return Center(child: Text("No data available"));
+          return Center(child: CustomLoader());
         }
 
         var userData = snapshot.data!.docs.first.data() as Map<String, dynamic>;

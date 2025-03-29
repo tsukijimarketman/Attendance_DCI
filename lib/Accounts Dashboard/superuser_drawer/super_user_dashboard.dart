@@ -25,7 +25,7 @@ class SuperUserDashboard extends StatefulWidget {
 }
 
 class _SuperUserDashboardState extends State<SuperUserDashboard> {
- // Start with Dashboard
+  // Start with Dashboard
 
   Color color1 = Colors.grey;
   Color color2 = Colors.grey;
@@ -38,7 +38,6 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
   void initState() {
     super.initState();
     _subscribeToUserData();
-    
   }
 
   bool isHeadersClicked = false;
@@ -110,13 +109,22 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // SizedBox(width: MediaQuery.of(context).size.width / 40),
-                  // Padding(
-                  //   padding: EdgeInsets.symmetric(
-                  //       vertical: MediaQuery.of(context).size.width / 140),
-                  //   child: Image.asset("assets/dci_logo.png",
-                  //       height: MediaQuery.of(context).size.width / 20),
-                  // ),
+                  SizedBox(width: MediaQuery.of(context).size.width / 13),
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                        vertical: MediaQuery.of(context).size.width / 140),
+                    child: Image.asset("assets/bp.png",
+                        height: MediaQuery.of(context).size.width / 20),
+                  ),
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width / 50,
+                  ),
+                  Text("BAGONG PILIPINAS",
+                      style: TextStyle(
+                          fontSize: MediaQuery.of(context).size.width / 45,
+                          fontFamily: "BL",
+                          fontStyle: FontStyle.italic,
+                          color: const Color.fromARGB(255, 20, 94, 155))),
                 ],
               ),
             ).showCursorOnHover,
@@ -135,18 +143,19 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                    isLoading ? "Loading..." : "$firstName $lastName",
-                    style: TextStyle(
-                        color: Colors.black,
-                        fontSize: MediaQuery.of(context).size.height / 50,
-                        fontFamily: "M"),
-                  ),
-                     Text(
-                    isLoading ? "Fetching..." : role,
-                    style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: MediaQuery.of(context).size.height / 70,
-                        fontFamily: "R"),),
+                      isLoading ? "Loading..." : "$firstName $lastName",
+                      style: TextStyle(
+                          color: Colors.black,
+                          fontSize: MediaQuery.of(context).size.height / 50,
+                          fontFamily: "M"),
+                    ),
+                    Text(
+                      isLoading ? "Fetching..." : role,
+                      style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: MediaQuery.of(context).size.height / 70,
+                          fontFamily: "R"),
+                    ),
                   ],
                 ),
               ],
@@ -328,8 +337,7 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
                       ],
                     )
                   : Center(
-                      child: _buildPageContent(sidebarProvider.selectedIndex)
-                    ),
+                      child: _buildPageContent(sidebarProvider.selectedIndex)),
             ),
           ],
         ));
@@ -349,5 +357,4 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
             style: TextStyle(fontSize: 20));
     }
   }
-  
 }

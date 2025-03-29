@@ -2,6 +2,7 @@ import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_dashboard
 import 'package:attendance_app/Accounts%20Dashboard/head_drawer/department_head_dashboard.dart';
 import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_dashoard.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/super_user_dashboard.dart';
+import 'package:attendance_app/Animation/loader.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -16,13 +17,13 @@ class AuthPersistent extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: CustomLoader());
         } else if (snapshot.hasData) {
           return FutureBuilder(
             future: checkUserRole(snapshot.data!, context), // Pass context
             builder: (context, AsyncSnapshot<Widget> roleScreen) {
               if (roleScreen.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(child: CustomLoader());
               } else {
                 return roleScreen.data ?? Login();
               }
