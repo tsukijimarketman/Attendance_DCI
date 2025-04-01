@@ -1,5 +1,6 @@
 import 'package:attendance_app/404.dart';
 import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_dashoard.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/sidebar_provider.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/su_address_provider.dart';
 import 'package:attendance_app/edit_mode_provider.dart';
 import 'package:attendance_app/firebase_options.dart';
@@ -29,6 +30,7 @@ void main() async {
     providers: [
       ChangeNotifierProvider(create: (context) => EditModeProvider(),),
       ChangeNotifierProvider(create: (_) => AddressProvider()),
+      ChangeNotifierProvider(create: (_) => SidebarProvider()),
     ],
     child: MyApp()));
   _hideBar();
