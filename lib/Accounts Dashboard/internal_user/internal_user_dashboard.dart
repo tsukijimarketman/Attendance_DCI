@@ -1,12 +1,8 @@
-import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_appointment.dart';
-import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_audit.dart';
-import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/manage_all_appointments.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/notification_su.dart';
+import 'package:attendance_app/Accounts%20Dashboard/internal_user/Appointments.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/auditSU.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/settings_su.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/super_user_dashboard.dart';
 import 'package:attendance_app/Animation/Animation.dart';
 import 'package:attendance_app/Appointment/add_client.dart';
-import 'package:attendance_app/Appointment/schedule_appointment.dart';
 import 'package:attendance_app/Auth/showDialogSignOut.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -14,34 +10,42 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:sidebarx/sidebarx.dart';
 
-class Admin_Dashboard extends StatefulWidget {
-  const Admin_Dashboard({super.key});
+class InternalUserDashboard extends StatefulWidget {
+  const InternalUserDashboard({super.key});
 
   @override
-  State<Admin_Dashboard> createState() => _Admin_DashboardState();
+  State<InternalUserDashboard> createState() => _InternalUserDashboardState();
 }
 
-class _Admin_DashboardState extends State<Admin_Dashboard> {
-   var _controller =
-      SidebarXController(selectedIndex: 0); // Start with Dashboard
-
+class _InternalUserDashboardState extends State<InternalUserDashboard> {
+  final _controller =
+      SidebarXController(selectedIndex: 0); 
+ // Start with Dashboard
   Color color1 = Colors.grey;
+
   Color color2 = Colors.grey;
+
   Color color3 = Colors.grey;
+
   Color color4 = Colors.grey;
+
+  IconData iconSettings = Icons.settings;
 
   @override
   void initState() {
     super.initState();
-    _fetchUserData();
+    _fetchUserData(); // Fetch user data when widget initializes
     _controller.addListener(() {
       setState(() {}); // Rebuild UI when selected index changes
     });
   }
 
   bool isHeadersClicked = false;
+
   String selectedOption = "";
+
   String fullName = 'Loading...';
+
   String email = 'Loading...';
 
   Future<void> _fetchUserData() async {
@@ -82,7 +86,6 @@ class _Admin_DashboardState extends State<Admin_Dashboard> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -96,7 +99,7 @@ class _Admin_DashboardState extends State<Admin_Dashboard> {
                 Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => SuperUserDashboard(),
+                      builder: (context) => InternalUserDashboard(),
                     ));
               },
               child: Row(
@@ -145,157 +148,125 @@ class _Admin_DashboardState extends State<Admin_Dashboard> {
               width: MediaQuery.of(context).size.width / 30,
             ),
             GestureDetector(
-              onTap: () {
-                setState(() {
-                  if (isHeadersClicked == false) {
-                    setState(() {
-                      isHeadersClicked = true;
-                      selectedOption = "Notifications";
-                      _controller = SidebarXController(selectedIndex: -1);
-                    });
-                  } else if (isHeadersClicked == true) {
-                    setState(() {
-                      isHeadersClicked = false;
-                      selectedOption = "";
-
-                      _controller = SidebarXController(selectedIndex: 0);
-                    });
-                  }
-                });
-              },
-              child: MouseRegion(
-                onEnter: (event) {
-                  setState(() {
-                    color1 = Color.fromARGB(255, 11, 55, 99);
-                  });
-                },
-                onExit: (event) {
-                  setState(() {
-                    color1 = Colors.grey;
-                  });
-                },
-                child: Tooltip(
-                  message: 'Notifications',
-                  preferBelow: false,
-                  decoration: BoxDecoration(color: Colors.transparent),
-                  textStyle: TextStyle(
-                      color: Color.fromARGB(255, 11, 55, 99),
-                      fontFamily: "B",
-                      fontSize: MediaQuery.of(context).size.width / 140),
-                  padding: EdgeInsets.symmetric(
-                      horizontal: MediaQuery.of(context).size.width / 120,
-                      vertical: MediaQuery.of(context).size.width / 160),
-                  child: Icon(
-                    Icons.notifications_none,
-                    color: color1,
-                    size: MediaQuery.of(context).size.width / 58,
-                  ),
-                ),
-              ),
-            ).showCursorOnHover,
+                    onTap: () {
+                      setState(() {
+                        if (selectedOption == "Settings") {
+                          // If Settings is clicked again, toggle the visibility of the page
+                          if (isHeadersClicked) {
+                            isHeadersClicked = false;
+                          } else {
+                            selectedOption = "Settings";
+                            isHeadersClicked = true;
+                          }
+                        } else {
+                          // If a different option is clicked, set it as the selected option
+                          selectedOption = "Settings";
+                          isHeadersClicked = true;
+                        }
+                      });
+                    },
+                    child: selectedOption == "Settings" &&
+                            isHeadersClicked == false
+                        ? MouseRegion(
+                            onEnter: (event) {
+                              setState(() {
+                                color2 = Color.fromARGB(255, 11, 55, 99);
+                              });
+                            },
+                            onExit: (event) {
+                              setState(() {
+                                color2 = Colors.grey;
+                              });
+                            },
+                            child: Tooltip(
+                              message: 'Settings',
+                              preferBelow: false,
+                              decoration:
+                                  BoxDecoration(color: Colors.transparent),
+                              textStyle: TextStyle(
+                                  color: Color.fromARGB(255, 11, 55, 99),
+                                  fontFamily: "B",
+                                  fontSize:
+                                      MediaQuery.of(context).size.width / 140),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal:
+                                      MediaQuery.of(context).size.width / 120,
+                                  vertical:
+                                      MediaQuery.of(context).size.width / 160),
+                              child: Icon(
+                                Icons.settings_outlined,
+                                color: color2,
+                                size: MediaQuery.of(context).size.width / 60,
+                              ),
+                            ),
+                          )
+                        : Tooltip(
+                            message: 'Settings',
+                            preferBelow: false,
+                            decoration:
+                                BoxDecoration(color: Colors.transparent),
+                            textStyle: TextStyle(
+                                color: Color.fromARGB(255, 11, 55, 99),
+                                fontFamily: "B",
+                                fontSize:
+                                    MediaQuery.of(context).size.width / 140),
+                            padding: EdgeInsets.symmetric(
+                                horizontal:
+                                    MediaQuery.of(context).size.width / 120,
+                                vertical:
+                                    MediaQuery.of(context).size.width / 160),
+                            child: Icon(
+                              isHeadersClicked == true &&
+                                      selectedOption == "Settings"
+                                  ? iconSettings
+                                  : Icons.settings_outlined,
+                              color: isHeadersClicked == true &&
+                                      selectedOption == "Settings"
+                                  ? Color.fromARGB(255, 11, 55, 99)
+                                  : Colors.grey,
+                              size: MediaQuery.of(context).size.width / 60,
+                            ),
+                          ))
+                .showCursorOnHover,
             SizedBox(
               width: MediaQuery.of(context).size.width / 40,
             ),
             GestureDetector(
               onTap: () {
                 setState(() {
-                  if (isHeadersClicked == false) {
-                    setState(() {
-                      isHeadersClicked = true;
-                      selectedOption = "Settings";
-
-                      _controller = SidebarXController(selectedIndex: -1);
-                    });
-                  } else if (isHeadersClicked == true) {
-                    setState(() {
+                  if (selectedOption == "Audit Logs") {
+                    // If Audit Logs is clicked again, toggle the visibility of the page
+                    if (isHeadersClicked) {
                       isHeadersClicked = false;
-                      selectedOption = "";
-
-                      _controller = SidebarXController(selectedIndex: 0);
-                    });
-                  }
-                });
-              },
-              child: MouseRegion(
-                onEnter: (event) {
-                  setState(() {
-                    color2 = Color.fromARGB(255, 11, 55, 99);
-                  });
-                },
-                onExit: (event) {
-                  setState(() {
-                    color2 = Colors.grey;
-                  });
-                },
-                child: Tooltip(
-                  message: 'Settings',
-                  preferBelow: false,
-                  decoration: BoxDecoration(color: Colors.transparent),
-                  textStyle: TextStyle(
-                      color: Color.fromARGB(255, 11, 55, 99),
-                      fontFamily: "B",
-                      fontSize: MediaQuery.of(context).size.width / 140),
-                  padding: EdgeInsets.symmetric(
-                      horizontal: MediaQuery.of(context).size.width / 120,
-                      vertical: MediaQuery.of(context).size.width / 160),
-                  child: Icon(
-                    Icons.settings_outlined,
-                    color: color2,
-                    size: MediaQuery.of(context).size.width / 60,
-                  ),
-                ),
-              ),
-            ).showCursorOnHover,
-            SizedBox(
-              width: MediaQuery.of(context).size.width / 40,
-            ),
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  if (isHeadersClicked == false) {
-                    setState(() {
-                      isHeadersClicked = true;
+                    } else {
                       selectedOption = "Audit Logs";
-
-                      _controller = SidebarXController(selectedIndex: -1);
-                    });
-                  } else if (isHeadersClicked == true) {
-                    setState(() {
-                      isHeadersClicked = false;
-                      selectedOption = "";
-
-                      _controller = SidebarXController(selectedIndex: 0);
-                    });
+                      isHeadersClicked = true;
+                    }
+                  } else {
+                    // If a different option is clicked, set it as the selected option
+                    selectedOption = "Audit Logs";
+                    isHeadersClicked = true;
                   }
                 });
               },
-              child: MouseRegion(
-                onEnter: (event) {
-                  setState(() {
-                    color3 = Color.fromARGB(255, 11, 55, 99);
-                  });
-                },
-                onExit: (event) {
-                  setState(() {
-                    color3 = Colors.grey;
-                  });
-                },
-                child: Tooltip(
-                  message: 'Audit Logs',
-                  preferBelow: false,
-                  decoration: BoxDecoration(color: Colors.transparent),
-                  textStyle: TextStyle(
-                      color: Color.fromARGB(255, 11, 55, 99),
-                      fontFamily: "B",
-                      fontSize: MediaQuery.of(context).size.width / 140),
-                  padding: EdgeInsets.symmetric(
-                      horizontal: MediaQuery.of(context).size.width / 120,
-                      vertical: MediaQuery.of(context).size.width / 160),
-                  child: Icon(
-                    Icons.history,
-                    color: color3,
-                    size: MediaQuery.of(context).size.width / 60,
-                  ),
+              child: Tooltip(
+                message: 'Audit Logs',
+                preferBelow: false,
+                decoration: BoxDecoration(color: Colors.transparent),
+                textStyle: TextStyle(
+                    color: Color.fromARGB(255, 11, 55, 99),
+                    fontFamily: "B",
+                    fontSize: MediaQuery.of(context).size.width / 140),
+                padding: EdgeInsets.symmetric(
+                    horizontal: MediaQuery.of(context).size.width / 120,
+                    vertical: MediaQuery.of(context).size.width / 160),
+                child: Icon(
+                  Icons.history,
+                  color:
+                      isHeadersClicked == true && selectedOption == "Audit Logs"
+                          ? Color.fromARGB(255, 11, 55, 99)
+                          : Colors.grey,
+                  size: MediaQuery.of(context).size.width / 60,
                 ),
               ),
             ).showCursorOnHover,
@@ -303,7 +274,7 @@ class _Admin_DashboardState extends State<Admin_Dashboard> {
               width: MediaQuery.of(context).size.width / 40,
             ),
             GestureDetector(
-              onTap: () {
+              onTap:  (){
                 showSignOutDialog(context);
               },
               child: MouseRegion(
@@ -381,10 +352,8 @@ class _Admin_DashboardState extends State<Admin_Dashboard> {
               },
               headerDivider: const Divider(thickness: 2, color: Colors.black12),
               items: [
-                SidebarXItem(icon: Icons.dashboard, label: 'Dashboard'),
-                SidebarXItem(icon: Icons.schedule_send_outlined, label: 'Scheduled Appointments'),
-                SidebarXItem(icon: Icons.schedule_outlined, label: 'Schedule a Appointment'), 
-                SidebarXItem(icon: Icons.person_2_outlined, label: 'Clients'),
+                SidebarXItem(icon: Icons.dashboard, label: 'Dashboard'),               
+                SidebarXItem(icon: Icons.description, label: 'User Management'),               
               ],
             ),
 
@@ -393,37 +362,38 @@ class _Admin_DashboardState extends State<Admin_Dashboard> {
               child: isHeadersClicked
                   ? Row(
                       children: [
-                        selectedOption == "Notifications"
-                            ? NotificationsSU()
-                            : selectedOption == "Settings"
-                                ? SettingsSU()
-                                : selectedOption == "Audit Logs"
-                                    ? AdminAudit()
-                                    : Container(),
+                        selectedOption == "Settings"
+                            ? SettingsSU()
+                            : selectedOption == "Audit Logs"
+                                ? AuditSU()
+                                : Container(
+                                    child: Center(
+                                      child: Text("Unexpected Error"),
+                                    ),
+                                  ),
                       ],
                     )
                   : Center(
                       child: _buildPageContent(),
                     ),
-            ),
-          ],
-        ));
+            )
+        ],
+      ),
+    );
   }
 
   /// Function to render different pages based on sidebar selection
   Widget _buildPageContent() {
     switch (_controller.selectedIndex) {
       case 0:
-        return const ManageAllAppointments();
+        return const Appointments();
       case 1:
-        return const AdminAppointment();
-       case 2:
-        return const ScheduleAppointment();
-       case 3: 
         return const AddClient();
-      default:
-        return const Text('Select an option from the menu.',
-            style: TextStyle(fontSize: 20));
+        default:
+        return const Text(
+          'Select an option from the menu.',
+          style: TextStyle(fontSize: 20),
+        );
     }
   }
 }

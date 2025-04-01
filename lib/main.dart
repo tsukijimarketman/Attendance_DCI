@@ -87,6 +87,7 @@ class MyApp extends StatelessWidget {
       builder: (context) => AttendanceForm(
         selectedScheduleTime: selectedScheduleTime,
         expiryTime: expiryTime,
+        createdBy: uri.queryParameters['createdBy'] ?? "",
         roles: uri.queryParameters['roles'] ?? "",
         department: uri.queryParameters['department'] ?? "",
         agenda: uri.queryParameters['agenda'] ?? "",

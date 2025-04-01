@@ -16,10 +16,12 @@ class AttendanceForm extends StatefulWidget {
   final String agenda;
   final String firstName;
   final String lastName;
+  final String createdBy;
   final int expiryTime;
   final int selectedScheduleTime;
 
   const AttendanceForm({
+    required this.createdBy,
     required this.expiryTime,
     required this.roles,
     required this.department,
@@ -137,54 +139,68 @@ class _AttendanceFormState extends State<AttendanceForm> {
     int secs = seconds % 60;
     return "$minutes:${secs.toString().padLeft(2, '0')}";
   }
-
+  
   void submitForm() async {
-    if (_signatureController.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Please add a signature!")));
-      return;
-    }
-
-    // Convert signature to PNG bytes
-    final Uint8List? signatureImage = await _signatureController.toPngBytes();
-if (signatureImage == null || signatureImage.isEmpty) {
-  print("⚠️ Signature image is empty or null.");
-  return;
-}
-print("✅ Signature image size: ${signatureImage.length} bytes");
-
-    // Upload to Supabase Storage
-    final String? signatureUrl = await _uploadToSupabase(signatureImage);
-    if (signatureUrl == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Failed to save signature!")));
-      return;
-    }
-
-    // Save form data to Firestore
-    await FirebaseFirestore.instance.collection('attendance').add({
-      'name': nameController.text,
-      'company': companyController.text,
-      'email_address': emailAddController.text,
-      'contact_num': contactController.text,
-      'timestamp': FieldValue.serverTimestamp(),
-      'agenda': widget.agenda,
-      'department': widget.department,
-      'createdBy': "${widget.firstName} ${widget.lastName}",
-      'selectedScheduleTime': widget.selectedScheduleTime,
-      'signature_url': signatureUrl, // Save signature URL
-    });
-
+  if (_signatureController.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Form submitted successfully!")));
-
-    // Clear fields after submission
-    nameController.clear();
-    companyController.clear();
-    emailAddController.clear();
-    contactController.clear();
-    _signatureController.clear();
+      const SnackBar(content: Text("Please add a signature!")),
+    );
+    return;
   }
+
+  // Convert signature to PNG bytes
+  final Uint8List? signatureImage = await _signatureController.toPngBytes();
+  if (signatureImage == null || signatureImage.isEmpty) {
+    print("⚠️ Signature image is empty or null.");
+    return;
+  }
+  print("✅ Signature image size: ${signatureImage.length} bytes");
+
+  // Upload to Supabase Storage
+  final String? signatureUrl = await _uploadToSupabase(signatureImage);
+  if (signatureUrl == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Failed to save signature!")),
+    );
+    return;
+  }
+
+  // Prepare data to save
+  Map<String, dynamic> formData = {
+    'name': nameController.text,
+    'company': companyController.text,
+    'email_address': emailAddController.text,
+    'contact_num': contactController.text,
+    'timestamp': FieldValue.serverTimestamp(),
+    'agenda': widget.agenda,
+    'department': widget.department,
+    'createdBy': widget.roles == "User"
+        ? widget.createdBy // If User, store the original creator
+        : "${widget.firstName} ${widget.lastName}", // Otherwise, store current user
+    'selectedScheduleTime': widget.selectedScheduleTime,
+    'signature_url': signatureUrl, // Save signature URL
+  };
+
+  // If the role is "User", add `attendanceCreator`
+  if (widget.roles == "User") {
+    formData['attendanceCreator'] = "${widget.firstName} ${widget.lastName}";
+  }
+
+  // Save form data to Firestore
+  await FirebaseFirestore.instance.collection('attendance').add(formData);
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text("Form submitted successfully!")),
+  );
+
+  // Clear fields after submission
+  nameController.clear();
+  companyController.clear();
+  emailAddController.clear();
+  contactController.clear();
+  _signatureController.clear();
+}
+
 
   Future<String?> _uploadToSupabase(Uint8List imageBytes) async {
   try {

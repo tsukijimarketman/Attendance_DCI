@@ -1,18 +1,18 @@
-import 'package:attendance_app/Accounts%20Dashboard/head_drawer/all_dept_attendee.dart';
+import 'package:attendance_app/Accounts%20Dashboard/internal_user/appointment_details.dart';
 import 'package:attendance_app/Appointment/appointment_details.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-class DeptHead extends StatefulWidget {
-  const DeptHead({super.key});
+class Appointments extends StatefulWidget {
+  const Appointments({super.key});
 
   @override
-  State<DeptHead> createState() => _DeptHeadState();
+  State<Appointments> createState() => _AppointmentsState();
 }
 
-class _DeptHeadState extends State<DeptHead> {
+class _AppointmentsState extends State<Appointments> {
   String userDepartment = '';
   String first_name = '';
   String last_name = '';
@@ -25,6 +25,8 @@ class _DeptHeadState extends State<DeptHead> {
 
 }
 
+
+
 String formatDate(String timestamp) {
   try {
     DateTime parsedDate = DateTime.parse(timestamp);
@@ -34,7 +36,6 @@ String formatDate(String timestamp) {
     return "Invalid date";
   }
 }
-
 
   Future<void> fetchUserDepartment() async {
     User? user = FirebaseAuth.instance.currentUser;
@@ -52,9 +53,11 @@ String formatDate(String timestamp) {
               querySnapshot.docs.first.data() as Map<String, dynamic>;
 
           setState(() {
-            userDepartment = userData['department'] ?? "";
+            first_name = userData['first_name'] ?? "";
+            last_name = userData['last_name'] ?? "";
             isLoading = false;
           });
+                  
         } else {
           setState(() => isLoading = false);
         }
@@ -112,61 +115,55 @@ String formatDate(String timestamp) {
               child: isLoading
                   ? Center(child: CircularProgressIndicator())
                   : StreamBuilder<QuerySnapshot>(
-                      stream: FirebaseFirestore.instance
-                          .collection('appointment')
-                          .where('department', isEqualTo: userDepartment)
-                          .where('status', isEqualTo: status)
-                          .snapshots(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return Center(child: CircularProgressIndicator());
-                        }
-                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                          return Center(child: Text("No records"));
-                        }
+  stream: FirebaseFirestore.instance
+      .collection('appointment')
+      .where('status', isEqualTo: status) // Use dynamic status
+      .snapshots(),
+  builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return Center(child: CircularProgressIndicator());
+    }
+    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+      return Center(child: Text("No records"));
+    }
 
-                        var appointmentDocs = snapshot.data!.docs;
-                        Set<String> uniqueAgendas = {};
-                        List<QueryDocumentSnapshot> uniqueAppointments = [];
+    // ✅ Correctly filter documents
+    var filteredDocs = snapshot.data!.docs.where((doc) {
+      var data = doc.data() as Map<String, dynamic>;
 
-                        for (var doc in appointmentDocs) {
-                          var data = doc.data() as Map<String, dynamic>;
-                          String agenda = data['agenda'] ?? 'N/A';
+      if (data['internal_users'] == null) return false; // Prevent null error
 
-                          if (!uniqueAgendas.contains(agenda)) {
-                            uniqueAgendas.add(agenda);
-                            uniqueAppointments.add(doc);
-                          }
-                        }
+      List<dynamic> users = data['internal_users']; // Extract users array safely
 
-                        return ListView.builder(
-                          itemCount: uniqueAppointments.length,
-                          itemBuilder: (context, index) {
-                            var data = uniqueAppointments[index].data() as Map<String, dynamic>;
-                            String agenda = data['agenda'] ?? 'N/A';
-                            String createdBy = data['createdBy'] ?? 'N/A';
+      return users.any((user) => user['fullName'] == fullName); // ✅ Check if fullName exists inside objects
+    }).toList();
 
-                            return Card(
-                              color: Colors.grey.shade200,
-                              elevation: 2,
-                              child: ListTile(
-                                title: Text(
-                                  createdBy,
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(agenda),
-                                Text("Scheduled: ${formatDate(data['schedule'])}"),                                  ],
-                                ),
-                                trailing: Icon(Icons.arrow_forward),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => DeptAttendee(selectedAgenda: agenda),
-                                    ),
+    if (filteredDocs.isEmpty) {
+      return Center(child: Text("No records"));
+    }
+
+    return ListView.builder(
+      itemCount: filteredDocs.length, // ✅ Use filteredDocs, not snapshot.data!.docs
+      itemBuilder: (context, index) {
+        var data = filteredDocs[index].data() as Map<String, dynamic>; // ✅ Use filtered data
+        String agenda = data['agenda'] ?? 'N/A';
+
+        return Card(
+          color: Colors.grey.shade200,
+          elevation: 2,
+          child: ListTile(
+            title: Text(
+              agenda,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            subtitle: Text("Scheduled: ${formatDate(data['schedule'])}"),
+            trailing: Icon(Icons.arrow_forward),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AppointmentofUsers(selectedAgenda: agenda),
+                ),
                                   );
                                 },
                               ),
