@@ -1,8 +1,11 @@
+import 'package:attendance_app/Animation/loader.dart';
+import 'package:attendance_app/Auth/audit_function.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 class AuditSU extends StatefulWidget {
   const AuditSU({super.key});
@@ -12,79 +15,159 @@ class AuditSU extends StatefulWidget {
 }
 
 class _AuditSUState extends State<AuditSU> {
-  Future<List<Map<String, dynamic>>>? _userAuditLogs;
-  String? userId;
-  String? fullName;
+Future<List<Map<String, dynamic>>>? _userAuditLogs;
+String? userId;
+String? fullName;
+TextEditingController searchController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchUserData();
-  }
+@override
+void initState() {
+  super.initState();
+  _fetchUserData();
+}
 
-  Future<void> _fetchUserData() async {
-    try {
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        String uid = user.uid;
+Future<void> _fetchUserData() async {
+  try {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      String uid = user.uid;
 
-        QuerySnapshot userQuery = await FirebaseFirestore.instance
-            .collection("users")
-            .where("uid", isEqualTo: uid)
-            .limit(1)
-            .get();
-
-        if (userQuery.docs.isNotEmpty) {
-          var userDoc = userQuery.docs.first;
-          String fetchedFullName =
-              "${userDoc["first_name"]} ${userDoc["last_name"]}";
-          print("✅ Found User Document: ${userDoc.id}, Name: $fetchedFullName");
-
-          setState(() {
-            userId = uid;
-            fullName = fetchedFullName;
-            _userAuditLogs = fetchAuditLogsByUser(userId!, fullName!);
-          });
-        } else {
-          print("⚠️ No user document found for UID: $uid");
-        }
-      } else {
-        print("⚠️ No authenticated user found.");
-      }
-    } catch (e) {
-      print("❌ Error fetching user data: $e");
-    }
-  }
-
-  Future<List<Map<String, dynamic>>> fetchAuditLogsByUser(
-      String uid, String fullName) async {
-    try {
-      print("🔎 Fetching logs for: UserID=$uid, FullName=$fullName");
-
-      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-          .collection("audit_logs")
-          .where("userId", isEqualTo: uid)
-          .where("fullName", isEqualTo: fullName)
-          .orderBy("timestamp", descending: true)
+      QuerySnapshot userQuery = await FirebaseFirestore.instance
+          .collection("users")
+          .where("uid", isEqualTo: uid)
+          .limit(1)
           .get();
 
-      if (querySnapshot.docs.isEmpty) {
-        print("⚠️ No audit logs found.");
-      }
+      if (userQuery.docs.isNotEmpty) {
+        var userDoc = userQuery.docs.first;
+        String fetchedFullName =
+            "${userDoc["first_name"]} ${userDoc["last_name"]}";
+        print("✅ Found User Document: ${userDoc.id}, Name: $fetchedFullName");
 
-      return querySnapshot.docs.map((doc) {
-        var data = doc.data() as Map<String, dynamic>;
-        print("📝 Log Found: $data");
-        return data;
-      }).toList();
-    } catch (e) {
-      print("❌ Error fetching audit logs: $e");
-      return [];
+        setState(() {
+          userId = uid;
+          fullName = fetchedFullName;
+          _userAuditLogs = fetchAuditLogsByUser(userId!);
+        });
+      } else {
+        print("⚠️ No user document found for UID: $uid");
+      }
+    } else {
+      print("⚠️ No authenticated user found.");
     }
+  } catch (e) {
+    print("❌ Error fetching user data: $e");
+  }
+}
+
+void searchAuditLogs() {
+  String searchText = searchController.text.trim();
+  if (searchText.isEmpty) {
+    print("⚠️ Search text is empty.");
+    return;
   }
 
-  IconData icon = Icons.arrow_drop_down;
-  bool isClicked = true;
+  setState(() {
+    _userAuditLogs = getAuditLogsByName(searchText);
+  });
+}
+
+Future<List<Map<String, dynamic>>> fetchAuditLogsByUser(
+    String uid, {DateTime? fromDate, DateTime? toDate}) async {
+  try {
+    // Fetch user role
+    QuerySnapshot userQuery = await FirebaseFirestore.instance
+        .collection("users")
+        .where("uid", isEqualTo: uid)
+        .limit(1)
+        .get();
+
+    if (userQuery.docs.isEmpty) {
+      print("⚠️ No user document found.");
+      return [];
+    }
+
+    String role = userQuery.docs.first.get("roles");
+    print("🔎 User Role: $role");
+
+    Query query = FirebaseFirestore.instance.collection("audit_logs");
+
+    if (role == "Superuser") {
+      print("👀 Fetching ALL audit logs for Superuser...");
+    } else {
+      print("🔒 Fetching logs ONLY for this user...");
+      query = query.where("userId", isEqualTo: uid);
+    }
+
+    // Apply Date Filtering if selected
+    if (fromDate != null && toDate != null) {
+      query = query
+          .where("timestamp", isGreaterThanOrEqualTo: Timestamp.fromDate(fromDate))
+          .where("timestamp", isLessThanOrEqualTo: Timestamp.fromDate(toDate));
+    }
+
+    query = query.orderBy("timestamp", descending: true);
+
+    QuerySnapshot querySnapshot = await query.get();
+
+    return querySnapshot.docs
+        .map((doc) => doc.data() as Map<String, dynamic>)
+        .toList();
+  } catch (e) {
+    print("❌ Error fetching audit logs: $e");
+    return [];
+  }
+}
+
+IconData icon = Icons.arrow_drop_down;
+bool isClicked = true;
+
+DateTime? _dateFrom;
+DateTime? _dateTo;
+final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
+List<DocumentSnapshot> filteredResults = [];
+
+Future<void> _selectDate(BuildContext context, bool isDateFrom) async {
+  DateTime? pickedDate = await showDatePicker(
+    context: context,
+    initialDate: DateTime.now(),
+    firstDate: DateTime(2000),
+    lastDate: DateTime(2100),
+  );
+
+  if (pickedDate != null) {
+    setState(() {
+      if (isDateFrom) {
+        _dateFrom = pickedDate;
+        _dateFromController.text =
+            DateFormat('yyyy-MM-dd').format(pickedDate);
+      } else {
+        _dateTo = pickedDate;
+        _dateToController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
+      }
+    });
+  }
+}
+
+void _filterResults() async {
+  if (_dateFromController.text.isEmpty || _dateToController.text.isEmpty) {
+    print("⚠️ Error: Select both dates before searching.");
+    return;
+  }
+
+DateTime fromDate = DateFormat('yyyy-MM-dd').parse(_dateFromController.text);
+DateTime toDate = DateFormat('yyyy-MM-dd').parse(_dateToController.text).add(Duration(hours: 23, minutes: 59, seconds: 59));
+
+
+  setState(() {
+    _userAuditLogs = fetchAuditLogsByUser(userId!, fromDate: fromDate, toDate: toDate);
+  });
+
+  print("🔍 Filtering logs from: $fromDate to $toDate");
+}
+
+TextEditingController _dateFromController = TextEditingController();
+TextEditingController _dateToController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -186,12 +269,8 @@ class _AuditSUState extends State<AuditSU> {
                                                         150)),
                                           ),
                                           child: TextField(
+                                            controller: searchController,
                                             keyboardType: TextInputType.text,
-                                            inputFormatters: [
-                                              FilteringTextInputFormatter.allow(
-                                                  RegExp(
-                                                      r'[a-zA-Z]')), // Allows only letters
-                                            ],
                                             style: TextStyle(
                                                 fontSize: MediaQuery.of(context)
                                                         .size
@@ -230,39 +309,44 @@ class _AuditSUState extends State<AuditSU> {
                                                   .size
                                                   .width /
                                               10.68,
-                                          child: Container(
-                                            width: MediaQuery.of(context)
-                                                    .size
-                                                    .width /
-                                                20,
-                                            height: MediaQuery.of(context)
-                                                    .size
-                                                    .width /
-                                                35,
-                                            decoration: BoxDecoration(
-                                              color: Color.fromARGB(
-                                                  255, 11, 55, 99),
-                                              borderRadius: BorderRadius.only(
-                                                  topRight: Radius.circular(
-                                                      MediaQuery.of(context)
-                                                              .size
-                                                              .width /
-                                                          150),
-                                                  bottomRight: Radius.circular(
-                                                      MediaQuery.of(context)
-                                                              .size
-                                                              .width /
-                                                          150)),
-                                            ),
-                                            child: Icon(Icons.search,
-                                                color: Colors.white),
-                                          ).showCursorOnHover,
+                                          child: GestureDetector(
+                                            onTap: searchAuditLogs,
+                                            child: Container(
+                                              width: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  20,
+                                              height: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  35,
+                                              decoration: BoxDecoration(
+                                                color: Color.fromARGB(
+                                                    255, 11, 55, 99),
+                                                borderRadius: BorderRadius.only(
+                                                    topRight: Radius.circular(
+                                                        MediaQuery.of(context)
+                                                                .size
+                                                                .width /
+                                                            150),
+                                                    bottomRight:
+                                                        Radius.circular(
+                                                            MediaQuery.of(
+                                                                        context)
+                                                                    .size
+                                                                    .width /
+                                                                150)),
+                                              ),
+                                              child: Icon(Icons.search,
+                                                  color: Colors.white),
+                                            ).showCursorOnHover,
+                                          ),
                                         ),
                                       ],
                                     ),
                                   ),
                                 ],
-                              )
+                              ),
                             ],
                           ),
                           Column(
@@ -285,33 +369,42 @@ class _AuditSUState extends State<AuditSU> {
                                   borderRadius: BorderRadius.circular(
                                       MediaQuery.of(context).size.width / 150),
                                 ),
-                                child: TextField(
-                                  keyboardType: TextInputType.text,
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.allow(RegExp(
-                                        r'[a-zA-Z]')), // Allows only letters
-                                  ],
-                                  style: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
+                                child: GestureDetector(
+                                  onTap: () =>
+                                      _selectDate(context, true), // Date From
+
+                                  child: AbsorbPointer(
+                                    // Prevents manual input while allowing tap detection
+                                    child: TextField(
+                                      controller: _dateFromController,
+                                      readOnly: true,
+                                      style: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
                                               110,
-                                      color: Colors.black,
-                                      fontFamily: "R"),
-                                  decoration: InputDecoration(
-                                    contentPadding: EdgeInsets.all(
-                                        MediaQuery.of(context).size.width /
-                                            120),
-                                    hintText: "Date From",
-                                    hintStyle: TextStyle(
-                                        fontSize:
+                                          color: Colors.black,
+                                          fontFamily: "R"),
+                                      decoration: InputDecoration(
+                                        contentPadding: EdgeInsets.all(
                                             MediaQuery.of(context).size.width /
+                                                120),
+                                        hintText: "Date From",
+                                        hintStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
                                                 110,
-                                        color: Colors.grey,
-                                        fontFamily: "R"),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width /
-                                              150),
+                                            color: Colors.grey,
+                                            fontFamily: "R"),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -338,33 +431,44 @@ class _AuditSUState extends State<AuditSU> {
                                   borderRadius: BorderRadius.circular(
                                       MediaQuery.of(context).size.width / 150),
                                 ),
-                                child: TextField(
-                                  keyboardType: TextInputType.text,
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.allow(RegExp(
-                                        r'[a-zA-Z]')), // Allows only letters
-                                  ],
-                                  style: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width /
+                                child: GestureDetector(
+                                  onTap: () {
+                                    _selectDate(context, false);
+                                    },
+                                       // Date To
+
+                                  child: AbsorbPointer(
+                                    // Prevents manual input while allowing tap detection
+                                    child: TextField(
+                                      controller: _dateToController,
+                                      readOnly: true,
+                                      style: TextStyle(
+                                          fontSize: MediaQuery.of(context)
+                                                  .size
+                                                  .width /
                                               110,
-                                      color: Colors.black,
-                                      fontFamily: "R"),
-                                  decoration: InputDecoration(
-                                    contentPadding: EdgeInsets.all(
-                                        MediaQuery.of(context).size.width /
-                                            120),
-                                    hintText: "Date To",
-                                    hintStyle: TextStyle(
-                                        fontSize:
+                                          color: Colors.black,
+                                          fontFamily: "R"),
+                                      decoration: InputDecoration(
+                                        contentPadding: EdgeInsets.all(
                                             MediaQuery.of(context).size.width /
+                                                120),
+                                        hintText: "Date To",
+                                        hintStyle: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
                                                 110,
-                                        color: Colors.grey,
-                                        fontFamily: "R"),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(
-                                          MediaQuery.of(context).size.width /
-                                              150),
+                                            color: Colors.grey,
+                                            fontFamily: "R"),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                              MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  150),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -383,28 +487,32 @@ class _AuditSUState extends State<AuditSU> {
                               SizedBox(
                                 height: MediaQuery.of(context).size.width / 170,
                               ),
-                              Container(
-                                  width: MediaQuery.of(context).size.width / 10,
-                                  height:
-                                      MediaQuery.of(context).size.width / 35,
-                                  decoration: BoxDecoration(
-                                    color: Color.fromARGB(255, 11, 55, 99),
-                                    borderRadius: BorderRadius.circular(
-                                        MediaQuery.of(context).size.width /
-                                            150),
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      "Search",
-                                      style: TextStyle(
-                                          fontFamily: "B",
-                                          color: Colors.white,
-                                          fontSize: MediaQuery.of(context)
-                                                  .size
-                                                  .width /
-                                              90),
+                              GestureDetector(
+                                onTap: _filterResults,
+                                child: Container(
+                                    width:
+                                        MediaQuery.of(context).size.width / 10,
+                                    height:
+                                        MediaQuery.of(context).size.width / 35,
+                                    decoration: BoxDecoration(
+                                      color: Color.fromARGB(255, 11, 55, 99),
+                                      borderRadius: BorderRadius.circular(
+                                          MediaQuery.of(context).size.width /
+                                              150),
                                     ),
-                                  )),
+                                    child: Center(
+                                      child: Text(
+                                        "Search",
+                                        style: TextStyle(
+                                            fontFamily: "B",
+                                            color: Colors.white,
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                90),
+                                      ),
+                                    )),
+                              ),
                             ],
                           ).showCursorOnHover,
                           Column(
@@ -419,70 +527,22 @@ class _AuditSUState extends State<AuditSU> {
                               SizedBox(
                                 height: MediaQuery.of(context).size.width / 170,
                               ),
-                              Container(
-                                  width: MediaQuery.of(context).size.width / 15,
-                                  height:
-                                      MediaQuery.of(context).size.width / 35,
-                                  decoration: BoxDecoration(
-                                    color: Colors.green,
-                                    borderRadius: BorderRadius.circular(
-                                        MediaQuery.of(context).size.width /
-                                            150),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceEvenly,
-                                    children: [
-                                      Icon(
-                                        Icons.print,
-                                        color: Colors.white,
-                                      ),
-                                      Text(
-                                        "CSV",
-                                        style: TextStyle(
-                                            fontFamily: "B",
-                                            color: Colors.white,
-                                            fontSize: MediaQuery.of(context)
-                                                    .size
-                                                    .width /
-                                                90),
-                                      ),
-                                    ],
-                                  )),
-                            ],
-                          ).showCursorOnHover,
-                          Column(
-                            children: [
-                              Text("",
-                                  style: TextStyle(
-                                      fontSize:
+                              GestureDetector(
+                                onTap: _filterResults,
+                                child: Container(
+                                    width:
+                                        MediaQuery.of(context).size.width / 10,
+                                    height:
+                                        MediaQuery.of(context).size.width / 35,
+                                    decoration: BoxDecoration(
+                                      color: Color.fromARGB(255, 11, 55, 99),
+                                      borderRadius: BorderRadius.circular(
                                           MediaQuery.of(context).size.width /
-                                              90,
-                                      color: Colors.black,
-                                      fontFamily: "R")),
-                              SizedBox(
-                                height: MediaQuery.of(context).size.width / 170,
-                              ),
-                              Container(
-                                  width: MediaQuery.of(context).size.width / 15,
-                                  height:
-                                      MediaQuery.of(context).size.width / 35,
-                                  decoration: BoxDecoration(
-                                    color: Colors.red,
-                                    borderRadius: BorderRadius.circular(
-                                        MediaQuery.of(context).size.width /
-                                            150),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceEvenly,
-                                    children: [
-                                      Icon(
-                                        Icons.print,
-                                        color: Colors.white,
-                                      ),
-                                      Text(
-                                        "PDF",
+                                              150),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        "Clear",
                                         style: TextStyle(
                                             fontFamily: "B",
                                             color: Colors.white,
@@ -491,8 +551,8 @@ class _AuditSUState extends State<AuditSU> {
                                                     .width /
                                                 90),
                                       ),
-                                    ],
-                                  )),
+                                    )),
+                              ),
                             ],
                           ).showCursorOnHover,
                         ],
@@ -565,7 +625,7 @@ class _AuditSUState extends State<AuditSU> {
                   future: _userAuditLogs,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Center(child: CircularProgressIndicator());
+                      return Center(child: CustomLoader());
                     }
                     if (snapshot.hasError) {
                       return Center(child: Text("Error loading logs"));
@@ -578,7 +638,7 @@ class _AuditSUState extends State<AuditSU> {
 
                     return Container(
                       color: Colors.white,
-                      child: ListView.builder(
+                      child:  ListView.builder(
                         itemCount: logs.length,
                         itemBuilder: (context, index) {
                           var log = logs[index];

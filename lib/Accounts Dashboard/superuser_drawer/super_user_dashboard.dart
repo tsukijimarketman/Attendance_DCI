@@ -1,5 +1,9 @@
 import 'dart:async';
-
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:typed_data';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/auditSU.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/notification_su.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/settings_su.dart';
@@ -38,6 +42,7 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
   void initState() {
     super.initState();
     _subscribeToUserData();
+    _fetchProfileImage();
   }
 
   bool isHeadersClicked = false;
@@ -87,6 +92,49 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
     super.dispose();
   }
 
+  final supabase = Supabase.instance.client;
+  File? _image;
+  String? _imageUrl;
+
+  Future<void> _fetchProfileImage() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final filePrefix =
+        'profile_${user.uid}'; // Match all files starting with this
+    final response = await supabase.storage.from('profile-pictures').list();
+
+    FileObject? userFile;
+    try {
+      userFile =
+          response.firstWhere((file) => file.name.startsWith(filePrefix));
+    } catch (e) {
+      userFile = null; // Handle case where no file is found
+    }
+
+    if (userFile != null) {
+      String imageUrl =
+          supabase.storage.from('profile-pictures').getPublicUrl(userFile.name);
+
+      // 🛠️ Ensure URL does NOT contain an extra ":http:"
+      if (imageUrl.contains(':http:')) {
+        imageUrl = imageUrl.replaceAll(':http:', ''); // Fix malformed URL
+      }
+
+      // 🔄 Add timestamp to force refresh
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      imageUrl = "$imageUrl?t=$timestamp";
+
+      setState(() {
+        _imageUrl = imageUrl;
+      });
+
+      print("✅ Fixed Profile Image URL: $_imageUrl");
+    } else {
+      print("❌ No profile image found for user: ${user.uid}");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final String? currentUserUid = FirebaseAuth.instance.currentUser?.uid;
@@ -132,11 +180,16 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
             Row(
               children: [
                 CircleAvatar(
+                  radius: MediaQuery.of(context).size.width / 58,
                   backgroundColor: Colors.grey,
-                  radius: MediaQuery.of(context).size.width / 60,
-                  child: Icon(Icons.person,
-                      color: Colors.white,
-                      size: MediaQuery.of(context).size.width / 50),
+                  backgroundImage: _imageUrl != null && _imageUrl!.isNotEmpty
+                      ? NetworkImage(_imageUrl!)
+                      : null,
+                  child: _imageUrl == null || _imageUrl!.isEmpty
+                      ? Icon(Icons.person,
+                          size: MediaQuery.of(context).size.width / 45,
+                          color: Colors.white)
+                      : null,
                 ),
                 SizedBox(width: MediaQuery.of(context).size.width / 60),
                 Column(

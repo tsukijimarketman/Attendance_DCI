@@ -1743,7 +1743,7 @@ class _SettingsSUState extends State<SettingsSU> {
                                   width:
                                       MediaQuery.of(context).size.width / 1.328,
                                   height: MediaQuery.of(context).size.width / 8,
-                                  child: CurrentAddress()),
+                                  child: CurrentAddressPick()),
                               SizedBox(
                                   height:
                                       MediaQuery.of(context).size.height / 50),
