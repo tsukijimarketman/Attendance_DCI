@@ -41,6 +41,13 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
   TextEditingController lastNameController = TextEditingController();
   String passwordError = ""; // To hold the error message for password
 
+  void _clearFields() {
+      firstNameController.clear();
+      lastNameController.clear();
+      emailController.clear();
+      passwordController.clear();
+    }
+
   late AnimationController controllerLogo;
   late Animation<double> _textRevealcontrollerLogo;
   late Animation<double> _textOpacitycontrollerLogo;
@@ -639,22 +646,39 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
   }
 
   Future<void> _storePendingUser() async {
-    try {
-      String encryptedPassword =
-          EncryptionHelper.encryptPassword(passwordController.text.trim());
-      await FirebaseFirestore.instance.collection('users').add({
-        'first_name': firstNameController.text.trim(),
-        'last_name': lastNameController.text.trim(),
-        'email': emailController.text.trim(),
-        'password': encryptedPassword,
-        'status': 'pending'
-      });
-      _showDialog('Pending Approval',
-          'Your account request has been sent for approval.');
-    } catch (error) {
-      _showDialog('Error', error.toString());
+  try {
+    String email = emailController.text.trim();
+
+    // **Step 1: Check if email already exists in Firestore**
+    QuerySnapshot existingUser = await FirebaseFirestore.instance
+        .collection('users')
+        .where('email', isEqualTo: email)
+        .get();
+
+    if (existingUser.docs.isNotEmpty) {
+      // **Email already exists, show error**
+      _showDialog('Email Already in Use', 'Pick another email address.');
+      _clearFields();
+      return;
     }
+
+    // **Step 2: Encrypt password and store the new user**
+    String encryptedPassword = EncryptionHelper.encryptPassword(passwordController.text.trim());
+
+    await FirebaseFirestore.instance.collection('users').add({
+      'first_name': firstNameController.text.trim(),
+      'last_name': lastNameController.text.trim(),
+      'email': email,
+      'password': encryptedPassword,
+      'status': 'pending'
+    });
+
+    _showDialog('Pending Approval', 'Your account request has been sent for approval.');
+    _clearFields();
+  } catch (error) {
+    _showDialog('Error', error.toString());
   }
+}
 
   void _showDialog(String title, String message) {
     showCupertinoDialog(

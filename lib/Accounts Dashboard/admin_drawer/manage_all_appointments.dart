@@ -24,16 +24,13 @@ class _ManageAllAppointmentsState extends State<ManageAllAppointments> {
 
 }
 
-DateTime? _parseSchedule(String schedule) {
+String formatDate(String timestamp) {
   try {
-    // Remove the " at" portion properly
-    String cleanedSchedule = schedule.replaceFirst(" at", "");
-
-    // Now parse the cleaned date
-    return DateFormat("MMMM d yyyy h:mm a").parse(cleanedSchedule);
+    DateTime parsedDate = DateTime.parse(timestamp);
+    return DateFormat("MMMM d yyyy 'at' h:mm a").format(parsedDate);
   } catch (e) {
-    print("Error parsing schedule: $e | Input: $schedule");
-    return null;
+    print("Error formatting date: $e");
+    return "Invalid date";
   }
 }
 
@@ -128,7 +125,7 @@ DateTime? _parseSchedule(String schedule) {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(agenda),
-                                    Text("Scheduled: ${data['schedule']}"),
+                                Text("Scheduled: ${formatDate(data['schedule'])}"),
                                   ],
                                 ),
                                 trailing: Icon(Icons.arrow_forward),

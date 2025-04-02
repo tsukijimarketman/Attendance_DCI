@@ -1,7 +1,6 @@
 import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_appointment.dart';
 import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_audit.dart';
 import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/manage_all_appointments.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/auditSU.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/notification_su.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/settings_su.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/super_user_dashboard.dart';

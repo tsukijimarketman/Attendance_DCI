@@ -1,35 +1,31 @@
+
+import 'package:attendance_app/Accounts%20Dashboard/internal_user/making_a_form.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'dart:io';
-import 'package:http/http.dart' as http;
-import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:path_provider/path_provider.dart';
-import 'package:csv/csv.dart';
-import 'package:universal_html/html.dart' as html;
-import 'package:share_plus/share_plus.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
-import 'package:flutter/services.dart' show rootBundle;
 
-class AllDeptAttendee extends StatefulWidget {
-  final String selectedAgenda;
-  const AllDeptAttendee({required this.selectedAgenda, super.key});
+class AppointmentofUsers extends StatefulWidget {
+   final String selectedAgenda;
+
+  const AppointmentofUsers({
+    super.key,
+    required this.selectedAgenda,
+    });
 
   @override
-  State<AllDeptAttendee> createState() => _AllDeptAttendeeState();
+  State<AppointmentofUsers> createState() => _AppointmentofUsersState();
 }
 
-class _AllDeptAttendeeState extends State<AllDeptAttendee> {
-  final TextEditingController agendaController = TextEditingController();
+class _AppointmentofUsersState extends State<AppointmentofUsers> {
+   final TextEditingController agendaController = TextEditingController();
   final TextEditingController departmentController = TextEditingController();
   final TextEditingController scheduleController = TextEditingController();
   final TextEditingController descriptionAgendaController =
       TextEditingController();
   String Status = '';
+  String createdBy = '';
   String userDepartment = "";
   String fullName = "";
   bool isLoading = true;
@@ -37,6 +33,7 @@ class _AllDeptAttendeeState extends State<AllDeptAttendee> {
   List<Map<String, dynamic>> attendanceList = [];
 
   List<Map<String, dynamic>> guests = [];
+  List<Map<String, dynamic>> users = [];
 
   @override
   void initState() {
@@ -58,12 +55,23 @@ class _AllDeptAttendeeState extends State<AllDeptAttendee> {
     }
   }
 
+  String formatDate(String timestamp) {
+    try {
+      DateTime parsedDate = DateTime.parse(timestamp);
+      return DateFormat("MMMM d yyyy 'at' h:mm a").format(parsedDate);
+    } catch (e) {
+      print("Error formatting date: $e");
+      return "Invalid date";
+    }
+  }
+
   Future<void> fetchAppointmentData() async {
     try {
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection(
               'appointment') // Assuming the collection name is 'appointments'
           .where('agenda', isEqualTo: widget.selectedAgenda)
+          .where('department', isEqualTo: userDepartment)
           .limit(1)
           .get();
 
@@ -76,10 +84,15 @@ class _AllDeptAttendeeState extends State<AllDeptAttendee> {
           departmentController.text = data['department'] ?? "N/A";
           scheduleController.text = data['schedule'] ?? "N/A";
           Status = data['status'] ?? "N/A";
+          createdBy = data['createdBy'] ?? "N/A";
 
           // Fetch guests array from Firestore
           if (data.containsKey('guest') && data['guest'] is List) {
             guests = List<Map<String, dynamic>>.from(data['guest']);
+          }
+
+          if (data.containsKey('internal_users') && data['internal_users'] is List) {
+            users = List<Map<String, dynamic>>.from(data['internal_users']);
           }
         });
       } else {
@@ -128,6 +141,7 @@ class _AllDeptAttendeeState extends State<AllDeptAttendee> {
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection('attendance')
           .where('agenda', isEqualTo: widget.selectedAgenda)
+          .where('department', isEqualTo: userDepartment)
           .get(); // Remove limit(1) to fetch all related records
 
       if (querySnapshot.docs.isNotEmpty) {
@@ -142,313 +156,6 @@ class _AllDeptAttendeeState extends State<AllDeptAttendee> {
     } catch (e) {
       print("Error fetching attendance data: $e");
     }
-  }
-
-  Future<Uint8List?> _fetchImage(String? url) async {
-    if (url == null || url.isEmpty) return null;
-    try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        return response.bodyBytes; // Convert response to bytes
-      }
-    } catch (e) {
-      print("Error fetching image: $e");
-    }
-    return null;
-  }
-
-  Future<Uint8List> loadAssetImage(String path) async {
-    final ByteData data = await rootBundle.load(path);
-    return data.buffer.asUint8List();
-  }
-
-  String formatDate(String timestamp) {
-    try {
-      DateTime parsedDate = DateTime.parse(timestamp);
-      return DateFormat("MMMM d yyyy 'at' h:mm a").format(parsedDate);
-    } catch (e) {
-      print("Error formatting date: $e");
-      return "Invalid date";
-    }
-  }
-
-  void _generatePDF() async {
-    final pdf = pw.Document();
-    List<Map<String, dynamic>> attendeesWithSignatures = [];
-
-    // **Fetch images before generating the PDF**
-    for (var attendee in attendanceList) {
-      Uint8List? imageBytes = await _fetchImage(attendee['signature_url']);
-      attendeesWithSignatures.add({...attendee, 'signature_bytes': imageBytes});
-    }
-
-    Uint8List logoBytes = await loadAssetImage('assets/bag.png');
-    Uint8List logoBytess = await loadAssetImage('assets/dci.jpg');
-
-    pdf.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4.landscape,
-        margin: pw.EdgeInsets.all(30),
-
-        // ✅ HEADER - This will appear on every page
-        header: (context) => pw.Padding(
-          padding: pw.EdgeInsets.symmetric(horizontal: 25, vertical: 10),
-          child: pw.Column(
-            crossAxisAlignment:
-                pw.CrossAxisAlignment.start, // Align text to the left
-            children: [
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Container(
-                    width: 60,
-                    height: 60,
-                    child: pw.Image(pw.MemoryImage(logoBytess)),
-                  ),
-                  pw.Container(
-                    width: 60,
-                    height: 60,
-                    child: pw.Image(pw.MemoryImage(logoBytes)),
-                  ),
-                ],
-              ),
-              pw.SizedBox(height: 10),
-              pw.Align(
-                alignment: pw.Alignment.center,
-                child: pw.Text(
-                  'Attendance Sheet',
-                  style: pw.TextStyle(
-                      fontSize: 20, fontWeight: pw.FontWeight.bold),
-                ),
-              ),
-              pw.SizedBox(height: 10),
-              pw.Align(
-                alignment: pw.Alignment.centerLeft, // Align to the left
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text(
-                      'Date & Time: ${scheduleController.text.isNotEmpty ? formatDate(scheduleController.text) : "No Schedule"}',
-                      style: pw.TextStyle(fontSize: 10),
-                    ),
-                    pw.SizedBox(height: 5),
-                    pw.Text(
-                      'Agenda: ${widget.selectedAgenda}',
-                      style: pw.TextStyle(fontSize: 10),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // ✅ FOOTER - This will appear on every page
-        footer: (context) => pw.Padding(
-          padding: pw.EdgeInsets.symmetric(horizontal: 25, vertical: 10),
-          child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.center,
-            children: [
-              pw.SizedBox(height: 5),
-              pw.Align(
-                  alignment: pw.Alignment.centerRight,
-                  child: pw.Text(
-                    "Doc ID DCI-ATTENDANCE-FRM v.0.0",
-                    style: pw.TextStyle(
-                      fontSize: 8,
-                    ),
-                  )),
-              pw.Text(
-                "DBP Data Center, Inc.",
-                style:
-                    pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
-              ),
-              pw.Divider(
-                thickness: 1,
-                height: 1,
-                indent: 4,
-                endIndent: 4,
-                color: PdfColors.grey,
-              ),
-              pw.Text(
-                "9/F DBP Building, Sen. Gil Puyat Avenue, Makati City, Philippines.",
-                style: pw.TextStyle(fontSize: 8),
-              ),
-              pw.Text(
-                "Tel No. 8818-9511 local 2913 | www.dci.com.ph",
-                style: pw.TextStyle(fontSize: 8),
-              ),
-            ],
-          ),
-        ),
-
-        // ✅ CONTENT - The table will auto-continue on new pages
-        build: (context) => [
-          pw.Padding(
-            padding: pw.EdgeInsets.symmetric(horizontal: 25, vertical: 10),
-            child: attendanceList.isEmpty
-                ? pw.Center(
-                    child: pw.Text(
-                      "No attendance records available.",
-                      style: pw.TextStyle(fontSize: 16),
-                    ),
-                  )
-                : pw.Table(
-                    border: pw.TableBorder.all(),
-                    columnWidths: {
-                      0: pw.FlexColumnWidth(2),
-                      1: pw.FlexColumnWidth(2),
-                      2: pw.FlexColumnWidth(2),
-                      3: pw.FlexColumnWidth(2),
-                      4: pw.FlexColumnWidth(2),
-                    },
-                    children: [
-                      // Table Header
-                      pw.TableRow(
-                        decoration: pw.BoxDecoration(color: PdfColors.grey300),
-                        children: [
-                          pw.Padding(
-                              padding: pw.EdgeInsets.all(5),
-                              child: pw.Text('Name',
-                                  style: pw.TextStyle(
-                                      fontWeight: pw.FontWeight.bold))),
-                          pw.Padding(
-                              padding: pw.EdgeInsets.all(5),
-                              child: pw.Text('Company',
-                                  style: pw.TextStyle(
-                                      fontWeight: pw.FontWeight.bold))),
-                          pw.Padding(
-                              padding: pw.EdgeInsets.all(5),
-                              child: pw.Text('Email Address',
-                                  style: pw.TextStyle(
-                                      fontWeight: pw.FontWeight.bold))),
-                          pw.Padding(
-                              padding: pw.EdgeInsets.all(5),
-                              child: pw.Text('Contact No.',
-                                  style: pw.TextStyle(
-                                      fontWeight: pw.FontWeight.bold))),
-                          pw.Padding(
-                              padding: pw.EdgeInsets.all(5),
-                              child: pw.Text('Signature',
-                                  style: pw.TextStyle(
-                                      fontWeight: pw.FontWeight.bold))),
-                        ],
-                      ),
-
-                      // Attendees Data
-                      for (var attendee in attendeesWithSignatures)
-                        pw.TableRow(children: [
-                          pw.Padding(
-                              padding: pw.EdgeInsets.all(5),
-                              child: pw.Text(attendee['name'] ?? 'N/A')),
-                          pw.Padding(
-                              padding: pw.EdgeInsets.all(5),
-                              child: pw.Text(attendee['company'] ?? 'N/A')),
-                          pw.Padding(
-                              padding: pw.EdgeInsets.all(5),
-                              child:
-                                  pw.Text(attendee['email_address'] ?? 'N/A')),
-                          pw.Padding(
-                              padding: pw.EdgeInsets.all(5),
-                              child: pw.Text(attendee['contact_num'] ?? 'N/A')),
-                          pw.Padding(
-                            padding: pw.EdgeInsets.all(5),
-                            child: pw.Align(
-                              alignment: pw.Alignment.center,
-                              child: attendee['signature_bytes'] != null
-                                  ? pw.Image(
-                                      pw.MemoryImage(
-                                          attendee['signature_bytes']!),
-                                      width: 60,
-                                      height: 25)
-                                  : pw.Text("No Signature"),
-                            ),
-                          )
-                        ]),
-                    ],
-                  ),
-          )
-        ],
-      ),
-    );
-
-    final pdfBytes = await pdf.save();
-    await Printing.sharePdf(bytes: pdfBytes, filename: 'attendance_report.pdf');
-  }
-
-  Future<void> _generateCSV() async {
-    List<List<String>> rows = [];
-
-    // CSV Header
-    rows.add(['Name', 'Company', 'Email Address', 'Contact No.']);
-
-    // Data Rows
-    for (var attendee in attendanceList) {
-      rows.add([
-        attendee['name'] ?? 'N/A',
-        attendee['company'] ?? 'N/A',
-        attendee['email_address'] ?? 'N/A',
-        attendee['contact_num'] ?? 'N/A',
-      ]);
-    }
-
-    // Convert to CSV String
-    String csv = const ListToCsvConverter().convert(rows);
-
-    if (kIsWeb) {
-      // ✅ Download CSV in Flutter Web
-      final blob = html.Blob([csv], 'text/csv');
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute("download", "attendance_report.csv")
-        ..click();
-      html.Url.revokeObjectUrl(url);
-    } else {
-      // ✅ Save CSV on Android/iOS/Desktop
-      final directory = await getApplicationDocumentsDirectory();
-      final path = '${directory.path}/attendance_report.csv';
-
-      final file = File(path);
-      await file.writeAsString(csv);
-
-      await Share.shareXFiles([XFile(path)], text: 'Attendance Report CSV');
-    }
-  }
-
-  void showcsvpdfdialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Download Attendance"),
-          content:
-              Text("Do you want to download the attendance in PDF or CSV?"),
-          actions: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                TextButton(
-                  child: Image.asset('assets/pdf.png', width: 50, height: 50),
-                  onPressed: () {
-                    _generatePDF();
-
-                    Navigator.of(context).pop();
-                  },
-                ),
-                TextButton(
-                  child: Image.asset("assets/csv.png", width: 50, height: 50),
-                  onPressed: () {
-                    _generateCSV();
-
-                    Navigator.of(context).pop();
-                  },
-                ),
-              ],
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
@@ -591,6 +298,7 @@ class _AllDeptAttendeeState extends State<AllDeptAttendee> {
                                   TextStyle(fontSize: 16, color: Colors.black),
                             ),
                           ),
+                          // External Guest
                           SizedBox(
                             height: 10,
                           ),
@@ -635,6 +343,57 @@ class _AllDeptAttendeeState extends State<AllDeptAttendee> {
                                               "📞 Contact: ${guest["contactNum"] ?? "N/A"}"),
                                           Text(
                                               "🏢 Company: ${guest["companyName"] ?? "N/A"}"),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          // Internal Users
+                          SizedBox(
+                            height: 10,
+                          ),
+                          Divider(
+                            thickness: 1,
+                            height: 1,
+                            color: Colors.black,
+                          ),
+                          SizedBox(
+                            child: users.isEmpty
+                                ? Center(child: Text("No Internal Users invited"))
+                                : Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Text(
+                                      "Internal Users",
+                                      style: TextStyle(
+                                          color: Colors.black, fontSize: 18),
+                                    ),
+                                  ),
+                          ),
+                          Expanded(
+                            // ✅ Wrap ListView.builder in Expanded
+                            child: ListView.builder(
+                              itemCount: users.length,
+                              itemBuilder: (context, index) {
+                                var user = users[index];
+                                return Padding(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(50, 0, 50, 0),
+                                  child: Card(
+                                    margin: EdgeInsets.all(2),
+                                    child: ListTile(
+                                      title:
+                                          Text(user["fullName"] ?? "Unknown"),
+                                      subtitle: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                              "📧 Email: ${user["email"] ?? "N/A"}"),
+                                          Text(
+                                              "📞 Department: ${user["department"] ?? "N/A"}"),
                                         ],
                                       ),
                                     ),
@@ -742,28 +501,41 @@ class _AllDeptAttendeeState extends State<AllDeptAttendee> {
                                                 },
                                               ),
                                             ),
-                                            Container(
-                                              width: 800,
-                                              decoration: BoxDecoration(
-                                                color: Colors.amber,
-                                              ),
-                                              padding: EdgeInsets.symmetric(
-                                                  vertical: 10),
-                                              child: Column(
-                                                children: [
-                                                  IconButton(
-                                                      icon: Icon(
-                                                          Icons.download_sharp),
-                                                      onPressed: () {
-                                                        showcsvpdfdialog();
-                                                      }),
-                                                  Text("Download Attendance")
-                                                ],
-                                              ),
-                                            ),
                                           ],
                                         ),
                                 ),
+                                Container(
+  decoration: BoxDecoration(
+    color: Colors.amber,
+  ),
+  padding: EdgeInsets.symmetric(vertical: 10),
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    children: [
+      Column(
+        children: [
+          IconButton(
+            icon: Icon(Icons.qr_code_scanner_sharp),
+            onPressed: (Status == "In Progress") ? () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => UsersMakingAForm(
+                    agenda: agendaController,
+                    department: departmentController,
+                    createdBy: createdBy,
+                  ),
+                ),
+              );
+            } : null, // Disables the button if condition is not met
+          ),
+          Text("Qr-Code"),
+        ],
+      ),
+    ],
+  ),
+)
+
                               ])))
                 ]),
               ),

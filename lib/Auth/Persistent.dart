@@ -1,5 +1,6 @@
 import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_dashboard.dart';
 import 'package:attendance_app/Accounts%20Dashboard/head_drawer/department_head_dashboard.dart';
+import 'package:attendance_app/Accounts%20Dashboard/internal_user/internal_user_dashboard.dart';
 import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_dashoard.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/super_user_dashboard.dart';
 import 'package:attendance_app/Animation/loader.dart';
@@ -37,36 +38,43 @@ class AuthPersistent extends StatelessWidget {
   }
 
   Future<Widget> checkUserRole(User user, BuildContext context) async {
-    try {
-      QuerySnapshot userSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .where('uid', isEqualTo: user.uid)
-          .get();
+  try {
+    QuerySnapshot userSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .where('uid', isEqualTo: user.uid)
+        .get();
 
-      if (userSnapshot.docs.isEmpty) {
-        print("User not found in Firestore");
-        return Manager_Dashboard();
-      }
-
-      DocumentSnapshot userDoc = userSnapshot.docs.first;
-      String role = userDoc['roles'];
-
-      switch (role) {
-        case "Manager":
-          return Manager_Dashboard();
-        case "DepartmentHead":
-          return Deparment_Head_Dashboard();
-        case "Admin":
-          return Admin_Dashboard();
-        case "Superuser":
-          return SuperUserDashboard();
-        default:
-          print("Unknown role");
-          return Login();
-      }
-    } catch (e) {
-      print("Error checking user role: $e");
-      return Login();
+    if (userSnapshot.docs.isEmpty) {
+      print("User not found in Firestore");
+      return Login(); // Instead of defaulting to a dashboard, send back to login
     }
+
+    DocumentSnapshot userDoc = userSnapshot.docs.first;
+    String? role = userDoc['roles']; // Use null-aware operator
+
+    if (role == null || role.isEmpty) {
+      print("User role is missing or empty");
+      return Login(); // Prevent defaulting to SuperUserDashboard
+    }
+
+    switch (role) {
+      case "Manager":
+        return Manager_Dashboard();
+      case "DepartmentHead":
+        return Deparment_Head_Dashboard();
+      case "Admin":
+        return Admin_Dashboard();
+      case "Superuser":
+        return SuperUserDashboard();
+      case "User":
+        return InternalUserDashboard();
+      default:
+        print("Unknown role: $role");
+        return Login(); // Ensure unknown roles go to Login
+    }
+  } catch (e) {
+    print("Error checking user role: $e");
+    return Login();
   }
+}
 }

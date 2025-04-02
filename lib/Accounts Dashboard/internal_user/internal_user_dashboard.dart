@@ -1,39 +1,32 @@
-import 'dart:async';
-import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:typed_data';
+import 'package:attendance_app/Accounts%20Dashboard/internal_user/Appointments.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/auditSU.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/notification_su.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/settings_su.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/sidebar_provider.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/sidebarx_usage.dart';
 import 'package:attendance_app/Animation/Animation.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/references_su.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/usermanagement_su.dart';
-import 'package:attendance_app/Auth/login.dart';
+import 'package:attendance_app/Appointment/add_client.dart';
 import 'package:attendance_app/Auth/showDialogSignOut.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:sidebarx/sidebarx.dart';
 
-class SuperUserDashboard extends StatefulWidget {
-  const SuperUserDashboard({super.key});
+class InternalUserDashboard extends StatefulWidget {
+  const InternalUserDashboard({super.key});
 
   @override
-  State<SuperUserDashboard> createState() => _SuperUserDashboardState();
+  State<InternalUserDashboard> createState() => _InternalUserDashboardState();
 }
 
-class _SuperUserDashboardState extends State<SuperUserDashboard> {
-  // Start with Dashboard
-
+class _InternalUserDashboardState extends State<InternalUserDashboard> {
+  final _controller =
+      SidebarXController(selectedIndex: 0); 
+ // Start with Dashboard
   Color color1 = Colors.grey;
+
   Color color2 = Colors.grey;
+
   Color color3 = Colors.grey;
+
   Color color4 = Colors.grey;
 
   IconData iconSettings = Icons.settings;
@@ -41,104 +34,60 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
   @override
   void initState() {
     super.initState();
-    _subscribeToUserData();
-    _fetchProfileImage();
-  }
-
-  bool isHeadersClicked = false;
-  String selectedOption = "";
-
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  StreamSubscription<QuerySnapshot>? _userSubscription;
-
-  String firstName = "Loading...";
-  String lastName = "";
-  String role = "Fetching...";
-  bool isLoading = true;
-
-  void _subscribeToUserData() {
-    final String? currentUserUid = _auth.currentUser?.uid;
-    if (currentUserUid == null) return;
-
-    _userSubscription = _firestore
-        .collection("users")
-        .where("uid", isEqualTo: currentUserUid)
-        .limit(1)
-        .snapshots()
-        .listen((snapshot) {
-      if (snapshot.docs.isNotEmpty) {
-        final userData = snapshot.docs.first.data() as Map<String, dynamic>;
-        setState(() {
-          firstName = userData['first_name'] ?? "No Name";
-          lastName = userData['last_name'] ?? "";
-          role = userData['roles'] ?? "Unknown Role";
-          isLoading = false;
-        });
-      } else {
-        setState(() {
-          firstName = "No Data";
-          lastName = "";
-          role = "N/A";
-          isLoading = false;
-        });
-      }
+    _fetchUserData(); // Fetch user data when widget initializes
+    _controller.addListener(() {
+      setState(() {}); // Rebuild UI when selected index changes
     });
   }
 
-  @override
-  void dispose() {
-    _userSubscription?.cancel(); // Cancel subscription to prevent memory leaks
-    super.dispose();
-  }
+  bool isHeadersClicked = false;
 
-  final supabase = Supabase.instance.client;
-  File? _image;
-  String? _imageUrl;
+  String selectedOption = "";
 
-  Future<void> _fetchProfileImage() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+  String fullName = 'Loading...';
 
-    final filePrefix =
-        'profile_${user.uid}'; // Match all files starting with this
-    final response = await supabase.storage.from('profile-pictures').list();
+  String email = 'Loading...';
 
-    FileObject? userFile;
+  Future<void> _fetchUserData() async {
     try {
-      userFile =
-          response.firstWhere((file) => file.name.startsWith(filePrefix));
-    } catch (e) {
-      userFile = null; // Handle case where no file is found
-    }
-
-    if (userFile != null) {
-      String imageUrl =
-          supabase.storage.from('profile-pictures').getPublicUrl(userFile.name);
-
-      // 🛠️ Ensure URL does NOT contain an extra ":http:"
-      if (imageUrl.contains(':http:')) {
-        imageUrl = imageUrl.replaceAll(':http:', ''); // Fix malformed URL
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print("⚠️ No authenticated user found.");
+        return;
       }
 
-      // 🔄 Add timestamp to force refresh
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      imageUrl = "$imageUrl?t=$timestamp";
+      String uid = user.uid;
+      String? userEmail = user.email;
 
-      setState(() {
-        _imageUrl = imageUrl;
-      });
+      QuerySnapshot userQuery = await FirebaseFirestore.instance
+          .collection("users")
+          .where("uid", isEqualTo: uid)
+          .limit(1)
+          .get();
 
-      print("✅ Fixed Profile Image URL: $_imageUrl");
-    } else {
-      print("❌ No profile image found for user: ${user.uid}");
+      if (userQuery.docs.isNotEmpty) {
+        var userDoc = userQuery.docs.first;
+        String fetchedFullName =
+            "${userDoc["first_name"] ?? ""} ${userDoc["last_name"] ?? ""}".trim();
+
+        print("✅ Found User: ${userDoc.id}, Name: $fetchedFullName, Email: ${userEmail ?? 'N/A'}");
+
+        if (mounted) {
+          setState(() {
+            fullName = fetchedFullName.isNotEmpty ? fetchedFullName : "Unknown User";
+            email = userEmail ?? "No Email Available";
+          });
+        }
+      } else {
+        print("⚠️ No user document found for UID: $uid");
+      }
+    } catch (e) {
+      print("❌ Error fetching user data: $e");
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final String? currentUserUid = FirebaseAuth.instance.currentUser?.uid;
-    final sidebarProvider = Provider.of<SidebarProvider>(context);
     return Scaffold(
         backgroundColor: Color(0xFFf2edf3),
         appBar: AppBar(
@@ -148,73 +97,55 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
             GestureDetector(
               onTap: () {
                 Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SuperUserDashboard(),
-                  ),
-                );
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => InternalUserDashboard(),
+                    ));
               },
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  SizedBox(width: MediaQuery.of(context).size.width / 13),
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width / 40,
+                  ),
                   Padding(
                     padding: EdgeInsets.symmetric(
                         vertical: MediaQuery.of(context).size.width / 140),
-                    child: Image.asset("assets/bp.png",
+                    child: Image.asset("assets/dci_logo.png",
                         height: MediaQuery.of(context).size.width / 20),
                   ),
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width / 50,
-                  ),
-                  Text("BAGONG PILIPINAS",
-                      style: TextStyle(
-                          fontSize: MediaQuery.of(context).size.width / 45,
-                          fontFamily: "BL",
-                          fontStyle: FontStyle.italic,
-                          color: const Color.fromARGB(255, 20, 94, 155))),
                 ],
               ),
             ).showCursorOnHover,
             Spacer(),
-            Row(
+            CircleAvatar(
+              backgroundColor: Colors.grey,
+              radius: MediaQuery.of(context).size.width / 60,
+              child: Icon(Icons.person,
+                  color: Colors.white,
+                  size: MediaQuery.of(context).size.width / 50),
+            ),
+            SizedBox(
+              width: MediaQuery.of(context).size.width / 60,
+            ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  radius: MediaQuery.of(context).size.width / 58,
-                  backgroundColor: Colors.grey,
-                  backgroundImage: _imageUrl != null && _imageUrl!.isNotEmpty
-                      ? NetworkImage(_imageUrl!)
-                      : null,
-                  child: _imageUrl == null || _imageUrl!.isEmpty
-                      ? Icon(Icons.person,
-                          size: MediaQuery.of(context).size.width / 45,
-                          color: Colors.white)
-                      : null,
-                ),
-                SizedBox(width: MediaQuery.of(context).size.width / 60),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      isLoading ? "Loading..." : "$firstName $lastName",
-                      style: TextStyle(
-                          color: Colors.black,
-                          fontSize: MediaQuery.of(context).size.height / 50,
-                          fontFamily: "M"),
-                    ),
-                    Text(
-                      isLoading ? "Fetching..." : role,
-                      style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: MediaQuery.of(context).size.height / 70,
-                          fontFamily: "R"),
-                    ),
-                  ],
-                ),
+                Text(fullName,
+                    style: TextStyle(
+                        color: Colors.black,
+                        fontSize: MediaQuery.of(context).size.height / 50,
+                        fontFamily: "M")),
+                Text(email,
+                    style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: MediaQuery.of(context).size.height / 70,
+                        fontFamily: "R"))
               ],
             ),
             SizedBox(
-              width: MediaQuery.of(context).size.width / 50,
+              width: MediaQuery.of(context).size.width / 30,
             ),
             GestureDetector(
                     onTap: () {
@@ -343,24 +274,36 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
               width: MediaQuery.of(context).size.width / 40,
             ),
             GestureDetector(
-              onTap: () {
+              onTap:  (){
                 showSignOutDialog(context);
               },
-              child: Tooltip(
-                message: 'Sign Out',
-                preferBelow: false,
-                decoration: BoxDecoration(color: Colors.transparent),
-                textStyle: TextStyle(
-                    color: Color.fromARGB(255, 11, 55, 99),
-                    fontFamily: "B",
-                    fontSize: MediaQuery.of(context).size.width / 140),
-                padding: EdgeInsets.symmetric(
-                    horizontal: MediaQuery.of(context).size.width / 120,
-                    vertical: MediaQuery.of(context).size.width / 160),
-                child: Icon(
-                  Icons.logout_outlined,
-                  color: color4,
-                  size: MediaQuery.of(context).size.width / 60,
+              child: MouseRegion(
+                onEnter: (event) {
+                  setState(() {
+                    color4 = Color.fromARGB(255, 11, 55, 99);
+                  });
+                },
+                onExit: (event) {
+                  setState(() {
+                    color4 = Colors.grey;
+                  });
+                },
+                child: Tooltip(
+                  message: 'Sign Out',
+                  preferBelow: false,
+                  decoration: BoxDecoration(color: Colors.transparent),
+                  textStyle: TextStyle(
+                      color: Color.fromARGB(255, 11, 55, 99),
+                      fontFamily: "B",
+                      fontSize: MediaQuery.of(context).size.width / 140),
+                  padding: EdgeInsets.symmetric(
+                      horizontal: MediaQuery.of(context).size.width / 120,
+                      vertical: MediaQuery.of(context).size.width / 160),
+                  child: Icon(
+                    Icons.logout_outlined,
+                    color: color4,
+                    size: MediaQuery.of(context).size.width / 60,
+                  ),
                 ),
               ),
             ).showCursorOnHover,
@@ -371,7 +314,48 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
         ),
         body: Row(
           children: [
-            SideBarXUsage(),
+            SidebarX(
+              controller: _controller,
+              extendedTheme: SidebarXTheme(
+                  itemPadding: EdgeInsets.all(10),
+                  hoverColor: Colors.amber,
+                  width: MediaQuery.of(context).size.width / 5.3),
+              theme: SidebarXTheme(
+                margin: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                textStyle: const TextStyle(color: Colors.black),
+                selectedTextStyle: const TextStyle(color: Colors.amber),
+                itemTextPadding: const EdgeInsets.symmetric(horizontal: 20),
+                selectedItemDecoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 11, 55, 99),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                iconTheme:
+                    const IconThemeData(color: Color(0xFFbeabc2), size: 24),
+                selectedIconTheme:
+                    const IconThemeData(color: Colors.amber, size: 26),
+                selectedItemTextPadding:
+                    const EdgeInsets.symmetric(horizontal: 20),
+              ),
+              headerBuilder: (context, extended) {
+                return Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: SizedBox(
+                    height: 300, // Increase height
+                    width: 350, // Increase width
+                    child: AnimatedGlbViewer(),
+                  ),
+                );
+              },
+              headerDivider: const Divider(thickness: 2, color: Colors.black12),
+              items: [
+                SidebarXItem(icon: Icons.dashboard, label: 'Dashboard'),               
+                SidebarXItem(icon: Icons.description, label: 'User Management'),               
+              ],
+            ),
 
             /// Page Content Area
             Expanded(
@@ -390,24 +374,26 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
                       ],
                     )
                   : Center(
-                      child: _buildPageContent(sidebarProvider.selectedIndex)),
-            ),
-          ],
-        ));
+                      child: _buildPageContent(),
+                    ),
+            )
+        ],
+      ),
+    );
   }
 
-  Widget _buildPageContent(int index) {
-    switch (index) {
+  /// Function to render different pages based on sidebar selection
+  Widget _buildPageContent() {
+    switch (_controller.selectedIndex) {
       case 0:
-        return const Text('Dashboard Page',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold));
+        return const Appointments();
       case 1:
-        return const UserManagement();
-      case 2:
-        return const References();
-      default:
-        return const Text('Select an option from the menu.',
-            style: TextStyle(fontSize: 20));
+        return const AddClient();
+        default:
+        return const Text(
+          'Select an option from the menu.',
+          style: TextStyle(fontSize: 20),
+        );
     }
   }
 }

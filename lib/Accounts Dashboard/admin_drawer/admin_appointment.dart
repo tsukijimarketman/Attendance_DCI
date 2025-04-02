@@ -58,16 +58,23 @@ Future<void> updateAppointmentStatuses() async {
   }
 }
 
+
 DateTime? _parseSchedule(String schedule) {
   try {
-    // Remove the " at" portion properly
-    String cleanedSchedule = schedule.replaceFirst(" at", "");
-
-    // Now parse the cleaned date
-    return DateFormat("MMMM d yyyy h:mm a").parse(cleanedSchedule);
+    return DateTime.tryParse(schedule)?.toLocal(); // Convert from ISO format
   } catch (e) {
     print("Error parsing schedule: $e | Input: $schedule");
     return null;
+  }
+}
+
+String formatDate(String timestamp) {
+  try {
+    DateTime parsedDate = DateTime.parse(timestamp);
+    return DateFormat("MMMM d yyyy 'at' h:mm a").format(parsedDate);
+  } catch (e) {
+    print("Error formatting date: $e");
+    return "Invalid date";
   }
 }
 
@@ -193,7 +200,7 @@ DateTime? _parseSchedule(String schedule) {
                                   agenda,
                                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                 ),
-                                subtitle: Text("Scheduled: ${data['schedule']}"),
+                                subtitle: Text("Scheduled: ${formatDate(data['schedule'])}"),
                                 trailing: Icon(Icons.arrow_forward),
                                 onTap: () {
                                   Navigator.push(
