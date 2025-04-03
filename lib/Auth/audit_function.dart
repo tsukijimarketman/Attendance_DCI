@@ -49,28 +49,5 @@ Future<void> logAuditTrail(String action, String details) async {
   });
 }
 
-Future<List<Map<String, dynamic>>> getAuditLogsByName(String name) async {
-  try {
-    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-        .collection('audit_logs')
-        .orderBy('fullName') // Ensure Firestore index on fullName
-        .get();
 
-    // Convert Firestore docs to a List
-    List<Map<String, dynamic>> logs = querySnapshot.docs
-        .map((doc) => doc.data() as Map<String, dynamic>)
-        .toList();
-
-    // Filter manually to support "contains" search (case-insensitive)
-    List<Map<String, dynamic>> filteredLogs = logs.where((log) {
-      String fullName = log['fullName'].toString().toLowerCase();
-      return fullName.contains(name.toLowerCase());
-    }).toList();
-
-    return filteredLogs;
-  } catch (e) {
-    print("❌ Error fetching audit logs: $e");
-    return [];
-  }
-}
 

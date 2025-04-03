@@ -15,159 +15,248 @@ class AuditSU extends StatefulWidget {
 }
 
 class _AuditSUState extends State<AuditSU> {
-Future<List<Map<String, dynamic>>>? _userAuditLogs;
-String? userId;
-String? fullName;
-TextEditingController searchController = TextEditingController();
+  Future<List<Map<String, dynamic>>>? _userAuditLogs;
+  String? userId;
+  String? fullName;
+  TextEditingController searchController = TextEditingController();
+  TextEditingController _dateFromController = TextEditingController();
+  TextEditingController _dateToController = TextEditingController();
 
-@override
-void initState() {
-  super.initState();
-  _fetchUserData();
-}
+  // Add these variables to track filter state
+  String? _nameFilter;
+  DateTime? _dateFrom;
+  DateTime? _dateTo;
 
-Future<void> _fetchUserData() async {
-  try {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      String uid = user.uid;
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
 
+  Future<void> _fetchUserData() async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        String uid = user.uid;
+
+        QuerySnapshot userQuery = await FirebaseFirestore.instance
+            .collection("users")
+            .where("uid", isEqualTo: uid)
+            .limit(1)
+            .get();
+
+        if (userQuery.docs.isNotEmpty) {
+          var userDoc = userQuery.docs.first;
+          String fetchedFullName =
+              "${userDoc["first_name"]} ${userDoc["last_name"]}";
+          print("✅ Found User Document: ${userDoc.id}, Name: $fetchedFullName");
+
+          setState(() {
+            userId = uid;
+            fullName = fetchedFullName;
+            _userAuditLogs = fetchAuditLogsByUser(userId!);
+          });
+        } else {
+          print("⚠️ No user document found for UID: $uid");
+        }
+      } else {
+        print("⚠️ No authenticated user found.");
+      }
+    } catch (e) {
+      print("❌ Error fetching user data: $e");
+    }
+  }
+
+  // Improved search method that maintains date filters
+  void searchAuditLogs() {
+    String searchText = searchController.text.trim();
+    setState(() {
+      _nameFilter = searchText.isNotEmpty ? searchText : null;
+      // Apply all current filters
+      _applyAllFilters();
+    });
+  }
+
+  // Apply all current filters (name, date range)
+  void _applyAllFilters() {
+    setState(() {
+      _userAuditLogs = fetchFilteredAuditLogs();
+    });
+  }
+
+  // Clear all filters
+  void _clearFilters() {
+    setState(() {
+      searchController.clear();
+      _dateFromController.clear();
+      _dateToController.clear();
+      _nameFilter = null;
+      _dateFrom = null;
+      _dateTo = null;
+
+      // Reset to default view
+      _userAuditLogs = fetchAuditLogsByUser(userId!);
+    });
+    print("🧹 Cleared all filters");
+  }
+
+  // New method that combines all filtering logic
+  Future<List<Map<String, dynamic>>> fetchFilteredAuditLogs() async {
+    try {
+      // Fetch user role
+      QuerySnapshot userQuery = await FirebaseFirestore.instance
+          .collection("users")
+          .where("uid", isEqualTo: userId)
+          .limit(1)
+          .get();
+
+      if (userQuery.docs.isEmpty) {
+        print("⚠️ No user document found.");
+        return [];
+      }
+
+      String role = userQuery.docs.first.get("roles");
+      print("🔎 User Role: $role");
+
+      Query query = FirebaseFirestore.instance.collection("audit_logs");
+
+      if (role == "Superuser") {
+        print("👀 Fetching ALL audit logs for Superuser...");
+      } else {
+        print("🔒 Fetching logs ONLY for this user...");
+        query = query.where("userId", isEqualTo: userId);
+      }
+
+      // Apply Date Filtering if selected
+      if (_dateFrom != null && _dateTo != null) {
+        DateTime toDateEnd =
+            _dateTo!.add(Duration(hours: 23, minutes: 59, seconds: 59));
+        query = query
+            .where("timestamp",
+                isGreaterThanOrEqualTo: Timestamp.fromDate(_dateFrom!))
+            .where("timestamp",
+                isLessThanOrEqualTo: Timestamp.fromDate(toDateEnd));
+        print("🔍 Filtering by date range: ${_dateFrom!} to ${toDateEnd}");
+      }
+
+      query = query.orderBy("timestamp", descending: true);
+
+      QuerySnapshot querySnapshot = await query.get();
+      List<Map<String, dynamic>> logs = querySnapshot.docs
+          .map((doc) => doc.data() as Map<String, dynamic>)
+          .toList();
+
+      // Apply name filter if provided (client-side filtering)
+      if (_nameFilter != null && _nameFilter!.isNotEmpty) {
+        logs = logs.where((log) {
+          String fullName = log['fullName'].toString().toLowerCase();
+          return fullName.contains(_nameFilter!.toLowerCase());
+        }).toList();
+        print("🔍 Filtering by name: $_nameFilter");
+      }
+
+      return logs;
+    } catch (e) {
+      print("❌ Error fetching filtered audit logs: $e");
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchAuditLogsByUser(String uid,
+      {DateTime? fromDate, DateTime? toDate}) async {
+    try {
+      // Fetch user role
       QuerySnapshot userQuery = await FirebaseFirestore.instance
           .collection("users")
           .where("uid", isEqualTo: uid)
           .limit(1)
           .get();
 
-      if (userQuery.docs.isNotEmpty) {
-        var userDoc = userQuery.docs.first;
-        String fetchedFullName =
-            "${userDoc["first_name"]} ${userDoc["last_name"]}";
-        print("✅ Found User Document: ${userDoc.id}, Name: $fetchedFullName");
-
-        setState(() {
-          userId = uid;
-          fullName = fetchedFullName;
-          _userAuditLogs = fetchAuditLogsByUser(userId!);
-        });
-      } else {
-        print("⚠️ No user document found for UID: $uid");
+      if (userQuery.docs.isEmpty) {
+        print("⚠️ No user document found.");
+        return [];
       }
-    } else {
-      print("⚠️ No authenticated user found.");
-    }
-  } catch (e) {
-    print("❌ Error fetching user data: $e");
-  }
-}
 
-void searchAuditLogs() {
-  String searchText = searchController.text.trim();
-  if (searchText.isEmpty) {
-    print("⚠️ Search text is empty.");
-    return;
-  }
+      String role = userQuery.docs.first.get("roles");
+      print("🔎 User Role: $role");
 
-  setState(() {
-    _userAuditLogs = getAuditLogsByName(searchText);
-  });
-}
+      Query query = FirebaseFirestore.instance.collection("audit_logs");
 
-Future<List<Map<String, dynamic>>> fetchAuditLogsByUser(
-    String uid, {DateTime? fromDate, DateTime? toDate}) async {
-  try {
-    // Fetch user role
-    QuerySnapshot userQuery = await FirebaseFirestore.instance
-        .collection("users")
-        .where("uid", isEqualTo: uid)
-        .limit(1)
-        .get();
+      if (role == "Superuser") {
+        print("👀 Fetching ALL audit logs for Superuser...");
+      } else {
+        print("🔒 Fetching logs ONLY for this user...");
+        query = query.where("userId", isEqualTo: uid);
+      }
 
-    if (userQuery.docs.isEmpty) {
-      print("⚠️ No user document found.");
+      // Apply Date Filtering if selected
+      if (fromDate != null && toDate != null) {
+        query = query
+            .where("timestamp",
+                isGreaterThanOrEqualTo: Timestamp.fromDate(fromDate))
+            .where("timestamp",
+                isLessThanOrEqualTo: Timestamp.fromDate(toDate));
+      }
+
+      query = query.orderBy("timestamp", descending: true);
+
+      QuerySnapshot querySnapshot = await query.get();
+
+      return querySnapshot.docs
+          .map((doc) => doc.data() as Map<String, dynamic>)
+          .toList();
+    } catch (e) {
+      print("❌ Error fetching audit logs: $e");
       return [];
     }
-
-    String role = userQuery.docs.first.get("roles");
-    print("🔎 User Role: $role");
-
-    Query query = FirebaseFirestore.instance.collection("audit_logs");
-
-    if (role == "Superuser") {
-      print("👀 Fetching ALL audit logs for Superuser...");
-    } else {
-      print("🔒 Fetching logs ONLY for this user...");
-      query = query.where("userId", isEqualTo: uid);
-    }
-
-    // Apply Date Filtering if selected
-    if (fromDate != null && toDate != null) {
-      query = query
-          .where("timestamp", isGreaterThanOrEqualTo: Timestamp.fromDate(fromDate))
-          .where("timestamp", isLessThanOrEqualTo: Timestamp.fromDate(toDate));
-    }
-
-    query = query.orderBy("timestamp", descending: true);
-
-    QuerySnapshot querySnapshot = await query.get();
-
-    return querySnapshot.docs
-        .map((doc) => doc.data() as Map<String, dynamic>)
-        .toList();
-  } catch (e) {
-    print("❌ Error fetching audit logs: $e");
-    return [];
   }
-}
 
-IconData icon = Icons.arrow_drop_down;
-bool isClicked = true;
+  IconData icon = Icons.arrow_drop_down;
+  bool isClicked = true;
 
-DateTime? _dateFrom;
-DateTime? _dateTo;
-final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
-List<DocumentSnapshot> filteredResults = [];
+  final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
+  List<DocumentSnapshot> filteredResults = [];
 
-Future<void> _selectDate(BuildContext context, bool isDateFrom) async {
-  DateTime? pickedDate = await showDatePicker(
-    context: context,
-    initialDate: DateTime.now(),
-    firstDate: DateTime(2000),
-    lastDate: DateTime(2100),
-  );
+  Future<void> _selectDate(BuildContext context, bool isDateFrom) async {
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
 
-  if (pickedDate != null) {
+    if (pickedDate != null) {
+      setState(() {
+        if (isDateFrom) {
+          _dateFrom = pickedDate;
+          _dateFromController.text =
+              DateFormat('yyyy-MM-dd').format(pickedDate);
+        } else {
+          _dateTo = pickedDate;
+          _dateToController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
+        }
+      });
+    }
+  }
+
+  void _filterResults() async {
+    if (_dateFromController.text.isEmpty || _dateToController.text.isEmpty) {
+      print("⚠️ Error: Select both dates before searching.");
+      return;
+    }
+
+    DateTime fromDate =
+        DateFormat('yyyy-MM-dd').parse(_dateFromController.text);
+    DateTime toDate = DateFormat('yyyy-MM-dd').parse(_dateToController.text);
+
     setState(() {
-      if (isDateFrom) {
-        _dateFrom = pickedDate;
-        _dateFromController.text =
-            DateFormat('yyyy-MM-dd').format(pickedDate);
-      } else {
-        _dateTo = pickedDate;
-        _dateToController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
-      }
+      _dateFrom = fromDate;
+      _dateTo = toDate;
+      _applyAllFilters();
     });
+
+    print("🔍 Filtering logs from: $fromDate to $toDate");
   }
-}
-
-void _filterResults() async {
-  if (_dateFromController.text.isEmpty || _dateToController.text.isEmpty) {
-    print("⚠️ Error: Select both dates before searching.");
-    return;
-  }
-
-DateTime fromDate = DateFormat('yyyy-MM-dd').parse(_dateFromController.text);
-DateTime toDate = DateFormat('yyyy-MM-dd').parse(_dateToController.text).add(Duration(hours: 23, minutes: 59, seconds: 59));
-
-
-  setState(() {
-    _userAuditLogs = fetchAuditLogsByUser(userId!, fromDate: fromDate, toDate: toDate);
-  });
-
-  print("🔍 Filtering logs from: $fromDate to $toDate");
-}
-
-TextEditingController _dateFromController = TextEditingController();
-TextEditingController _dateToController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -434,8 +523,8 @@ TextEditingController _dateToController = TextEditingController();
                                 child: GestureDetector(
                                   onTap: () {
                                     _selectDate(context, false);
-                                    },
-                                       // Date To
+                                  },
+                                  // Date To
 
                                   child: AbsorbPointer(
                                     // Prevents manual input while allowing tap detection
@@ -528,7 +617,8 @@ TextEditingController _dateToController = TextEditingController();
                                 height: MediaQuery.of(context).size.width / 170,
                               ),
                               GestureDetector(
-                                onTap: _filterResults,
+                                onTap:
+                                    _clearFilters, // Use the new clear method here
                                 child: Container(
                                     width:
                                         MediaQuery.of(context).size.width / 10,
@@ -638,7 +728,7 @@ TextEditingController _dateToController = TextEditingController();
 
                     return Container(
                       color: Colors.white,
-                      child:  ListView.builder(
+                      child: ListView.builder(
                         itemCount: logs.length,
                         itemBuilder: (context, index) {
                           var log = logs[index];
