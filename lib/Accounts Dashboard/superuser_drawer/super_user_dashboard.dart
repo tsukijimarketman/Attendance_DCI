@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:attendance_app/analytical_report/reports.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -399,8 +400,7 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
   Widget _buildPageContent(int index) {
     switch (index) {
       case 0:
-        return const Text('Dashboard Page',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold));
+        return Reports();
       case 1:
         return const UserManagement();
       case 2:
