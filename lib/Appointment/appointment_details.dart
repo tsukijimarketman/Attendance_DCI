@@ -147,7 +147,8 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
     }
   }
 
-  Future<void> updateAppointmentStatus(String newStatus) async {
+  Future<void> updateAppointmentStatus(String newStatus,
+      {String? remark}) async {
     try {
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection('appointment')
@@ -160,13 +161,25 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
       if (querySnapshot.docs.isNotEmpty) {
         String docId = querySnapshot.docs.first.id;
 
+        Map<String, dynamic> updateData = {
+          'status': newStatus,
+        };
+
+        if (newStatus == 'Cancelled' && remark != null) {
+          updateData.addAll({
+            'remark': remark,
+            'cancelledBy': fullName,
+            'cancelledAt': FieldValue.serverTimestamp(),
+          });
+        }
+
         await FirebaseFirestore.instance
             .collection('appointment')
             .doc(docId)
-            .update({'status': newStatus});
+            .update(updateData);
 
         setState(() {
-          Status = newStatus; // Update UI
+          Status = newStatus;
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -401,7 +414,19 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
                                   pw.Text(attendee['email_address'] ?? 'N/A')),
                           pw.Padding(
                               padding: pw.EdgeInsets.all(5),
-                              child: pw.Text(attendee['contact_num'] ?? 'N/A')),
+                              child: pw.Text(
+  () {
+    final contact = attendee['contact_num'];
+    if (contact is List) {
+      return contact.join(', ');
+    } else if (contact is String) {
+      return contact;
+    } else {
+      return 'N/A';
+    }
+  }(),
+),
+                          ),
                           pw.Padding(
                             padding: pw.EdgeInsets.all(5),
                             child: pw.Align(
@@ -439,8 +464,17 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
         attendee['name'] ?? 'N/A',
         attendee['company'] ?? 'N/A',
         attendee['email_address'] ?? 'N/A',
-        attendee['contact_num'] ?? 'N/A',
-      ]);
+       (() {
+    final contact = attendee['contact_num'];
+    if (contact is List) {
+      return contact.join(', ');
+    } else if (contact is String) {
+      return contact;
+    } else {
+      return 'N/A';
+    }
+  })(),
+]);
     }
 
     // Convert to CSV String
@@ -495,6 +529,58 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
                   },
                 ),
               ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showCancelDialog() {
+    TextEditingController remarkController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Cancel Appointment"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("Please provide a reason for cancellation:"),
+              SizedBox(height: 12),
+              TextField(
+                controller: remarkController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  labelText: "Cancellation Remark",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              child: Text("Dismiss"),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            ElevatedButton(
+              child: Text("Confirm"),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () {
+                String remark = remarkController.text.trim();
+                if (remark.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Remark is required.")),
+                  );
+                  return;
+                }
+
+                Navigator.of(context).pop(); // Close dialog
+                updateAppointmentStatus('Cancelled',
+                    remark: remark); // 👈 Call update here
+              },
             ),
           ],
         );
@@ -779,6 +865,10 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
                                                 itemBuilder: (context, index) {
                                                   var attendee =
                                                       attendanceList[index];
+                                                  final List<dynamic> contacts =
+                                                      attendee["contact_num"] ??
+                                                          [];
+
                                                   return Padding(
                                                     padding: const EdgeInsets
                                                         .fromLTRB(50, 0, 50, 0),
@@ -796,7 +886,10 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
                                                             Text(
                                                                 "📧 Email: ${attendee["email_address"] ?? "N/A"}"),
                                                             Text(
-                                                                "📞 Contact: ${attendee["contact_num"] ?? "N/A"}"),
+                                                              contacts.isNotEmpty
+                                                                  ? "📞 Contact: ${contacts.join(', ')}"
+                                                                  : "📞 Contact: N/A",
+                                                            ),
                                                             Text(
                                                                 "🏢 Company: ${attendee["company"] ?? "N/A"}"),
                                                             Text(
@@ -863,23 +956,26 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
                                           Row(
                                             children: [
                                               IconButton(
-                                                  icon: Icon(
-                                                    Icons.close,
-                                                    color: Colors.red,
-                                                  ),
-                                                  onPressed: () {
-                                                    updateAppointmentStatus(
-                                                        "Cancelled");
-                                                  }),
+                                                icon: Icon(
+                                                  Icons.close,
+                                                  color: Colors.red,
+                                                ),
+                                                onPressed: Status == "Completed"
+                                                    ? null
+                                                    : _showCancelDialog,
+                                              ),
                                               IconButton(
                                                   icon: Icon(
                                                     Icons.check_sharp,
                                                     color: Colors.blue,
                                                   ),
-                                                  onPressed: () {
-                                                    updateAppointmentStatus(
-                                                        "Completed");
-                                                  }),
+                                                  onPressed:
+                                                      Status == "Cancelled"
+                                                          ? null
+                                                          : () {
+                                                              updateAppointmentStatus(
+                                                                  "Completed");
+                                                            }),
                                             ],
                                           ),
                                           Text("Current Status: ${Status}"),
@@ -889,9 +985,11 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
                                         children: [
                                           IconButton(
                                               icon: Icon(Icons.download_sharp),
-                                              onPressed: () {
-                                                showcsvpdfdialog();
-                                              }),
+                                              onPressed: Status == "Cancelled"
+                                                  ? null
+                                                  : () {
+                                                      showcsvpdfdialog();
+                                                    }),
                                           Text("Download Attendance")
                                         ],
                                       ),
@@ -900,7 +998,9 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
                                           IconButton(
                                               icon:
                                                   Icon(Icons.upload_file_sharp),
-                                              onPressed: () {}),
+                                              onPressed: Status == "Cancelled"
+                                                  ? null
+                                                  : () {}),
                                           Text("Upload File")
                                         ],
                                       ),

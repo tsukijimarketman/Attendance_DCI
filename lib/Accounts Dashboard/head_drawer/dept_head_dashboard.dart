@@ -1,5 +1,4 @@
 import 'package:attendance_app/Accounts%20Dashboard/head_drawer/all_dept_attendee.dart';
-import 'package:attendance_app/Appointment/appointment_details.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -21,20 +20,18 @@ class _DeptHeadState extends State<DeptHead> {
   @override
   void initState() {
     super.initState();
-      fetchUserDepartment(); // This will call updateAppointmentStatuses once completed
-
-}
-
-String formatDate(String timestamp) {
-  try {
-    DateTime parsedDate = DateTime.parse(timestamp);
-    return DateFormat("MMMM d yyyy 'at' h:mm a").format(parsedDate);
-  } catch (e) {
-    print("Error formatting date: $e");
-    return "Invalid date";
+    fetchUserDepartment(); // This will call updateAppointmentStatuses once completed
   }
-}
 
+  String formatDate(String timestamp) {
+    try {
+      DateTime parsedDate = DateTime.parse(timestamp);
+      return DateFormat("MMMM d yyyy 'at' h:mm a").format(parsedDate);
+    } catch (e) {
+      print("Error formatting date: $e");
+      return "Invalid date";
+    }
+  }
 
   Future<void> fetchUserDepartment() async {
     User? user = FirebaseAuth.instance.currentUser;
@@ -71,30 +68,30 @@ String formatDate(String timestamp) {
     String fullName = "$first_name $last_name".trim(); // Generate fullName
 
     return Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              GridView(
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2, 
-                  crossAxisSpacing: 12, 
-                  mainAxisSpacing: 12, 
-                  childAspectRatio: 1.2, 
-                ),
-                children: [
-                  buildStatusCard("Scheduled", "Scheduled", fullName),
-                  buildStatusCard("In Progress", "In Progress", fullName),
-                  buildStatusCard("Completed", "Completed", fullName),
-                  buildStatusCard("Cancelled", "Cancelled", fullName),
-                ],
+      padding: const EdgeInsets.all(16.0),
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            GridView(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.2,
               ),
-            ],
-          ),
+              children: [
+                buildStatusCard("Scheduled", "Scheduled", fullName),
+                buildStatusCard("In Progress", "In Progress", fullName),
+                buildStatusCard("Completed", "Completed", fullName),
+                buildStatusCard("Cancelled", "Cancelled", fullName),
+              ],
+            ),
+          ],
         ),
-      );
+      ),
+    );
   }
 
   Widget buildStatusCard(String title, String status, String fullName) {
@@ -106,7 +103,8 @@ String formatDate(String timestamp) {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(title,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             Divider(thickness: 1, color: Colors.black),
             Expanded(
               child: isLoading
@@ -118,7 +116,8 @@ String formatDate(String timestamp) {
                           .where('status', isEqualTo: status)
                           .snapshots(),
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
                           return Center(child: CircularProgressIndicator());
                         }
                         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -142,9 +141,13 @@ String formatDate(String timestamp) {
                         return ListView.builder(
                           itemCount: uniqueAppointments.length,
                           itemBuilder: (context, index) {
-                            var data = uniqueAppointments[index].data() as Map<String, dynamic>;
+                            var data = uniqueAppointments[index].data()
+                                as Map<String, dynamic>;
                             String agenda = data['agenda'] ?? 'N/A';
                             String createdBy = data['createdBy'] ?? 'N/A';
+                            String schedule = formatDate(data['schedule']);
+                            String? remark =
+                                data['remark']; // 👈 get remark if available
 
                             return Card(
                               color: Colors.grey.shade200,
@@ -152,20 +155,37 @@ String formatDate(String timestamp) {
                               child: ListTile(
                                 title: Text(
                                   createdBy,
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(agenda),
-                                Text("Scheduled: ${formatDate(data['schedule'])}"),                                  ],
+                                    Text("Scheduled: $schedule"),
+                                    if (status == "Cancelled" &&
+                                        remark != null &&
+                                        remark.isNotEmpty)
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(top: 4.0),
+                                        child: Text(
+                                          "Remark: $remark",
+                                          style: TextStyle(
+                                              fontStyle: FontStyle.italic,
+                                              color: Colors.redAccent),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                                 trailing: Icon(Icons.arrow_forward),
                                 onTap: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => DeptAttendee(selectedAgenda: agenda),
+                                      builder: (context) =>
+                                          DeptAttendee(selectedAgenda: agenda),
                                     ),
                                   );
                                 },

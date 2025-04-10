@@ -38,6 +38,7 @@ class SideBarXUsage extends StatelessWidget {
       items: [
         SidebarXItem(icon: Icons.dashboard, label: 'Dashboard'),
         SidebarXItem(icon: Icons.person_2, label: 'User Management'),
+        SidebarXItem(icon: Icons.person_4, label: 'Master List of Users'),
         SidebarXItem(icon: Icons.room_preferences, label: 'References'),
       ],
     );

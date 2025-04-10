@@ -1,9 +1,11 @@
 // ignore_for_file: unused_element
 
 import 'package:attendance_app/Auth/audit_function.dart';
+import 'package:attendance_app/widget/animated_textfield.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:toastification/toastification.dart';
 
 class References extends StatefulWidget {
   const References({super.key});
@@ -57,22 +59,22 @@ class _ReferencesState extends State<References> {
                               style: TextStyle(
                                   fontSize: 18, fontWeight: FontWeight.w600),
                             ),
-                            TextButton(
-                              style: ButtonStyle(
-                                backgroundColor:
-                                    MaterialStateProperty.all(Colors.amber),
-                                shape: MaterialStateProperty.all(
-                                    RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                )),
-                              ),
-                              onPressed: () => _showDialogAddCategory(context),
-                              child: Text(
-                                'Add Category',
-                                style: TextStyle(
-                                    fontSize: 12, color: Colors.black),
-                              ),
-                            ),
+                            // TextButton(
+                            //   style: ButtonStyle(
+                            //     backgroundColor:
+                            //         MaterialStateProperty.all(Colors.amber),
+                            //     shape: MaterialStateProperty.all(
+                            //         RoundedRectangleBorder(
+                            //       borderRadius: BorderRadius.circular(10),
+                            //     )),
+                            //   ),
+                            //   onPressed: () => _showDialogAddCategory(context),
+                            //   child: Text(
+                            //     'Add Category',
+                            //     style: TextStyle(
+                            //         fontSize: 12, color: Colors.black),
+                            //   ),
+                            // ),
                           ],
                         ),
                       ),
@@ -140,11 +142,11 @@ class _ReferencesState extends State<References> {
                                       selectedCategoryName = category["name"];
                                     });
                                   },
-                                  trailing: IconButton(
-                                    icon: Icon(Icons.delete, color: Colors.red),
-                                    onPressed: () =>
-                                        _deleteCategory(category.id),
-                                  ),
+                                  // trailing: IconButton(
+                                  //   icon: Icon(Icons.delete, color: Colors.red),
+                                  //   onPressed: () =>
+                                  //       _deleteCategory(category.id),
+                                  // ),
                                 );
                               },
                             );
@@ -180,7 +182,7 @@ class _ReferencesState extends State<References> {
                             TextButton(
                               style: ButtonStyle(
                                 backgroundColor:
-                                    MaterialStateProperty.all(Colors.amber),
+                                    MaterialStateProperty.all(Colors.blue),
                                 shape: MaterialStateProperty.all(
                                     RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
@@ -190,7 +192,7 @@ class _ReferencesState extends State<References> {
                               child: Text(
                                 'Add Data',
                                 style: TextStyle(
-                                    fontSize: 12, color: Colors.black),
+                                    fontSize: 12, color: Colors.white),
                               ),
                             ),
                           ],
@@ -224,6 +226,7 @@ class _ReferencesState extends State<References> {
                                   .collection("categories")
                                   .doc(selectedCategoryId)
                                   .collection("references")
+                                  .where('isDeleted', isEqualTo: false)
                                   .snapshots()
                               : null,
                           builder:
@@ -291,7 +294,7 @@ class _ReferencesState extends State<References> {
                                               icon: Icon(Icons.delete,
                                                   color: Colors.red),
                                               onPressed: () =>
-                                                  _deleteData(data.id),
+                                                  _showdialogDeleteData(data.id),
                                             ),
                                           ],
                                         )
@@ -320,22 +323,40 @@ class _ReferencesState extends State<References> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Edit Data"),
-          content: TextField(
+          title: Text("Edit Data List"),
+          
+          content: AnimatedTextField(
             controller: _editDataController,
-            decoration: InputDecoration(labelText: "Update Name"),
+            label: "Update Name",
+            suffix: null,
+            readOnly: false,
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text("Cancel"),
-            ),
-            TextButton(
-              onPressed: () {
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context), 
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text('Cancel', style: TextStyle(color: Colors.white),)),
+                ElevatedButton(
+                  onPressed: (){
                 _updateData(dataId, _editDataController.text);
-                Navigator.pop(context);
-              },
-              child: Text("Save"),
+                Navigator.pop(context);},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ), 
+                  ),
+                  child: Text('Confirm', style: TextStyle(color: Colors.white),),
+                )
+              ],
             ),
           ],
         );
@@ -361,9 +382,35 @@ class _ReferencesState extends State<References> {
     );
 
       setState(() => _selectedDataId = null); // Deselect after editing
+
+      toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: Icon(Icons.check_circle_outline, color: Colors.green),
+          title: Text('Updated Successfully'),
+          description: Text('Data updated successfully'),
+          type: ToastificationType.info,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
+        );
+        return;
+      
+    
     } catch (e) {
-      print("Error updating data: $e");
-    }
+      toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: Icon(Icons.error, color: Colors.red),
+          title: Text('Error'),
+          description: Text('Error updating data: $e'),
+          type: ToastificationType.error,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
+        );
+        return;
+      }
   }
 
   // Function to show Add Data dialog
@@ -382,23 +429,40 @@ class _ReferencesState extends State<References> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
+              AnimatedTextField(
                 controller: _nameController,
-                decoration: InputDecoration(labelText: "Enter Name"),
+                label: "Enter Name",
+                suffix: null,
+                readOnly: false,
               ),
             ],
           ),
           actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context), 
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text('Cancel', style: TextStyle(color: Colors.white),)),
+                ElevatedButton(
+                  onPressed: (){
                 _addData();
-                Navigator.pop(context);
-              },
-              child: Text('Save'),
+                Navigator.pop(context);},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ), 
+                  ),
+                  child: Text('Confirm', style: TextStyle(color: Colors.white),),
+                )
+              ],
             ),
           ],
         );
@@ -419,6 +483,7 @@ class _ReferencesState extends State<References> {
         .add({
       "name": _nameController.text,
       "timestamp": FieldValue.serverTimestamp(),
+      'isDeleted': false,
     });
 
     // ✅ Now docRef is defined, so we can use it in the log
@@ -426,9 +491,76 @@ class _ReferencesState extends State<References> {
       "Data Added",
       "Added new reference '${docRef.id}' under category '$selectedCategoryId' with name: ${_nameController.text}"
     );
+
+    toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: Icon(Icons.check_circle_outline, color: Colors.green),
+          title: Text('Created Successfully'),
+          description: Text('Data created successfully'),
+          type: ToastificationType.info,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
+        );
+        return;
+      
+    
+
     } catch (e) {
-      print("Error adding data: $e");
+      toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: Icon(Icons.error, color: Colors.red),
+          title: Text('Error'),
+          description: Text('Error updating data: $e'),
+          type: ToastificationType.error,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
+        );
+        return;
     }
+  }
+
+  void _showdialogDeleteData(String id){
+    showDialog(
+      context: context, 
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Delete Data"),
+          content: Text("Are you sure you want to delete this data?"),
+          actions: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context), 
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text('Cancel', style: TextStyle(color: Colors.white),)),
+                ElevatedButton(
+                  onPressed: (){
+                _deleteData(_selectedDataId!);
+                Navigator.pop(context);},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ), 
+                  ),
+                  child: Text('Confirm', style: TextStyle(color: Colors.white),),
+                )
+              ],
+            ),
+          ],
+        );
+      },
+    );
   }
 
   // Function to delete a data entry
@@ -441,22 +573,50 @@ class _ReferencesState extends State<References> {
           .doc(selectedCategoryId)
           .collection("references")
           .doc(id)
-          .delete();
+          .update({
+            "isDeleted": true,
+          });
 
            await logAuditTrail(
       "Data Deleted",
       "Deleted reference '$id' under category '$selectedCategoryId'"
     );
 
+      toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: Icon(Icons.check_circle_outline, color: Colors.green),
+          title: Text('Deleted Successfully'),
+          description: Text('Data deleted successfully'),
+          type: ToastificationType.info,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
+        );
+        return;
+      
+    
+
     } catch (e) {
-      print("Error deleting data: $e");
-    }
+      toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: Icon(Icons.error, color: Colors.red),
+          title: Text('Error'),
+          description: Text('Error updating data: $e'),
+          type: ToastificationType.error,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
+        );
+        return;
+      }
+    
   }
 
   // Function to show Add Category dialog
   void _showDialogAddCategory(BuildContext context) {
     _nameController.clear();
-
     showDialog(
       context: context,
       builder: (BuildContext context) {
