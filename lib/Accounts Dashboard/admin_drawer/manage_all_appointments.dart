@@ -112,6 +112,8 @@ String formatDate(String timestamp) {
                             var data = uniqueAppointments[index].data() as Map<String, dynamic>;
                             String agenda = data['agenda'] ?? 'N/A';
                             String createdBy = data['createdBy'] ?? 'N/A';
+                            String schedule = formatDate(data['schedule']);
+                            String? remark = data['remark']; // 👈 get remark if available
 
                             return Card(
                               color: Colors.grey.shade200,
@@ -125,7 +127,16 @@ String formatDate(String timestamp) {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(agenda),
-                                Text("Scheduled: ${formatDate(data['schedule'])}"),
+
+    Text("Scheduled: $schedule"),
+    if (status == "Cancelled" && remark != null && remark.isNotEmpty)
+      Padding(
+        padding: const EdgeInsets.only(top: 4.0),
+        child: Text(
+          "Remark: $remark",
+          style: TextStyle(fontStyle: FontStyle.italic, color: Colors.redAccent),
+        ),
+      ),     
                                   ],
                                 ),
                                 trailing: Icon(Icons.arrow_forward),

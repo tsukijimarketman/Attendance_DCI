@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:toastification/toastification.dart';
 
 class UserManagement extends StatefulWidget {
   const UserManagement({super.key});
@@ -51,6 +52,7 @@ class _UserManagementState extends State<UserManagement> {
             .collection("categories")
             .doc(departmentCategoryId)
             .collection("references")
+            .where('isDeleted', isEqualTo: false)
             .get();
 
         setState(() {
@@ -71,6 +73,7 @@ class _UserManagementState extends State<UserManagement> {
         stream: _firestore
             .collection("users")
             .where("status", isEqualTo: "pending")
+            .where("isDeleted", isEqualTo: false)
             .snapshots(),
         builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -110,7 +113,7 @@ class _UserManagementState extends State<UserManagement> {
                     ),
                     IconButton(
                       icon: Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _rejectUser(user.id),
+                      onPressed: () => _showDialogReject(user.id),
                     ),
                   ],
                 ),
@@ -123,106 +126,211 @@ class _UserManagementState extends State<UserManagement> {
   }
 
   void _showDialog(BuildContext context, DocumentSnapshot user) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return StatefulBuilder(
-        builder: (context, setState) {
-          bool requiresDepartment = !(selectedRoles == "Super User" || selectedRoles == "Admin");
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            bool requiresDepartment =
+                !(selectedRoles == "Super User" || selectedRoles == "Admin");
 
-          return CupertinoAlertDialog(
-            title: Text('Assign Role'),
-            content: Material(
-              color: Colors.transparent,
-              child: Column(
-                children: [
-                  DropdownButton<String>(
-                    value: selectedRoles, 
-                    onChanged: (String? newRole) {
-                      setState(() {
-                        selectedRoles = newRole!;
-                      });
-                    },
-                    items: rolesMap.keys
-                        .map<DropdownMenuItem<String>>((String displayValue) {
-                      return DropdownMenuItem<String>(
-                        value: displayValue,
-                        child: Text(displayValue),
-                      );
-                    }).toList(),
-                  ),
-                  
-                  // ✅ Show department dropdown only if required
-                  if (requiresDepartment)
-                    DropdownButtonFormField<String>(
-                      value: selectedDepartment,
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        contentPadding:
-                            EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+            return CupertinoAlertDialog(
+              title: Text(
+                'Assign Role',
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87),
+              ),
+              content: Material(
+                color: Colors.transparent,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: DropdownButtonFormField<String>(
+                        value: selectedRoles,
+                        onChanged: (String? newRole) {
+                          setState(() {
+                            selectedRoles = newRole!;
+                          });
+                        },
+                        isExpanded: true,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
+                        decoration: InputDecoration(
+                          contentPadding: EdgeInsets.symmetric(
+                            vertical: 15,
+                            horizontal: 10,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.0),
+                            borderSide: BorderSide(color: Colors.grey),
+                          ),
+                        ),
+                        items: rolesMap.keys.map<DropdownMenuItem<String>>(
+                            (String displayValue) {
+                          return DropdownMenuItem<String>(
+                            value: displayValue,
+                            child: Text(displayValue),
+                          );
+                        }).toList(),
                       ),
-                      items: departmentList.map((String department) {
-                        return DropdownMenuItem<String>(
-                          value: department,
-                          child: Text(department, style: TextStyle(fontSize: 18)),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          selectedDepartment = newValue;
-                        });
-                      },
-                      hint: Text("Select Department",
-                          style: TextStyle(fontSize: 18, color: Colors.black54)),
                     ),
-                ],
-              ),
-            ),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  // ✅ Prevent saving if a department is required but not selected
-                  if (requiresDepartment && selectedDepartment == null) {
-                    _showErrorDialog(context, "Please select a department.");
-                    return;
-                  }
 
-                  Navigator.pop(context);
-                  _approveUser(user);
-                },
-                child: Text('Save'),
+                    // ✅ Show department dropdown only if required
+                    if (requiresDepartment)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: DropdownButtonFormField<String>(
+                          value: selectedDepartment,
+                          decoration: InputDecoration(
+                            contentPadding: EdgeInsets.symmetric(
+                              vertical: 15,
+                              horizontal: 10,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8.0),
+                              borderSide: BorderSide(color: Colors.grey),
+                            ),
+                          ),
+                          items: departmentList.map((String department) {
+                            return DropdownMenuItem<String>(
+                              value: department,
+                              child: Text(department,
+                                  style: TextStyle(fontSize: 18)),
+                            );
+                          }).toList(),
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              selectedDepartment = newValue;
+                            });
+                          },
+                          hint: Text("Select Department",
+                              style: TextStyle(
+                                  fontSize: 18, color: Colors.black54)),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ],
-          );
-        },
-      );
-    },
-  );
-}
+              actions: <Widget>[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Colors.red, // Set the background color to red
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(color: Colors.white),
+                        )),
+                    ElevatedButton(
+                        onPressed: () {
+                          // ✅ Prevent saving if a department is required but not selected
+                          if (requiresDepartment &&
+                              selectedDepartment == null) {
+                            _showErrorDialog(
+                                context, "Please select a department.");
+                            return;
+                          }
+
+                          Navigator.pop(context);
+                          _approveUser(user);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Colors.blue, // Set the background color to red
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: Text(
+                          'Confirm',
+                          style: TextStyle(color: Colors.white),
+                        ))
+                  ],
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 
 // ✅ Helper function to show an error dialog
-void _showErrorDialog(BuildContext context, String message) {
-  showDialog(
-    context: context,
-    builder: (context) {
-      return CupertinoAlertDialog(
-        title: Text('Error'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
-          ),
-        ],
-      );
-    },
-  );
-}
+  void _showErrorDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return CupertinoAlertDialog(
+          title: Text('Error'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
+  void _showDialogReject(String userId) {
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Reject this User?'),
+            content: Text('Do you want to reject this user?'),
+            actions: [
+              Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        Colors.red, // Set the background color to red
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    _rejectUser(userId);
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        Colors.blue, // Set the background color to red
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text(
+                    'Confirm',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ])
+            ],
+          );
+        });
+  }
 
   Future<void> _approveUser(DocumentSnapshot user) async {
     try {
@@ -232,60 +340,79 @@ void _showErrorDialog(BuildContext context, String message) {
       // Decrypt password before using it
       String decryptedPassword =
           EncryptionHelper.decryptPassword(encryptedPassword);
-      
-           final options = Firebase.app().options;
-    final tempAppName = 'tempApp-${DateTime.now().millisecondsSinceEpoch}';
-    
-    // Initialize a temporary Firebase app
-    final tempApp = await Firebase.initializeApp(
-      name: tempAppName,
-      options: FirebaseOptions(
-        apiKey: options.apiKey,
-        appId: options.appId,
-        messagingSenderId: options.messagingSenderId,
-        projectId: options.projectId,
-        authDomain: options.authDomain,
-        storageBucket: options.storageBucket,
-      ),
-    );
-      // Create a new user in the temporary app
-    try {
-      final tempAuth = FirebaseAuth.instanceFor(app: tempApp);
 
-     final userCredential = await tempAuth.createUserWithEmailAndPassword(
-        email: email.trim(),
-        password: decryptedPassword,  // Use decrypted password from Firestore
+      final options = Firebase.app().options;
+      final tempAppName = 'tempApp-${DateTime.now().millisecondsSinceEpoch}';
+
+      // Initialize a temporary Firebase app
+      final tempApp = await Firebase.initializeApp(
+        name: tempAppName,
+        options: FirebaseOptions(
+          apiKey: options.apiKey,
+          appId: options.appId,
+          messagingSenderId: options.messagingSenderId,
+          projectId: options.projectId,
+          authDomain: options.authDomain,
+          storageBucket: options.storageBucket,
+        ),
       );
+      // Create a new user in the temporary app
+      try {
+        final tempAuth = FirebaseAuth.instanceFor(app: tempApp);
 
-      String newUid = userCredential.user!.uid;
+        final userCredential = await tempAuth.createUserWithEmailAndPassword(
+          email: email.trim(),
+          password: decryptedPassword, // Use decrypted password from Firestore
+        );
 
-      // Sign out from the temporary auth instance
-      await tempAuth.signOut();
+        String newUid = userCredential.user!.uid;
 
-      // Update Firestore record
-      await _firestore.collection("users").doc(user.id).update({
-        "uid": newUid,
-        "status": "active",
-        "password": FieldValue.delete(), // Remove password for security
-        "roles": rolesMap[selectedRoles],
-        "department": selectedDepartment,
-      });
+        // Sign out from the temporary auth instance
+        await tempAuth.signOut();
 
+        // Update Firestore record
+        await _firestore.collection("users").doc(user.id).update({
+          "uid": newUid,
+          "status": "active",
+          "password": FieldValue.delete(), // Remove password for security
+          "roles": rolesMap[selectedRoles],
+          "department": selectedDepartment,
+        });
 
-      await logAuditTrail("User Approved",
-          "Super User approved user $email and assigned to department: $selectedDepartment with role: ${rolesMap[selectedRoles]}");
+        await logAuditTrail("User Approved",
+            "Super User approved user $email and assigned to department: $selectedDepartment with role: ${rolesMap[selectedRoles]}");
 
-     _showMessage("User approved and account created successfully!");
-
-    } finally {
-      // Clean up: delete temporary app
-      await tempApp.delete();
+        toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: Icon(Icons.check_circle_outline, color: Colors.blue),
+          title: Text('User Approved!'),
+          description: Text('User approved and account created successfully!'),
+          type: ToastificationType.success,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
+        );
+        return;
+      } finally {
+        // Clean up: delete temporary app
+        await tempApp.delete();
+      }
+    } catch (e) {
+      toastification.show(
+        context: context,
+        alignment: Alignment.topRight,
+        icon: Icon(Icons.error, color: Colors.red),
+        title: Text('Error approving!'),
+        description: Text('Error approving user: ${e.toString()}'),
+        type: ToastificationType.error,
+        style: ToastificationStyle.flatColored,
+        autoCloseDuration: const Duration(seconds: 3),
+        animationDuration: const Duration(milliseconds: 300),
+      );
+      return;
     }
-
-  } catch (e) {
-    _showMessage("Error approving user: ${e.toString()}");
   }
-}
 
   void _rejectUser(String userId) async {
     try {
@@ -294,7 +421,16 @@ void _showErrorDialog(BuildContext context, String message) {
           await _firestore.collection("users").doc(userId).get();
 
       if (!userSnapshot.exists) {
-        _showMessage("User not found!");
+        toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: Icon(Icons.error, color: Colors.red),
+          title: Text('User not found!'),
+          type: ToastificationType.error,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
+        );
         return;
       }
 
@@ -314,20 +450,41 @@ void _showErrorDialog(BuildContext context, String message) {
       }
 
       // Delete from Firestore
-      await _firestore.collection("users").doc(userId).delete();
+      await _firestore.collection("users").doc(userId).update({
+        "isDeleted": true, // Mark user as deleted
+        "deletedAt": FieldValue
+            .serverTimestamp(), // Optionally track when the user was marked as deleted
+      });
 
       await logAuditTrail("User Rejected",
           "Superuser rejected user registration for email: $email");
 
-      _showMessage("User rejected and removed from the system.");
+      toastification.show(
+        context: context,
+        alignment: Alignment.topRight,
+        icon: Icon(Icons.error, color: Colors.red),
+        title: Text('User Rejected!'),
+        description:
+            Text('User has been rejected and removed from the system.'),
+        type: ToastificationType.error,
+        style: ToastificationStyle.flatColored,
+        autoCloseDuration: const Duration(seconds: 3),
+        animationDuration: const Duration(milliseconds: 300),
+      );
+      return;
     } catch (e) {
-      _showMessage("Error rejecting user: ${e.toString()}");
+      toastification.show(
+        context: context,
+        alignment: Alignment.topRight,
+        icon: Icon(Icons.error, color: Colors.red),
+        title: Text('Error rejecting!'),
+        description: Text('Error rejecting user: ${e.toString()}'),
+        type: ToastificationType.error,
+        style: ToastificationStyle.flatColored,
+        autoCloseDuration: const Duration(seconds: 3),
+        animationDuration: const Duration(milliseconds: 300),
+      );
+      return;
     }
-  }
-
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
   }
 }

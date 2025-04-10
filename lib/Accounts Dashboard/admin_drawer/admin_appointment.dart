@@ -13,7 +13,7 @@ class AdminAppointment extends StatefulWidget {
 }
 
 class _AdminAppointmentState extends State<AdminAppointment> {
-    String userDepartment = '';
+  String userDepartment = '';
   String first_name = '';
   String last_name = '';
   bool isLoading = true;
@@ -21,62 +21,60 @@ class _AdminAppointmentState extends State<AdminAppointment> {
   @override
   void initState() {
     super.initState();
-      fetchUserDepartment(); // This will call updateAppointmentStatuses once completed
-
-}
+    fetchUserDepartment(); // This will call updateAppointmentStatuses once completed
+  }
 
 // Function to check and update appointment statuses
-Future<void> updateAppointmentStatuses() async {
-  try {
-    // Get all scheduled appointments for the user's department
-    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-        .collection('appointment')
-        .where('department', isEqualTo: userDepartment)
-        .where('status', isEqualTo: "Scheduled") // Only check scheduled ones
-        .get();
+  Future<void> updateAppointmentStatuses() async {
+    try {
+      // Get all scheduled appointments for the user's department
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('appointment')
+          .where('department', isEqualTo: userDepartment)
+          .where('status', isEqualTo: "Scheduled") // Only check scheduled ones
+          .get();
 
-    DateTime now = DateTime.now();
+      DateTime now = DateTime.now();
 
-    for (var doc in querySnapshot.docs) {
-      var data = doc.data() as Map<String, dynamic>;
+      for (var doc in querySnapshot.docs) {
+        var data = doc.data() as Map<String, dynamic>;
 
-      if (data['schedule'] != null) {
-        DateTime? appointmentDate = _parseSchedule(data['schedule']);
+        if (data['schedule'] != null) {
+          DateTime? appointmentDate = _parseSchedule(data['schedule']);
 
-        if (appointmentDate != null && appointmentDate.isBefore(now)) {
-          // If the scheduled date has passed, update status to "In Progress"
-          await FirebaseFirestore.instance
-              .collection('appointment')
-              .doc(doc.id)
-              .update({'status': "In Progress"});
-          print("Updated ${data['agenda']} to In Progress");
+          if (appointmentDate != null && appointmentDate.isBefore(now)) {
+            // If the scheduled date has passed, update status to "In Progress"
+            await FirebaseFirestore.instance
+                .collection('appointment')
+                .doc(doc.id)
+                .update({'status': "In Progress"});
+            print("Updated ${data['agenda']} to In Progress");
+          }
         }
       }
+    } catch (e) {
+      print("Error updating appointment statuses: $e");
     }
-  } catch (e) {
-    print("Error updating appointment statuses: $e");
   }
-}
 
-
-DateTime? _parseSchedule(String schedule) {
-  try {
-    return DateTime.tryParse(schedule)?.toLocal(); // Convert from ISO format
-  } catch (e) {
-    print("Error parsing schedule: $e | Input: $schedule");
-    return null;
+  DateTime? _parseSchedule(String schedule) {
+    try {
+      return DateTime.tryParse(schedule)?.toLocal(); // Convert from ISO format
+    } catch (e) {
+      print("Error parsing schedule: $e | Input: $schedule");
+      return null;
+    }
   }
-}
 
-String formatDate(String timestamp) {
-  try {
-    DateTime parsedDate = DateTime.parse(timestamp);
-    return DateFormat("MMMM d yyyy 'at' h:mm a").format(parsedDate);
-  } catch (e) {
-    print("Error formatting date: $e");
-    return "Invalid date";
+  String formatDate(String timestamp) {
+    try {
+      DateTime parsedDate = DateTime.parse(timestamp);
+      return DateFormat("MMMM d yyyy 'at' h:mm a").format(parsedDate);
+    } catch (e) {
+      print("Error formatting date: $e");
+      return "Invalid date";
+    }
   }
-}
 
   Future<void> fetchUserDepartment() async {
     User? user = FirebaseAuth.instance.currentUser;
@@ -99,7 +97,7 @@ String formatDate(String timestamp) {
             last_name = userData['last_name'] ?? "";
             isLoading = false;
           });
-                  
+
           updateAppointmentStatuses();
         } else {
           setState(() => isLoading = false);
@@ -117,30 +115,30 @@ String formatDate(String timestamp) {
     String fullName = "$first_name $last_name".trim(); // Generate fullName
 
     return Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              GridView(
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2, 
-                  crossAxisSpacing: 12, 
-                  mainAxisSpacing: 12, 
-                  childAspectRatio: 1.2, 
-                ),
-                children: [
-                  buildStatusCard("Scheduled", "Scheduled", fullName),
-                  buildStatusCard("In Progress", "In Progress", fullName),
-                  buildStatusCard("Completed", "Completed", fullName),
-                  buildStatusCard("Cancelled", "Cancelled", fullName),
-                ],
+      padding: const EdgeInsets.all(16.0),
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            GridView(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.2,
               ),
-            ],
-          ),
+              children: [
+                buildStatusCard("Scheduled", "Scheduled", fullName),
+                buildStatusCard("In Progress", "In Progress", fullName),
+                buildStatusCard("Completed", "Completed", fullName),
+                buildStatusCard("Cancelled", "Cancelled", fullName),
+              ],
+            ),
+          ],
         ),
-      );
+      ),
+    );
   }
 
   Widget buildStatusCard(String title, String status, String fullName) {
@@ -152,7 +150,8 @@ String formatDate(String timestamp) {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(title,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             Divider(thickness: 1, color: Colors.black),
             Expanded(
               child: isLoading
@@ -165,7 +164,8 @@ String formatDate(String timestamp) {
                           .where('status', isEqualTo: status)
                           .snapshots(),
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
                           return Center(child: CircularProgressIndicator());
                         }
                         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -189,8 +189,12 @@ String formatDate(String timestamp) {
                         return ListView.builder(
                           itemCount: uniqueAppointments.length,
                           itemBuilder: (context, index) {
-                            var data = uniqueAppointments[index].data() as Map<String, dynamic>;
+                            var data = uniqueAppointments[index].data()
+                                as Map<String, dynamic>;
                             String agenda = data['agenda'] ?? 'N/A';
+                            String schedule = formatDate(data['schedule']);
+                            String? remark =
+                                data['remark']; // 👈 get remark if available
 
                             return Card(
                               color: Colors.grey.shade200,
@@ -198,15 +202,36 @@ String formatDate(String timestamp) {
                               child: ListTile(
                                 title: Text(
                                   agenda,
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
                                 ),
-                                subtitle: Text("Scheduled: ${formatDate(data['schedule'])}"),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text("Scheduled: $schedule"),
+                                    if (status == "Cancelled" &&
+                                        remark != null &&
+                                        remark.isNotEmpty)
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(top: 4.0),
+                                        child: Text(
+                                          "Remark: $remark",
+                                          style: TextStyle(
+                                              fontStyle: FontStyle.italic,
+                                              color: Colors.redAccent),
+                                        ),
+                                      ),
+                                  ],
+                                ),
                                 trailing: Icon(Icons.arrow_forward),
                                 onTap: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => AppointmentDetails(selectedAgenda: agenda),
+                                      builder: (context) => AppointmentDetails(
+                                          selectedAgenda: agenda),
                                     ),
                                   );
                                 },

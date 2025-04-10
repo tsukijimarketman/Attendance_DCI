@@ -5,6 +5,7 @@ import 'package:attendance_app/widget/animated_textfield.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:toastification/toastification.dart';
 
 class AddClient extends StatefulWidget {
   const AddClient({super.key});
@@ -30,43 +31,237 @@ class _AddClientState extends State<AddClient> {
     }
 
     void _addGuest() async {
+      if (fullName.text.trim().isEmpty ||
+          contactNum.text.trim().isEmpty ||
+          emailAdd.text.trim().isEmpty ||
+          companyName.text.trim().isEmpty) {
+        toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: Icon(Icons.error, color: Colors.red),
+          title: Text('Missing Fields'),
+          description: Text('All fields are required.'),
+          type: ToastificationType.error,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
+        );
+        return;
+      }
+
+      if (contactNum.text.length < 11) {
+        toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: Icon(Icons.error, color: Colors.red),
+          title: Text('Invalid Contact Number'),
+          description: Text('Contact number must be 11 digits.'),
+          type: ToastificationType.error,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
+        );
+        return;
+      }
+
+      final emailRegex = RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
+
+      if (!emailRegex.hasMatch(emailAdd.text.trim())) {
+        toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: Icon(Icons.error, color: Colors.red),
+          title: Text('Invalid Email'),
+          description: Text('Please enter a valid email address.'),
+          type: ToastificationType.error,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
+        );
+        return;
+      }
+
       await _firestore.collection('clients').add({
         'fullName': fullName.text,
         'contactNum': contactNum.text,
         'emailAdd': emailAdd.text,
         'companyName': companyName.text,
+        'isDeleted': false,
       });
-      
-  await logAuditTrail(
-      "Added Guest",
-      "User added guest ${fullName.text} (Email: ${emailAdd.text})"
-  );
+
+      await logAuditTrail(
+        "Added Guest",
+        "User added guest ${fullName.text} (Email: ${emailAdd.text})",
+      );
       _clearFields();
+
+      toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: Icon(Icons.check_circle_outline, color: Colors.green),
+          title: Text('Created Successfully'),
+          description: Text('Client created successfully'),
+          type: ToastificationType.info,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
+        );
+        return;
+      
+    
     }
 
     void _updateGuest(String docId, String name, String contact, String email,
         String company) async {
+         if (fullName.text.trim().isEmpty ||
+          contactNum.text.trim().isEmpty ||
+          emailAdd.text.trim().isEmpty ||
+          companyName.text.trim().isEmpty) {
+        toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: Icon(Icons.error, color: Colors.red),
+          title: Text('Missing Fields'),
+          description: Text('All fields are required.'),
+          type: ToastificationType.error,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
+        );
+        return;
+      }
+
+      if (contactNum.text.length < 11) {
+        toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: Icon(Icons.error, color: Colors.red),
+          title: Text('Invalid Contact Number'),
+          description: Text('Contact number must be 11 digits.'),
+          type: ToastificationType.error,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
+        );
+        return;
+      }
+
+      final emailRegex = RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
+
+      if (!emailRegex.hasMatch(emailAdd.text.trim())) {
+        toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: Icon(Icons.error, color: Colors.red),
+          title: Text('Invalid Email'),
+          description: Text('Please enter a valid email address.'),
+          type: ToastificationType.error,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
+        );
+        return;
+      }
+
       await _firestore.collection('clients').doc(docId).update({
         'fullName': name,
         'contactNum': contact,
         'emailAdd': email,
         'companyName': company,
       });
-       await logAuditTrail(
-      "Updated Guest",
-      "User updated guest $name (Email: $email)"
-  );
+      await logAuditTrail(
+          "Updated Guest", "User updated guest $name (Email: $email)");
       _clearFields();
+
+      toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: Icon(Icons.check_circle_outline, color: Colors.green),
+          title: Text('Updated Successfully'),
+          description: Text('Client updated successfully'),
+          type: ToastificationType.info,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
+        );
+        return;
+      
+    
     }
 
     void _deleteGuest(String docId, String guestName, String guestEmail) async {
-  await _firestore.collection('clients').doc(docId).delete();
+      await _firestore.collection('clients').doc(docId).update({
+        'isDeleted': true,
+      });
 
-  await logAuditTrail(
-      "Deleted Guest",
-      "User deleted guest $guestName (Email: $guestEmail)"
-  );
-}
+      await logAuditTrail("Deleted Guest",
+          "User deleted guest $guestName (Email: $guestEmail)");
+
+      toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: Icon(Icons.check_circle_outline, color: Colors.green),
+          title: Text('Deleted Successfully'),
+          description: Text('Data deleted successfully'),
+          type: ToastificationType.info,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
+        );
+        return;
+      
+    
+    }
+
+    void _showdialogDelete(String docId, String guestName, String guestEmail) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text("Delete Client"),
+            content: Text("Are you sure you want to delete this client?"),
+            actions: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: Text(
+                      "Cancel",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: () {
+                      _deleteGuest(docId, guestName, guestEmail);
+                      Navigator.pop(context);
+                    },
+                    child: Text(
+                      "Delete",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+      );
+    }
 
     void _showdialogUpdate(String docId, Map<String, dynamic> data) {
       TextEditingController updateFullName =
@@ -84,17 +279,14 @@ class _AddClientState extends State<AddClient> {
             return AlertDialog(
               title: Text("Update Details"),
               content: Column(
-                mainAxisSize:
-                    MainAxisSize.min,
-
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
                     height: 50,
                     width: 400,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      color: Colors.grey[
-                          200],
+                      color: Colors.grey[200],
                     ),
                     child: AnimatedTextField(
                       label: "Enter Full Name",
@@ -110,8 +302,7 @@ class _AddClientState extends State<AddClient> {
                     width: 400,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      color: Colors.grey[
-                          200],
+                      color: Colors.grey[200],
                     ),
                     child: AnimatedTextField(
                       label: "Enter Contact Number",
@@ -127,8 +318,7 @@ class _AddClientState extends State<AddClient> {
                     width: 400,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      color: Colors.grey[
-                          200],
+                      color: Colors.grey[200],
                     ),
                     child: AnimatedTextField(
                       label: "Enter Email Address",
@@ -144,8 +334,7 @@ class _AddClientState extends State<AddClient> {
                     width: 400,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      color: Colors.grey[
-                          200], 
+                      color: Colors.grey[200],
                     ),
                     child: AnimatedTextField(
                       label: "Enter Company Name",
@@ -161,22 +350,95 @@ class _AddClientState extends State<AddClient> {
                 ],
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text("Cancel"),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        "Cancel",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        _updateGuest(
+                            docId,
+                            updateFullName.text,
+                            updateContactNum.text,
+                            updateEmailAdd.text,
+                            updateCompanyName.text);
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        "Confirm",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
                 ),
-                TextButton(
-                  onPressed: () {
-                    _updateGuest(
-                        docId,
-                        updateFullName.text,
-                        updateContactNum.text,
-                        updateEmailAdd.text,
-                        updateCompanyName
-                            .text);
-                    Navigator.pop(context);
-                  },
-                  child: Text("Save"),
+              ],
+            );
+          });
+    }
+
+    void _showdialogAddGuest() {
+      showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text("Add Client"),
+              content: Text('Are you sure you want to add this client?'),
+              actions: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        "Cancel",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        _addGuest();
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        "Add",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             );
@@ -192,7 +454,11 @@ class _AddClientState extends State<AddClient> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text("Add Guest Details"),
+              Text("Clients Information",
+                  style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black)),
               SizedBox(
                 height: 8,
               ),
@@ -201,8 +467,7 @@ class _AddClientState extends State<AddClient> {
                 width: 400,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  color: Colors.grey[
-                      200], 
+                  color: Colors.grey[200],
                 ),
                 child: AnimatedTextField(
                   label: "Enter Full Name",
@@ -218,8 +483,7 @@ class _AddClientState extends State<AddClient> {
                 width: 400,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  color: Colors.grey[
-                      200],
+                  color: Colors.grey[200],
                 ),
                 child: AnimatedTextField(
                   label: "Enter Contact Number",
@@ -235,8 +499,7 @@ class _AddClientState extends State<AddClient> {
                 width: 400,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  color: Colors.grey[
-                      200], 
+                  color: Colors.grey[200],
                 ),
                 child: AnimatedTextField(
                   label: "Enter Email Address",
@@ -252,8 +515,7 @@ class _AddClientState extends State<AddClient> {
                 width: 400,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  color: Colors.grey[
-                      200],
+                  color: Colors.grey[200],
                 ),
                 child: AnimatedTextField(
                   label: "Enter Company Name",
@@ -264,10 +526,22 @@ class _AddClientState extends State<AddClient> {
                 ),
               ),
               SizedBox(height: 8),
-              ElevatedButton(
-                onPressed: () =>
-                    _addGuest(),
-                child: Text('Save'),
+              SizedBox(
+                height: 50,
+                width: 400,
+                child: ElevatedButton(
+                  onPressed: () => _showdialogAddGuest(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text(
+                    'Save',
+                    style: TextStyle(color: Colors.white, fontSize: 20),
+                  ),
+                ),
               ),
               SizedBox(
                 height: 10,
@@ -284,7 +558,10 @@ class _AddClientState extends State<AddClient> {
             children: [
               Expanded(
                 child: StreamBuilder<QuerySnapshot>(
-                  stream: _firestore.collection('clients').snapshots(),
+                  stream: _firestore
+                      .collection('clients')
+                      .where('isDeleted', isEqualTo: false)
+                      .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return Center(child: CircularProgressIndicator());
@@ -320,7 +597,8 @@ class _AddClientState extends State<AddClient> {
                                 ),
                                 IconButton(
                                   icon: Icon(Icons.delete, color: Colors.red),
-                                  onPressed: () => _deleteGuest(doc.id, doc['fullName'], doc['emailAdd']),
+                                  onPressed: () => _showdialogDelete(
+                                      doc.id, doc['fullName'], doc['emailAdd']),
                                 ),
                               ],
                             ),

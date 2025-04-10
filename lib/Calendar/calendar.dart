@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async'; // Needed for Completer
@@ -16,6 +15,7 @@ class GoogleCalendarService {
 
   final _secureStorage = FlutterSecureStorage(); // For mobile
   // You can also use SharedPreferences for web if needed
+  
 
    // For web, we can use SharedPreferences.
   
@@ -111,9 +111,69 @@ class GoogleCalendarService {
   }
 }
 
+Future<void> updateCalendarEvent(
+    String accessToken,
+    String eventId,
+    String title,
+    DateTime start,
+    DateTime end,
+    List<String> attendees) async {
+
+  final url = Uri.parse("https://www.googleapis.com/calendar/v3/calendars/primary/events/$eventId");
+
+  final event = {
+    "summary": title,
+    "start": {
+      "dateTime": start.toUtc().toIso8601String(),
+      "timeZone": "Asia/Manila",
+    },
+    "end": {
+      "dateTime": end.toUtc().toIso8601String(),
+      "timeZone": "Asia/Manila",
+    },
+    "attendees": attendees.map((email) => {"email": email}).toList(),
+  };
+
+  final response = await http.put(
+    url,
+    headers: {
+      "Authorization": "Bearer $accessToken",
+      "Content-Type": "application/json",
+    },
+    body: json.encode(event),
+  );
+
+  if (response.statusCode == 200) {
+    print("✅ Event Updated Successfully!");
+  } else {
+    print("❌ Failed to update event: ${response.body}");
+  }
+}
+
+
+  // Delete existing Google Calendar event
+  Future<void> deleteEvent(String eventId, String accessToken) async {
+  final url = Uri.parse("https://www.googleapis.com/calendar/v3/calendars/primary/events/$eventId");
+
+  final response = await http.delete(
+    url,
+    headers: {
+      "Authorization": "Bearer $accessToken",
+    },
+  );
+
+  if (response.statusCode == 204) {
+    // Event successfully deleted
+    print("✅ Event deleted successfully");
+  } else {
+    // Handle the error
+    print("❌ Failed to delete event: ${response.body}");
+  }
+}
+
 
   // Create Google Calendar event
-  Future<void> createCalendarEvent(
+  Future<String?> createCalendarEvent(
   String accessToken, 
   String title, 
   DateTime start, 
@@ -145,9 +205,14 @@ class GoogleCalendarService {
   );
 
   if (response.statusCode == 200 || response.statusCode == 201) {
-    print("✅ Event Created Successfully!");
+    final data = json.decode(response.body);
+    String eventId = data['id'];  // Extract the event ID from the response
+    print("✅ Event Created Successfully with ID: $eventId");
+    return eventId;  // Return the event ID
   } else {
     print("❌ Failed to create event: ${response.body}");
+    return null;  // Return null if creation fails
   }
 }
+
 }

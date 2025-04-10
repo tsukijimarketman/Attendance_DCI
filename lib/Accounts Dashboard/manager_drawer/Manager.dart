@@ -21,7 +21,6 @@ class _ManagerDashState extends State<ManagerDash> {
   void initState() {
     super.initState();
       fetchUserDepartment(); // This will call updateAppointmentStatuses once completed
-
 }
 
 // Function to check and update appointment statuses
@@ -191,6 +190,8 @@ DateTime? _parseSchedule(String schedule) {
                           itemBuilder: (context, index) {
                             var data = uniqueAppointments[index].data() as Map<String, dynamic>;
                             String agenda = data['agenda'] ?? 'N/A';
+                            String schedule = formatDate(data['schedule']);
+                            String? remark = data['remark']; // 👈 get remark if available
 
                             return Card(
                               color: Colors.grey.shade200,
@@ -200,7 +201,20 @@ DateTime? _parseSchedule(String schedule) {
                                   agenda,
                                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                 ),
-                                subtitle: Text("Scheduled: ${formatDate(data['schedule'])}"),
+                                subtitle: Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    Text("Scheduled: $schedule"),
+    if (status == "Cancelled" && remark != null && remark.isNotEmpty)
+      Padding(
+        padding: const EdgeInsets.only(top: 4.0),
+        child: Text(
+          "Remark: $remark",
+          style: TextStyle(fontStyle: FontStyle.italic, color: Colors.redAccent),
+        ),
+      ),
+  ],
+),
                                 trailing: Icon(Icons.arrow_forward),
                                 onTap: () {
                                   Navigator.push(
