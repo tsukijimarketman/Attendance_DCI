@@ -48,33 +48,20 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
     try {
       String fullName = "$firstName $lastName".trim();
       String agendaText = agendaController.text.trim();
+      String scheduleText =
+          scheduleController.text.trim(); // Log the schedule value
+      String descriptionText = descriptionAgendaController.text.trim();
+      // Copy selectedGuests to a local variable to avoid side effects
+      List<Map<String, dynamic>> localSelectedGuests =
+          List.from(selectedGuests ?? []);
 
-      List<String> guestEmails = (selectedGuests ?? [])
+      List<String> guestEmails = localSelectedGuests
           .map((guest) => guest['emailAdd'] as String?)
           .whereType<String>()
           .toList();
 
-      DateTime startDateTime =
-          DateTime.parse(scheduleController.text); // This should work now!
+      DateTime startDateTime = DateTime.parse(scheduleController.text);
       DateTime endDateTime = startDateTime.add(Duration(hours: 1));
-
-      // Store appointment in Firestore
-      await FirebaseFirestore.instance.collection('appointment').add({
-        'agenda': agendaText,
-        'department': departmentController.text,
-        'schedule': scheduleController.text,
-        'agendaDescript': descriptionAgendaController.text,
-        'guest': selectedGuests,
-        'internal_users': selectedUsers,
-        'status': 'Scheduled',
-        'createdBy': fullName
-      });
-
-      await logAuditTrail("Created Appointment",
-          "User $fullName scheduled an appointment with agenda: $agendaText");
-
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Form submitted successfully!")));
 
       // 🌟 Retrieve or Authenticate Google Token
       GoogleCalendarService googleCalendarService = GoogleCalendarService();
@@ -86,10 +73,8 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
         return;
       }
 
-      print("✅ Using Access Token: $accessToken");
-
-      // 🌟 Create Google Calendar Event
-      await googleCalendarService.createCalendarEvent(
+      // 🌟 Create Google Calendar Event and get the eventId
+      String? eventId = await googleCalendarService.createCalendarEvent(
         accessToken,
         agendaText,
         startDateTime,
@@ -97,9 +82,33 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
         guestEmails,
       );
 
+      if (eventId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Failed to create event on Google Calendar")));
+        return;
+      }
+
+      // Store appointment in Firestore, including the eventId
+      await FirebaseFirestore.instance.collection('appointment').add({
+        'agenda': agendaText,
+        'department': departmentController.text,
+        'schedule': scheduleText, // Ensure schedule value is being passed here
+        'agendaDescript': descriptionText,
+        'guest': localSelectedGuests, // Store local copy of selected guests
+        'internal_users': selectedUsers,
+        'status': 'Scheduled',
+        'createdBy': fullName,
+        'googleEventId': eventId, // Store the eventId after creating the event
+      });
+
+      await logAuditTrail("Created Appointment",
+          "User $fullName scheduled an appointment with agenda: $agendaText");
+
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Form submitted successfully!")));
+
       clearText();
     } catch (e) {
-      print("❌ Error in submitForm: $e");
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text("Error: $e")));
     }
@@ -454,7 +463,7 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
         ),
       ),
       // External Guest
-        Expanded(
+      Expanded(
           child: Card(
               color: Colors.grey.shade300,
               child: Column(
