@@ -799,8 +799,8 @@ print("Guest Emails: $guestEmails");  // Log the guest list
 
       print("✅ Using Access Token: $accessToken");
 
-      // Delete Google Calendar Event
-      await googleCalendarService.deleteCalendarEvent(accessToken, eventId);
+    // Step 2: Delete the Google Calendar Event
+    await googleCalendarService.deleteEvent(accessToken, eventId);
 
       // Optionally: Remove the event from Firestore
       // FirebaseFirestore.instance.collection('appointment').doc(eventId).delete();
@@ -1212,15 +1212,15 @@ print("Guest Emails: $guestEmails");  // Log the guest list
                                         children: [
                                           Row(
                                             children: [
-                                              IconButton(
-                                                icon: Icon(
-                                                  Icons.close,
-                                                  color: Colors.red,
-                                                ),
-                                                onPressed: Status == "Completed"
-                                                    ? null
-                                                    : _showCancelDialog,
-                                              ),
+                                              // IconButton(
+                                              //   icon: Icon(
+                                              //     Icons.close,
+                                              //     color: Colors.red,
+                                              //   ),
+                                              //   onPressed: Status == "Completed"
+                                              //       ? null
+                                              //       : _showCancelDialog(eventId),
+                                              // ),
                                               IconButton(
                                                   icon: Icon(
                                                     Icons.check_sharp,
