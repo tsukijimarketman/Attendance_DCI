@@ -670,7 +670,8 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
       'last_name': lastNameController.text.trim(),
       'email': email,
       'password': encryptedPassword,
-      'status': 'pending'
+      'status': 'pending',
+      'isDeleted': false
     });
 
     _showDialog('Pending Approval', 'Your account request has been sent for approval.');

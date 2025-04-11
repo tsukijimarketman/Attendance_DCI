@@ -44,6 +44,7 @@ class _MasterlistState extends State<Masterlist> {
                 buildStatusCard(
                     "Department Head Account", "DepartmentHead", fullName),
                 buildStatusCard("Admin Account", "Admin", fullName),
+                buildStatusCard("Super Users", "Superuser", fullName)
               ],
             ),
           ],

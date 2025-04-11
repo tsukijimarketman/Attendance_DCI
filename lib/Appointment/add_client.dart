@@ -532,7 +532,7 @@ class _AddClientState extends State<AddClient> {
                 child: ElevatedButton(
                   onPressed: () => _showdialogAddGuest(),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: const Color.fromARGB(255, 11, 55, 99),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),

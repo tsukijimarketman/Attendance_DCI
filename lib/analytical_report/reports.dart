@@ -1,5 +1,9 @@
 import 'dart:async';
 
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/cancelled.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/completed.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/inprogress.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/scheduled.dart';
 import 'package:attendance_app/analytical_report/age_distribution.dart';
 import 'package:attendance_app/analytical_report/appointment_per_departments.dart';
 import 'package:attendance_app/analytical_report/appointment_status_distribution.dart';
@@ -8,6 +12,7 @@ import 'package:attendance_app/analytical_report/gender_distribution.dart';
 import 'package:attendance_app/analytical_report/monthly_appointment_trends.dart';
 import 'package:attendance_app/analytical_report/role_ristribution.dart';
 import 'package:attendance_app/analytical_report/weekly_attendance_trends.dart';
+import 'package:attendance_app/hover_extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -44,7 +49,10 @@ class _ReportsState extends State<Reports> {
   }
 
   Stream<QuerySnapshot> getClientsStream() {
-    return _firestore.collection('clients').snapshots();
+    return _firestore
+        .collection('clients')
+        .where('isDeleted', isEqualTo: false)
+        .snapshots();
   }
 
   Stream<QuerySnapshot> getAppointmentsStream() {
@@ -701,176 +709,208 @@ class _ReportsState extends State<Reports> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     // Scheduled status card
-                    Container(
-                      width: width / 5.6,
-                      height: width / 9.5,
-                      padding: EdgeInsets.all(width / 80),
-                      decoration: BoxDecoration(
-                        color: Color(0xFF082649),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Scheduled",
-                            style: TextStyle(
-                              fontSize: width / 80,
-                              fontFamily: "SB",
-                              color: Colors.white,
-                            ),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              Icon(
-                                Icons.schedule_rounded,
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => ScheduledAppointments()));
+                      },
+                      child: Container(
+                        width: width / 5.6,
+                        height: width / 9.5,
+                        padding: EdgeInsets.all(width / 80),
+                        decoration: BoxDecoration(
+                          color: Color(0xFF082649),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Scheduled",
+                              style: TextStyle(
+                                fontSize: width / 80,
+                                fontFamily: "SB",
                                 color: Colors.white,
-                                size: width / 17,
                               ),
-                              SizedBox(width: width / 80),
-                              Text(
-                                statusCounts['Scheduled'].toString(),
-                                style: TextStyle(
-                                  fontSize: width / 40,
-                                  fontFamily: "SB",
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                Icon(
+                                  Icons.schedule_rounded,
                                   color: Colors.white,
+                                  size: width / 17,
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                                SizedBox(width: width / 80),
+                                Text(
+                                  statusCounts['Scheduled'].toString(),
+                                  style: TextStyle(
+                                    fontSize: width / 40,
+                                    fontFamily: "SB",
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+                    ).showCursorOnHover,
 
                     // Ongoing status card
-                    Container(
-                      width: width / 5.6,
-                      height: width / 9.5,
-                      padding: EdgeInsets.all(width / 80),
-                      decoration: BoxDecoration(
-                        color: Colors.orange,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "In Progress",
-                            style: TextStyle(
-                              fontSize: width / 80,
-                              fontFamily: "SB",
-                              color: Colors.white,
-                            ),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              Icon(
-                                Icons.access_time_rounded,
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => InProgressAppointments()));
+                      },
+                      child: Container(
+                        width: width / 5.6,
+                        height: width / 9.5,
+                        padding: EdgeInsets.all(width / 80),
+                        decoration: BoxDecoration(
+                          color: Colors.orange,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "In Progress",
+                              style: TextStyle(
+                                fontSize: width / 80,
+                                fontFamily: "SB",
                                 color: Colors.white,
-                                size: width / 17,
                               ),
-                              SizedBox(width: width / 80),
-                              Text(
-                                statusCounts['In Progress'].toString(),
-                                style: TextStyle(
-                                  fontSize: width / 40,
-                                  fontFamily: "SB",
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                Icon(
+                                  Icons.access_time_rounded,
                                   color: Colors.white,
+                                  size: width / 17,
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                                SizedBox(width: width / 80),
+                                Text(
+                                  statusCounts['In Progress'].toString(),
+                                  style: TextStyle(
+                                    fontSize: width / 40,
+                                    fontFamily: "SB",
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+                    ).showCursorOnHover,
 
                     // Completed status card
-                    Container(
-                      width: width / 5.6,
-                      height: width / 9.5,
-                      padding: EdgeInsets.all(width / 80),
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Completed",
-                            style: TextStyle(
-                              fontSize: width / 80,
-                              fontFamily: "SB",
-                              color: Colors.white,
-                            ),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              Icon(
-                                Icons.check_circle_outline_rounded,
+                    GestureDetector(
+                      onTap: (){
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => CompletedAppointments()));
+                      },
+                      child: Container(
+                        width: width / 5.6,
+                        height: width / 9.5,
+                        padding: EdgeInsets.all(width / 80),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Completed",
+                              style: TextStyle(
+                                fontSize: width / 80,
+                                fontFamily: "SB",
                                 color: Colors.white,
-                                size: width / 17,
                               ),
-                              SizedBox(width: width / 80),
-                              Text(
-                                statusCounts['Completed'].toString(),
-                                style: TextStyle(
-                                  fontSize: width / 40,
-                                  fontFamily: "SB",
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                Icon(
+                                  Icons.check_circle_outline_rounded,
                                   color: Colors.white,
+                                  size: width / 17,
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                                SizedBox(width: width / 80),
+                                Text(
+                                  statusCounts['Completed'].toString(),
+                                  style: TextStyle(
+                                    fontSize: width / 40,
+                                    fontFamily: "SB",
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+                    ).showCursorOnHover,
 
                     // Cancelled status card
-                    Container(
-                      width: width / 5.6,
-                      height: width / 9.5,
-                      padding: EdgeInsets.all(width / 80),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Cancelled",
-                            style: TextStyle(
-                              fontSize: width / 80,
-                              fontFamily: "SB",
-                              color: Colors.white,
-                            ),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              Icon(
-                                Icons.cancel_rounded,
+                    GestureDetector(
+                      onTap: (){
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => CancelledAppointments()));
+                      },
+                      child: Container(
+                        width: width / 5.6,
+                        height: width / 9.5,
+                        padding: EdgeInsets.all(width / 80),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Cancelled",
+                              style: TextStyle(
+                                fontSize: width / 80,
+                                fontFamily: "SB",
                                 color: Colors.white,
-                                size: width / 17,
                               ),
-                              SizedBox(width: width / 80),
-                              Text(
-                                statusCounts['Cancelled'].toString(),
-                                style: TextStyle(
-                                  fontSize: width / 40,
-                                  fontFamily: "SB",
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                Icon(
+                                  Icons.cancel_rounded,
                                   color: Colors.white,
+                                  size: width / 17,
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                                SizedBox(width: width / 80),
+                                Text(
+                                  statusCounts['Cancelled'].toString(),
+                                  style: TextStyle(
+                                    fontSize: width / 40,
+                                    fontFamily: "SB",
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+                    ).showCursorOnHover,
                   ],
                 ),
               );

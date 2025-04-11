@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/UserMasterlist.dart';
 import 'package:attendance_app/Appointment/add_client.dart';
+import 'package:attendance_app/Appointment/schedule_appointment.dart';
 import 'package:attendance_app/analytical_report/reports.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -407,7 +409,11 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
       case 2:
         return const References();
       case 3:
+        return const ScheduleAppointment();
+      case 4:
         return const AddClient();
+      case 5:
+        return const Masterlist();  
       default:
         return const Text('Select an option from the menu.',
             style: TextStyle(fontSize: 20));
