@@ -580,7 +580,7 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
     );
   }
 
-  void _showCancelDialog(String eventId) {
+  void _showCancelDialog() {
     TextEditingController remarkController = TextEditingController();
 
     showDialog(
@@ -622,7 +622,7 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
                 }
 
                 Navigator.of(context).pop(); // Close dialog
-                deleteEvent(eventId); // 👈 Call delete here
+                deleteEvent(widget.selectedAgenda); // 👈 Call delete here
                 updateAppointmentStatus('Cancelled',
                     remark: remark); // 👈 Call update here
               },
@@ -786,36 +786,35 @@ print("Guest Emails: $guestEmails");  // Log the guest list
   }
 }
 
+  
+
   void deleteEvent(String eventId) async {
-  try {
-    // Step 1: Authenticate the user and retrieve access token
-    GoogleCalendarService googleCalendarService = GoogleCalendarService();
-    String? accessToken = await googleCalendarService.authenticateUser();
+    try {
+      GoogleCalendarService googleCalendarService = GoogleCalendarService();
+      String? accessToken = await googleCalendarService.authenticateUser();
 
-    if (accessToken == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Google authentication required!")));
-      return;
-    }
+      if (accessToken == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Google authentication required!")));
+        return;
+      }
 
-    print("✅ Using Access Token: $accessToken");
+      print("✅ Using Access Token: $accessToken");
 
     // Step 2: Delete the Google Calendar Event
     await googleCalendarService.deleteEvent(accessToken, eventId);
 
-    // Step 3: Optionally: Delete the corresponding event from Firestore
-    await FirebaseFirestore.instance.collection('appointment').doc(eventId).delete();
+      // Optionally: Remove the event from Firestore
+      // FirebaseFirestore.instance.collection('appointment').doc(eventId).delete();
 
-    // Step 4: Provide feedback to the user
-    ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Event and appointment deleted successfully!")));
-  } catch (e) {
-    print("❌ Error deleting event: $e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Error: $e")),
-    );
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Event deleted successfully!")));
+    } catch (e) {
+      print("❌ Error deleting event: $e");
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Error: $e")));
+    }
   }
-}
 
 
   @override

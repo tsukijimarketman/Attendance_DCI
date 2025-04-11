@@ -152,24 +152,22 @@ Future<void> updateCalendarEvent(
 
 
   // Delete existing Google Calendar event
-  Future<void> deleteEvent(String eventId, String accessToken) async {
-  final url = Uri.parse("https://www.googleapis.com/calendar/v3/calendars/primary/events/$eventId");
+  Future<void> deleteCalendarEvent(String accessToken, String eventId) async {
+    final url = Uri.parse("https://www.googleapis.com/calendar/v3/calendars/primary/events/$eventId");
 
-  final response = await http.delete(
-    url,
-    headers: {
-      "Authorization": "Bearer $accessToken",
-    },
-  );
+    final response = await http.delete(
+      url,
+      headers: {
+        "Authorization": "Bearer $accessToken",
+      },
+    );
 
-  if (response.statusCode == 204) {
-    // Event successfully deleted
-    print("✅ Event deleted successfully");
-  } else {
-    // Handle the error
-    print("❌ Failed to delete event: ${response.body}");
+    if (response.statusCode == 204) {
+      print("✅ Event Deleted Successfully!");
+    } else {
+      print("❌ Failed to delete event: ${response.body}");
+    }
   }
-}
 
 
   // Create Google Calendar event
