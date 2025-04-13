@@ -578,58 +578,58 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
     );
   }
 
-  void _showCancelDialog() {
-    TextEditingController remarkController = TextEditingController();
+  void _showCancelDialog(String agenda) {
+  TextEditingController remarkController = TextEditingController();
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text("Cancel Appointment"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text("Please provide a reason for cancellation:"),
-              SizedBox(height: 12),
-              TextField(
-                controller: remarkController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: "Cancellation Remark",
-                  border: OutlineInputBorder(),
-                ),
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: Text("Cancel Appointment"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("Please provide a reason for cancellation:"),
+            SizedBox(height: 12),
+            TextField(
+              controller: remarkController,
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: "Cancellation Remark",
+                border: OutlineInputBorder(),
               ),
-            ],
-          ),
-          actions: [
-            ElevatedButton(
-              child: Text("Dismiss"),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            ElevatedButton(
-              child: Text("Confirm"),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              onPressed: () {
-                String remark = remarkController.text.trim();
-                if (remark.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Remark is required.")),
-                  );
-                  return;
-                }
-
-                Navigator.of(context).pop(); // Close dialog
-                deleteEvent(widget.selectedAgenda); // 👈 Call delete here
-                updateAppointmentStatus('Cancelled',
-                    remark: remark); // 👈 Call update here
-              },
             ),
           ],
-        );
-      },
-    );
-  }
+        ),
+        actions: [
+          ElevatedButton(
+            child: Text("Dismiss"),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          ElevatedButton(
+            child: Text("Confirm"),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              String remark = remarkController.text.trim();
+              if (remark.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Remark is required.")),
+                );
+                return;
+              }
+
+              Navigator.of(context).pop(); // Close dialog
+              deleteEvent(agenda); // 👈 Call delete here
+              updateAppointmentStatus('Cancelled', remark: remark); // 👈 Update status
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
 
   void pickScheduleDateTime() async {
     DateTime now = DateTime.now();
@@ -786,33 +786,47 @@ print("Guest Emails: $guestEmails");  // Log the guest list
 
   
 
-  void deleteEvent(String eventId) async {
-    try {
-      GoogleCalendarService googleCalendarService = GoogleCalendarService();
-      String? accessToken = await googleCalendarService.authenticateUser();
+ Future<void> deleteEvent(String agenda) async {
+  try {
+    // Step 1: Get the document and the Google eventId
+    QuerySnapshot snapshot = await FirebaseFirestore.instance
+        .collection('appointment')
+        .where('agenda', isEqualTo: agenda)
+        .limit(1)
+        .get();
 
-      if (accessToken == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Google authentication required!")));
-        return;
-      }
-
-      print("✅ Using Access Token: $accessToken");
-
-    // Step 2: Delete the Google Calendar Event
-    await googleCalendarService.deleteEvent(accessToken, eventId);
-
-      // Optionally: Remove the event from Firestore
-      // FirebaseFirestore.instance.collection('appointment').doc(eventId).delete();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Event deleted successfully!")));
-    } catch (e) {
-      print("❌ Error deleting event: $e");
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Error: $e")));
+    if (snapshot.docs.isEmpty) {
+      print("❌ No matching appointment found to delete.");
+      return;
     }
+
+    var appointmentData = snapshot.docs.first.data() as Map<String, dynamic>;
+    String eventId = appointmentData['googleEventId']; // ✅ Get the Google event ID
+
+    // Step 2: Authenticate with Google
+    GoogleCalendarService googleCalendarService = GoogleCalendarService();
+    String? accessToken = await googleCalendarService.authenticateUser();
+
+    if (accessToken == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Google authentication required!")),
+      );
+      return;
+    }
+
+    // Step 3: Delete the event from Google Calendar
+    await googleCalendarService.deleteCalendarEvent(accessToken, eventId);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Event deleted successfully!")),
+    );
+
+  } catch (e) {
+    print("❌ Error deleting event: $e");
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text("Error: $e")));
   }
+}
 
 
   @override
@@ -1212,15 +1226,17 @@ print("Guest Emails: $guestEmails");  // Log the guest list
                                         children: [
                                           Row(
                                             children: [
-                                              // IconButton(
-                                              //   icon: Icon(
-                                              //     Icons.close,
-                                              //     color: Colors.red,
-                                              //   ),
-                                              //   onPressed: Status == "Completed"
-                                              //       ? null
-                                              //       : _showCancelDialog(eventId),
-                                              // ),
+                                              IconButton(
+                                                icon: Icon(
+                                                  Icons.close,
+                                                  color: Colors.red,
+                                                ),
+                                               onPressed: Status == "Completed"
+                                                ? null
+                                                : () => _showCancelDialog(widget.selectedAgenda),
+
+                                              ),
+
                                               IconButton(
                                                   icon: Icon(
                                                     Icons.check_sharp,
