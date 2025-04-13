@@ -40,6 +40,7 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
     descriptionAgendaController.clear();
     setState(() {
       selectedGuests.clear();
+      selectedUsers.clear();
       selectedScheduleTime = null;
     });
   }
@@ -53,12 +54,17 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
       String descriptionText = descriptionAgendaController.text.trim();
       // Copy selectedGuests to a local variable to avoid side effects
       List<Map<String, dynamic>> localSelectedGuests =
-          List.from(selectedGuests ?? []);
+          List.from(selectedGuests);
+
+          List<Map<String, dynamic>> localSelectedUsers = List.from(selectedUsers);
+
 
       List<String> guestEmails = localSelectedGuests
           .map((guest) => guest['emailAdd'] as String?)
           .whereType<String>()
           .toList();
+
+          print('before saving: $selectedUsers');
 
       DateTime startDateTime = DateTime.parse(scheduleController.text);
       DateTime endDateTime = startDateTime.add(Duration(hours: 1));
@@ -95,11 +101,14 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
         'schedule': scheduleText, // Ensure schedule value is being passed here
         'agendaDescript': descriptionText,
         'guest': localSelectedGuests, // Store local copy of selected guests
-        'internal_users': selectedUsers,
+        'internal_users': localSelectedUsers,
         'status': 'Scheduled',
         'createdBy': fullName,
         'googleEventId': eventId, // Store the eventId after creating the event
       });
+
+                print('after saving: $selectedUsers');
+
 
       await logAuditTrail("Created Appointment",
           "User $fullName scheduled an appointment with agenda: $agendaText");

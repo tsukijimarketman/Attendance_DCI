@@ -352,7 +352,7 @@ class _Manager_DashboardState extends State<Manager_Dashboard> {
               headerDivider: const Divider(thickness: 2, color: Colors.black12),
               items: [
                 SidebarXItem(icon: Icons.dashboard, label: 'Dashboard'),               
-                SidebarXItem(icon: Icons.description, label: 'User Management'),               
+        SidebarXItem(icon: Icons.event, label: 'Appointments'),
                 SidebarXItem(icon: Icons.room_preferences, label: 'References'),               
               ],
             ),
