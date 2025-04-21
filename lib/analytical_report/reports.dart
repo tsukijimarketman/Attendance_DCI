@@ -7,15 +7,18 @@ import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/sche
 import 'package:attendance_app/analytical_report/age_distribution.dart';
 import 'package:attendance_app/analytical_report/appointment_per_departments.dart';
 import 'package:attendance_app/analytical_report/appointment_status_distribution.dart';
+import 'package:attendance_app/analytical_report/appointment_summary.dart';
 import 'package:attendance_app/analytical_report/civil_status.dart';
 import 'package:attendance_app/analytical_report/gender_distribution.dart';
+import 'package:attendance_app/analytical_report/key_metrics.dart';
 import 'package:attendance_app/analytical_report/monthly_appointment_trends.dart';
 import 'package:attendance_app/analytical_report/role_ristribution.dart';
 import 'package:attendance_app/analytical_report/weekly_attendance_trends.dart';
 import 'package:attendance_app/hover_extensions.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide ReorderableList;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_reorderable_list/flutter_reorderable_list.dart';
 
 class Reports extends StatefulWidget {
   const Reports({super.key});
@@ -24,121 +27,241 @@ class Reports extends StatefulWidget {
   State<Reports> createState() => _ReportsState();
 }
 
+// Data class for the report items
+class ReportItemData {
+  final String title;
+  final Widget widget;
+  final Key key;
+  final bool isHorizontallyReorderable;
+
+  ReportItemData(this.title, this.widget, this.key, {this.isHorizontallyReorderable = false});
+}
+
+// Data class for horizontal charts
+class HorizontalChartData {
+  final Widget widget;
+  final Key key;
+
+  HorizontalChartData(this.widget, this.key);
+}
+
 class _ReportsState extends State<Reports> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   User? currentUser;
+  
+  // List of report items that can be reordered vertically
+  late List<ReportItemData> _reportItems;
+
+  // Lists for horizontally reorderable charts
+  late List<HorizontalChartData> _departmentStatusCharts;
+  late List<HorizontalChartData> _roleAgeCharts;
+  late List<HorizontalChartData> _genderCivilStatusCharts;
 
   @override
   void initState() {
     super.initState();
     // Get current user
     currentUser = _auth.currentUser;
+    
+    // Initialize horizontal charts
+    _initHorizontalCharts();
+    
+    // Initialize report items
+    _initReportItems();
+  }
+  
+  void _initHorizontalCharts() {
+    // Department and Status Charts
+    _departmentStatusCharts = [
+      HorizontalChartData(
+        Builder(
+          builder: (context) {
+            double width = MediaQuery.of(context).size.width;
+            return Container(
+              width: width / 2.2,
+              height: width / 4,
+              child: AppointmentsPerDepartmentChart(),
+            );
+          }
+        ),
+        ValueKey('dept_chart')
+      ),
+      HorizontalChartData(
+        Builder(
+          builder: (context) {
+            double width = MediaQuery.of(context).size.width;
+            return Container(
+              width: width / 2.5,
+              height: width / 4,
+              child: AppointmentStatusPieChart(),
+            );
+          }
+        ),
+        ValueKey('status_chart')
+      ),
+    ];
+    
+    // Role and Age Charts
+    _roleAgeCharts = [
+      HorizontalChartData(
+        Builder(
+          builder: (context) {
+            double width = MediaQuery.of(context).size.width;
+            return Container(
+              width: width / 2.5,
+              height: width / 4,
+              child: RoleDistributionPieChart(),
+            );
+          }
+        ),
+        ValueKey('role_chart')
+      ),
+      HorizontalChartData(
+        Builder(
+          builder: (context) {
+            double width = MediaQuery.of(context).size.width;
+            return Container(
+              width: width / 2.5,
+              height: width / 4,
+              child: AgeDistributionChart(),
+            );
+          }
+        ),
+        ValueKey('age_chart')
+      ),
+    ];
+    
+    // Gender and Civil Status Charts
+    _genderCivilStatusCharts = [
+      HorizontalChartData(
+        Builder(
+          builder: (context) {
+            double width = MediaQuery.of(context).size.width;
+            return Container(
+              width: width / 2.5,
+              height: width / 4,
+              child: GenderDistributionPieChart(),
+            );
+          }
+        ),
+        ValueKey('gender_chart')
+      ),
+      HorizontalChartData(
+        Builder(
+          builder: (context) {
+            double width = MediaQuery.of(context).size.width;
+            return Container(
+              width: width / 2.5,
+              height: width / 4,
+              child: CivilStatusPieChart(),
+            );
+          }
+        ),
+        ValueKey('civil_status_chart')
+      ),
+    ];
+  }
+  
+  void _initReportItems() {
+    _reportItems = [
+      // Vertical reorderable items
+      ReportItemData(
+        "Key Metrics", 
+        KeyMetrics(), 
+        ValueKey('key_metrics')
+      ),
+      ReportItemData(
+        "Appointment Status", 
+        AppointmentStatus(), 
+        ValueKey('appointment_status')
+      ),
+      
+      // Horizontal reorderable items
+      ReportItemData(
+        "Department & Status Charts", 
+        HorizontalReorderableCharts(
+          charts: _departmentStatusCharts,
+          onReorder: _reorderHorizontalCharts,
+          listKey: GlobalKey(debugLabel: 'horizontal_dept_status'),
+          listName: 'department_status',
+        ), 
+        ValueKey('department_status_section'),
+        isHorizontallyReorderable: true
+      ),
+      ReportItemData(
+        "Role & Age Distribution", 
+        HorizontalReorderableCharts(
+          charts: _roleAgeCharts,
+          onReorder: _reorderHorizontalCharts,
+          listKey: GlobalKey(debugLabel: 'horizontal_role_age'),
+          listName: 'role_age',
+        ), 
+        ValueKey('role_age_section'),
+        isHorizontallyReorderable: true
+      ),
+      ReportItemData(
+        "Gender & Civil Status", 
+        HorizontalReorderableCharts(
+          charts: _genderCivilStatusCharts,
+          onReorder: _reorderHorizontalCharts,
+          listKey: GlobalKey(debugLabel: 'horizontal_gender_civil'),
+          listName: 'gender_civil',
+        ), 
+        ValueKey('gender_civil_section'),
+        isHorizontallyReorderable: true
+      ),
+      
+      // More vertical reorderable items
+      ReportItemData(
+        "Monthly Appointment Trends", 
+        MonthlyAppointmentTrends(), 
+        ValueKey('monthly_trends')
+      ),
+      ReportItemData(
+        "Weekly Attendance Trends", 
+        WeeklyAttendanceTrends(), 
+        ValueKey('weekly_trends')
+      ),
+    ];
   }
 
-  // Function to get stream of all users
-  Stream<QuerySnapshot> getUsersStream() {
-    return _firestore.collection('users').snapshots();
+  // Returns index of item with given key for vertical reordering
+  int _indexOfKey(Key key) {
+    return _reportItems.indexWhere((ReportItemData item) => item.key == key);
   }
 
-  Stream<QuerySnapshot> getPendingApprovalsStream() {
-    return _firestore
-        .collection('users')
-        .where('status', isEqualTo: 'pending')
-        .snapshots();
+  // Handle reordering of vertical items
+  bool _reorderCallback(Key item, Key newPosition) {
+    int draggingIndex = _indexOfKey(item);
+    int newPositionIndex = _indexOfKey(newPosition);
+
+    final draggedItem = _reportItems[draggingIndex];
+    setState(() {
+      _reportItems.removeAt(draggingIndex);
+      _reportItems.insert(newPositionIndex, draggedItem);
+    });
+    return true;
   }
 
-  Stream<QuerySnapshot> getClientsStream() {
-    return _firestore
-        .collection('clients')
-        .where('isDeleted', isEqualTo: false)
-        .snapshots();
+  void _reorderDone(Key item) {
+    // You can add additional logic here after reordering is done
   }
-
-  Stream<QuerySnapshot> getAppointmentsStream() {
-    return _firestore.collection('appointment').snapshots();
-  }
-
-  Stream<Map<String, int>> getAppointmentStatusCounts() {
-    // Get the base collection reference
-    final appointmentsRef = _firestore.collection('appointment');
-
-    // Create a stream controller to combine results
-    final controller = StreamController<Map<String, int>>();
-
-    // Initialize the counts map
-    Map<String, int> statusCounts = {
-      'Scheduled': 0,
-      'In Progress': 0,
-      'Completed': 0,
-      'Cancelled': 0
-    };
-
-    // Track completion of all queries
-    int completedQueries = 0;
-
-    // Function to update counts and check if all queries are done
-    void updateAndCheckCompletion() {
-      completedQueries++;
-      if (completedQueries >= 4) {
-        controller.add(statusCounts);
+  
+  // Handle reordering of horizontal charts
+  void _reorderHorizontalCharts(String listName, int oldIndex, int newIndex) {
+    setState(() {
+      if (listName == 'department_status') {
+        final item = _departmentStatusCharts.removeAt(oldIndex);
+        _departmentStatusCharts.insert(newIndex, item);
+      } else if (listName == 'role_age') {
+        final item = _roleAgeCharts.removeAt(oldIndex);
+        _roleAgeCharts.insert(newIndex, item);
+      } else if (listName == 'gender_civil') {
+        final item = _genderCivilStatusCharts.removeAt(oldIndex);
+        _genderCivilStatusCharts.insert(newIndex, item);
       }
-    }
-
-    // Query for Scheduled appointments
-    appointmentsRef
-        .where('status', isEqualTo: 'Scheduled')
-        .get()
-        .then((snapshot) {
-      statusCounts['Scheduled'] = snapshot.docs.length;
-      updateAndCheckCompletion();
-    }).catchError((error) {
-      print('Error fetching Scheduled appointments: $error');
-      updateAndCheckCompletion();
     });
-
-    // Query for In Progress appointments
-    appointmentsRef
-        .where('status', isEqualTo: 'In Progress')
-        .get()
-        .then((snapshot) {
-      statusCounts['In Progress'] = snapshot.docs.length;
-      updateAndCheckCompletion();
-    }).catchError((error) {
-      print('Error fetching In Progress appointments: $error');
-      updateAndCheckCompletion();
-    });
-
-    // Query for Completed appointments
-    appointmentsRef
-        .where('status', isEqualTo: 'Completed')
-        .get()
-        .then((snapshot) {
-      statusCounts['Completed'] = snapshot.docs.length;
-      updateAndCheckCompletion();
-    }).catchError((error) {
-      print('Error fetching Completed appointments: $error');
-      updateAndCheckCompletion();
-    });
-
-    // Query for Cancelled appointments
-    appointmentsRef
-        .where('status', isEqualTo: 'Cancelled')
-        .get()
-        .then((snapshot) {
-      statusCounts['Cancelled'] = snapshot.docs.length;
-      updateAndCheckCompletion();
-    }).catchError((error) {
-      print('Error fetching Cancelled appointments: $error');
-      updateAndCheckCompletion();
-    });
-
-    // Close the stream controller when the stream is no longer needed
-    controller.onCancel = () {
-      controller.close();
-    };
-
-    return controller.stream;
   }
 
   @override
@@ -147,500 +270,65 @@ class _ReportsState extends State<Reports> {
       builder: (context, constraints) {
         double width = constraints.maxWidth;
         return Scaffold(
-          body: SingleChildScrollView(
-            child: Container(
-              width: width,
-              padding: EdgeInsets.all(width / 40),
-              color: Color(0xFFf2edf3),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Dashboard",
-                      style: TextStyle(
-                          fontSize: width / 37,
-                          fontFamily: "BL",
-                          color: Color.fromARGB(255, 11, 55, 99))),
-                  SizedBox.shrink(),
-                  Text("View and analyze reports of attendance and other data",
-                      style: TextStyle(
-                          fontSize: width / 70,
-                          fontFamily: "M",
-                          color: Colors.grey.withOpacity(0.7))),
-                  Container(
-                    decoration: BoxDecoration(
-                        border: Border(
-                            bottom: BorderSide(
-                                color: Color.fromARGB(255, 11, 55, 99),
-                                width: 2))),
-                  ),
-                  SizedBox(
-                    height: width / 70,
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Total Users Card with StreamBuilder
-                      StreamBuilder<QuerySnapshot>(
-                        stream: getUsersStream(),
-                        builder: (context, snapshot) {
-                          // Check connection state
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return buildLoadingUserCard(width);
-                          }
-
-                          // Check for errors
-                          if (snapshot.hasError) {
-                            return buildErrorUserCard(width);
-                          }
-
-                          // Get the total count of users
-                          int totalUsers = snapshot.data?.docs.length ?? 0;
-
-                          return Container(
-                            width: width / 4.6,
-                            height: width / 9.5,
-                            padding: EdgeInsets.all(width / 80),
+          body: Container(
+            width: width,
+            color: Color(0xFFf2edf3),
+            child: ReorderableList(
+              onReorder: _reorderCallback,
+              onReorderDone: _reorderDone,
+              child: CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.all(width / 40),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Dashboard",
+                              style: TextStyle(
+                                  fontSize: width / 37,
+                                  fontFamily: "BL",
+                                  color: Color.fromARGB(255, 11, 55, 99))),
+                          SizedBox.shrink(),
+                          Text("View and analyze reports of attendance and other data",
+                              style: TextStyle(
+                                  fontSize: width / 70,
+                                  fontFamily: "M",
+                                  color: Colors.grey.withOpacity(0.7))),
+                          Container(
                             decoration: BoxDecoration(
-                              color: Color(0xFF7dc2fc),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "Total Users",
-                                  style: TextStyle(
-                                    fontSize: width / 80,
-                                    fontFamily: "SB",
-                                  ),
-                                ),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    Icon(
-                                      Icons.groups_2_rounded,
-                                      color: Color(0xFF0354A1),
-                                      size: width / 17,
-                                    ),
-                                    SizedBox(width: width / 80),
-                                    Text(
-                                      totalUsers
-                                          .toString(), // Display the actual count here
-                                      style: TextStyle(
-                                        fontSize: width / 40,
-                                        fontFamily: "SB",
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              ],
-                            ),
+                                border: Border(
+                                    bottom: BorderSide(
+                                        color: Color.fromARGB(255, 11, 55, 99),
+                                        width: 2))),
+                          ),
+                          SizedBox(
+                            height: width / 70,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: EdgeInsets.symmetric(horizontal: width / 40),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (BuildContext context, int index) {
+                          return ReportItem(
+                            data: _reportItems[index],
+                            isFirst: index == 0,
+                            isLast: index == _reportItems.length - 1,
+                            width: width,
                           );
                         },
+                        childCount: _reportItems.length,
                       ),
-
-                      // Keep the other cards as they were
-                      StreamBuilder<QuerySnapshot>(
-                        stream: getPendingApprovalsStream(),
-                        builder: (context, snapshot) {
-                          // Check connection state
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return Container(
-                              width: width / 4.6,
-                              height: width / 9.5,
-                              padding: EdgeInsets.all(width / 80),
-                              decoration: BoxDecoration(
-                                color: Color(0xFF7dc2fc),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Pending Approvals",
-                                    style: TextStyle(
-                                      fontSize: width / 80,
-                                      fontFamily: "SB",
-                                    ),
-                                  ),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceEvenly,
-                                    children: [
-                                      Icon(
-                                        Icons.pending_actions_rounded,
-                                        color: Color(0xFF0354A1),
-                                        size: width / 17,
-                                      ),
-                                      SizedBox(width: width / 80),
-                                      SizedBox(
-                                        width: width / 15,
-                                        height: width / 40,
-                                        child: Center(
-                                          child: CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 2,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                ],
-                              ),
-                            );
-                          }
-
-                          // Check for errors
-                          if (snapshot.hasError) {
-                            return Container(
-                              width: width / 4.6,
-                              height: width / 9.5,
-                              padding: EdgeInsets.all(width / 80),
-                              decoration: BoxDecoration(
-                                color: Color(0xFF7dc2fc),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Pending Approvals",
-                                    style: TextStyle(
-                                      fontSize: width / 80,
-                                      fontFamily: "SB",
-                                    ),
-                                  ),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceEvenly,
-                                    children: [
-                                      Icon(
-                                        Icons.pending_actions_rounded,
-                                        color: Color(0xFF0354A1),
-                                        size: width / 17,
-                                      ),
-                                      SizedBox(width: width / 80),
-                                      Text(
-                                        "Error",
-                                        style: TextStyle(
-                                          fontSize: width / 40,
-                                          fontFamily: "SB",
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                ],
-                              ),
-                            );
-                          }
-
-                          // Get the count of pending approvals
-                          int pendingCount = snapshot.data?.docs.length ?? 0;
-
-                          return Container(
-                            width: width / 4.6,
-                            height: width / 9.5,
-                            padding: EdgeInsets.all(width / 80),
-                            decoration: BoxDecoration(
-                              color: Color(0xFF7dc2fc),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "Pending Approvals",
-                                  style: TextStyle(
-                                    fontSize: width / 80,
-                                    fontFamily: "SB",
-                                  ),
-                                ),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    Icon(
-                                      Icons.pending_actions_rounded,
-                                      color: Color(0xFF0354A1),
-                                      size: width / 17,
-                                    ),
-                                    SizedBox(width: width / 80),
-                                    Text(
-                                      pendingCount
-                                          .toString(), // Display actual count instead of hardcoded value
-                                      style: TextStyle(
-                                        fontSize: width / 40,
-                                        fontFamily: "SB",
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                      StreamBuilder<QuerySnapshot>(
-                        stream: getClientsStream(),
-                        builder: (context, snapshot) {
-                          // Check connection state
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return buildLoadingClientCard(width);
-                          }
-
-                          // Check for errors
-                          if (snapshot.hasError) {
-                            return buildErrorClientCard(width);
-                          }
-
-                          // Get the total count of clients
-                          int totalClients = snapshot.data?.docs.length ?? 0;
-
-                          return Container(
-                            width: width / 4.6,
-                            height: width / 9.5,
-                            padding: EdgeInsets.all(width / 80),
-                            decoration: BoxDecoration(
-                              color: Color(0xFF7dc2fc),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "Total Clients",
-                                  style: TextStyle(
-                                    fontSize: width / 80,
-                                    fontFamily: "SB",
-                                  ),
-                                ),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    Icon(
-                                      Icons.groups_3_rounded,
-                                      color: Color(0xFF0354A1),
-                                      size: width / 17,
-                                    ),
-                                    SizedBox(width: width / 80),
-                                    Text(
-                                      totalClients
-                                          .toString(), // Display the actual count here
-                                      style: TextStyle(
-                                        fontSize: width / 40,
-                                        fontFamily: "SB",
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                      StreamBuilder<QuerySnapshot>(
-                        stream: getAppointmentsStream(),
-                        builder: (context, snapshot) {
-                          // Check connection state
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return Container(
-                              width: width / 4.6,
-                              height: width / 9.5,
-                              padding: EdgeInsets.all(width / 80),
-                              decoration: BoxDecoration(
-                                color: Color(0xFF7dc2fc),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Total Appointments",
-                                    style: TextStyle(
-                                      fontSize: width / 80,
-                                      fontFamily: "SB",
-                                    ),
-                                  ),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceEvenly,
-                                    children: [
-                                      Icon(
-                                        Icons.calendar_today_rounded,
-                                        color: Color(0xFF0354A1),
-                                        size: width / 17,
-                                      ),
-                                      SizedBox(width: width / 80),
-                                      SizedBox(
-                                        width: width / 15,
-                                        height: width / 40,
-                                        child: Center(
-                                          child: CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 2,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                ],
-                              ),
-                            );
-                          }
-
-                          // Check for errors
-                          if (snapshot.hasError) {
-                            return Container(
-                              width: width / 4.6,
-                              height: width / 9.5,
-                              padding: EdgeInsets.all(width / 80),
-                              decoration: BoxDecoration(
-                                color: Color(0xFF7dc2fc),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Total Appointments",
-                                    style: TextStyle(
-                                      fontSize: width / 80,
-                                      fontFamily: "SB",
-                                    ),
-                                  ),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceEvenly,
-                                    children: [
-                                      Icon(
-                                        Icons.calendar_today_rounded,
-                                        color: Color(0xFF0354A1),
-                                        size: width / 17,
-                                      ),
-                                      SizedBox(width: width / 80),
-                                      Text(
-                                        "Error",
-                                        style: TextStyle(
-                                          fontSize: width / 40,
-                                          fontFamily: "SB",
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                ],
-                              ),
-                            );
-                          }
-
-                          // Get the total count of appointments
-                          int totalAppointments =
-                              snapshot.data?.docs.length ?? 0;
-
-                          return Container(
-                            width: width / 4.6,
-                            height: width / 9.5,
-                            padding: EdgeInsets.all(width / 80),
-                            decoration: BoxDecoration(
-                              color: Color(0xFF7dc2fc),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "Total Appointments",
-                                  style: TextStyle(
-                                    fontSize: width / 80,
-                                    fontFamily: "SB",
-                                  ),
-                                ),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    Icon(
-                                      Icons.calendar_today_rounded,
-                                      color: Color(0xFF0354A1),
-                                      size: width / 17,
-                                    ),
-                                    SizedBox(width: width / 80),
-                                    Text(
-                                      totalAppointments
-                                          .toString(), // Display the actual count here
-                                      style: TextStyle(
-                                        fontSize: width / 40,
-                                        fontFamily: "SB",
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ],
+                    ),
                   ),
-                  SizedBox(height: width / 80),
-                  buildAppointmentSummary(width),
-                  SizedBox(height: width / 80),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Container(
-                          width: width / 2,
-                          height: width / 3.5,
-                          child: AppointmentsPerDepartmentChart()),
-                      Container(
-                          height: width / 4,
-                          width: width / 2.5,
-                          child: AppointmentStatusPieChart()),
-                    ],
+                  SliverToBoxAdapter(
+                    // Add some bottom padding for better scrolling experience
+                    child: SizedBox(height: width / 20),
                   ),
-                  SizedBox(height: width / 40),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Container(
-                          height: width / 4,
-                          width: width / 2.5,
-                          child: RoleDistributionPieChart()),
-                      Container(
-                          width: width / 2.5,
-                          height: width / 3.5,
-                          child: AgeDistributionChart()),
-                    ],
-                  ),
-                  SizedBox(height: width / 40),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Container(
-                          height: width / 4,
-                          width: width / 2.5,
-                          child: GenderDistributionPieChart()),
-                      Container(
-                          height: width / 4,
-                          width: width / 2.5,
-                          child: CivilStatusPieChart()),
-                    ],
-                  ),
-                  SizedBox(height: width / 40),
-                  MonthlyAppointmentTrends(),
-                  SizedBox(height: width / 40),
-                  WeeklyAttendanceTrends(),
                 ],
               ),
             ),
@@ -649,544 +337,249 @@ class _ReportsState extends State<Reports> {
       },
     );
   }
+}
 
-  Widget buildAppointmentSummary(double width) {
+// Widget for horizontally reorderable charts
+class HorizontalReorderableCharts extends StatelessWidget {
+  final List<HorizontalChartData> charts;
+  final Function(String, int, int) onReorder;
+  final GlobalKey listKey;
+  final String listName;
+
+  const HorizontalReorderableCharts({
+    Key? key,
+    required this.charts,
+    required this.onReorder,
+    required this.listKey,
+    required this.listName,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      width: width,
-      height: width / 5.5,
-      padding: EdgeInsets.all(width / 50),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Text(
-              "Appointment Summary",
-              style: TextStyle(
-                fontSize: width / 80,
-                fontFamily: "SB",
-              ),
-            ),
-          ),
-          SizedBox(height: width / 80),
-          StreamBuilder<Map<String, int>>(
-            stream: getAppointmentStatusCounts(),
-            builder: (context, snapshot) {
-              // Show loading state
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(
-                  child: CircularProgressIndicator(
-                    color: Color(0xFF082649),
-                  ),
-                );
-              }
-
-              // Handle errors
-              if (snapshot.hasError) {
-                return Center(
-                  child: Text(
-                    "Error loading appointment data",
-                    style: TextStyle(
-                      fontSize: width / 70,
-                      fontFamily: "SB",
-                      color: Colors.red,
-                    ),
-                  ),
-                );
-              }
-
-              // Get data or provide defaults
-              final statusCounts = snapshot.data ??
-                  {
-                    'Scheduled': 0,
-                    'In Progress': 0,
-                    'Completed': 0,
-                    'Cancelled': 0
-                  };
-
-              return Container(
-                width: width,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    // Scheduled status card
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => ScheduledAppointments()));
-                      },
-                      child: Container(
-                        width: width / 5.6,
-                        height: width / 9.5,
-                        padding: EdgeInsets.all(width / 80),
-                        decoration: BoxDecoration(
-                          color: Color(0xFF082649),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Scheduled",
-                              style: TextStyle(
-                                fontSize: width / 80,
-                                fontFamily: "SB",
-                                color: Colors.white,
-                              ),
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                Icon(
-                                  Icons.schedule_rounded,
-                                  color: Colors.white,
-                                  size: width / 17,
-                                ),
-                                SizedBox(width: width / 80),
-                                Text(
-                                  statusCounts['Scheduled'].toString(),
-                                  style: TextStyle(
-                                    fontSize: width / 40,
-                                    fontFamily: "SB",
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ).showCursorOnHover,
-
-                    // Ongoing status card
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => InProgressAppointments()));
-                      },
-                      child: Container(
-                        width: width / 5.6,
-                        height: width / 9.5,
-                        padding: EdgeInsets.all(width / 80),
-                        decoration: BoxDecoration(
-                          color: Colors.orange,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "In Progress",
-                              style: TextStyle(
-                                fontSize: width / 80,
-                                fontFamily: "SB",
-                                color: Colors.white,
-                              ),
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                Icon(
-                                  Icons.access_time_rounded,
-                                  color: Colors.white,
-                                  size: width / 17,
-                                ),
-                                SizedBox(width: width / 80),
-                                Text(
-                                  statusCounts['In Progress'].toString(),
-                                  style: TextStyle(
-                                    fontSize: width / 40,
-                                    fontFamily: "SB",
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ).showCursorOnHover,
-
-                    // Completed status card
-                    GestureDetector(
-                      onTap: (){
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => CompletedAppointments()));
-                      },
-                      child: Container(
-                        width: width / 5.6,
-                        height: width / 9.5,
-                        padding: EdgeInsets.all(width / 80),
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Completed",
-                              style: TextStyle(
-                                fontSize: width / 80,
-                                fontFamily: "SB",
-                                color: Colors.white,
-                              ),
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                Icon(
-                                  Icons.check_circle_outline_rounded,
-                                  color: Colors.white,
-                                  size: width / 17,
-                                ),
-                                SizedBox(width: width / 80),
-                                Text(
-                                  statusCounts['Completed'].toString(),
-                                  style: TextStyle(
-                                    fontSize: width / 40,
-                                    fontFamily: "SB",
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ).showCursorOnHover,
-
-                    // Cancelled status card
-                    GestureDetector(
-                      onTap: (){
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => CancelledAppointments()));
-                      },
-                      child: Container(
-                        width: width / 5.6,
-                        height: width / 9.5,
-                        padding: EdgeInsets.all(width / 80),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Cancelled",
-                              style: TextStyle(
-                                fontSize: width / 80,
-                                fontFamily: "SB",
-                                color: Colors.white,
-                              ),
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                Icon(
-                                  Icons.cancel_rounded,
-                                  color: Colors.white,
-                                  size: width / 17,
-                                ),
-                                SizedBox(width: width / 80),
-                                Text(
-                                  statusCounts['Cancelled'].toString(),
-                                  style: TextStyle(
-                                    fontSize: width / 40,
-                                    fontFamily: "SB",
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ).showCursorOnHover,
-                  ],
-                ),
+      child: ReorderableListView.builder(
+        key: listKey,
+        scrollDirection: Axis.horizontal,
+        shrinkWrap: true,
+        physics: NeverScrollableScrollPhysics(),
+        itemCount: charts.length,
+        itemBuilder: (context, index) {
+          final chart = charts[index];
+          return HorizontalChartItem(
+            key: chart.key,
+            child: chart.widget,
+          );
+        },
+        onReorder: (oldIndex, newIndex) {
+          // Fix for ReorderableListView's bug where newIndex might be one off
+          if (oldIndex < newIndex) {
+            newIndex -= 1;
+          }
+          onReorder(listName, oldIndex, newIndex);
+        },
+        proxyDecorator: (Widget child, int index, Animation<double> animation) {
+          return AnimatedBuilder(
+            animation: animation,
+            builder: (BuildContext context, Widget? child) {
+              final double animValue = Curves.easeInOut.transform(animation.value);
+              final double elevation = lerpDouble(0, 6, animValue)!;
+              return Material(
+                elevation: elevation,
+                color: Colors.transparent,
+                shadowColor: Colors.black.withOpacity(0.3),
+                child: child,
               );
             },
-          ),
-        ],
+            child: child,
+          );
+        },
       ),
+      height: MediaQuery.of(context).size.width / 3.2,
     );
   }
+  
+  // Helper function to interpolate between double values
+  double? lerpDouble(double a, double b, double t) {
+    return a + (b - a) * t;
+  }
+}
 
-  Widget buildLoadingPendingCard(double width) {
+// Horizontal chart item
+class HorizontalChartItem extends StatelessWidget {
+
+  final Widget child;
+
+  const HorizontalChartItem({
+    Key? key,
+    required this.child,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    double width = MediaQuery.of(context).size.width;
     return Container(
-      width: width / 4.6,
-      height: width / 9.5,
-      padding: EdgeInsets.all(width / 80),
+      margin: EdgeInsets.only(right: width/90),
       decoration: BoxDecoration(
-        color: Color(0xFF7dc2fc),
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(width/120),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "Pending Approvals",
-            style: TextStyle(
-              fontSize: width / 80,
-              fontFamily: "SB",
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.all(width/120),
+              child: child,
             ),
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              Icon(
-                Icons.pending_actions_rounded,
-                color: Color(0xFF0354A1),
-                size: width / 17,
-              ),
-              SizedBox(width: width / 80),
-              SizedBox(
-                width: width / 15,
-                height: width / 40,
-                child: Center(
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                ),
-              ),
-            ],
-          )
-        ],
-      ),
-    );
-  }
-
-// Helper method for error state of pending approvals
-  Widget buildErrorPendingCard(double width) {
-    return Container(
-      width: width / 4.6,
-      height: width / 9.5,
-      padding: EdgeInsets.all(width / 80),
-      decoration: BoxDecoration(
-        color: Color(0xFF7dc2fc),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Pending Approvals",
-            style: TextStyle(
-              fontSize: width / 80,
-              fontFamily: "SB",
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              Icon(
-                Icons.pending_actions_rounded,
-                color: Color(0xFF0354A1),
-                size: width / 17,
-              ),
-              SizedBox(width: width / 80),
-              Text(
-                "Error",
-                style: TextStyle(
-                  fontSize: width / 40,
-                  fontFamily: "SB",
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          )
-        ],
-      ),
-    );
-  }
-
-  // Helper method for loading state
-  Widget buildLoadingUserCard(double width) {
-    return Container(
-      width: width / 4.6,
-      height: width / 9.5,
-      padding: EdgeInsets.all(width / 80),
-      decoration: BoxDecoration(
-        color: Color(0xFF7dc2fc),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Total Users",
-            style: TextStyle(
-              fontSize: width / 80,
-              fontFamily: "SB",
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              Icon(
-                Icons.groups_2_rounded,
-                color: Color(0xFF0354A1),
-                size: width / 17,
-              ),
-              SizedBox(width: width / 80),
-              SizedBox(
-                width: width / 15,
-                height: width / 40,
-                child: Center(
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                ),
-              ),
-            ],
-          )
-        ],
-      ),
-    );
-  }
-
-  // Helper method for error state
-  Widget buildErrorUserCard(double width) {
-    return Container(
-      width: width / 4.6,
-      height: width / 9.5,
-      padding: EdgeInsets.all(width / 80),
-      decoration: BoxDecoration(
-        color: Color(0xFF7dc2fc),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Total Users",
-            style: TextStyle(
-              fontSize: width / 80,
-              fontFamily: "SB",
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              Icon(
-                Icons.groups_2_rounded,
-                color: Color(0xFF0354A1),
-                size: width / 17,
-              ),
-              SizedBox(width: width / 80),
-              Text(
-                "Error",
-                style: TextStyle(
-                  fontSize: width / 40,
-                  fontFamily: "SB",
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          )
         ],
       ),
     );
   }
 }
 
-// Helper method for loading state of client card
-Widget buildLoadingClientCard(double width) {
-  return Container(
-    width: width / 4.6,
-    height: width / 9.5,
-    padding: EdgeInsets.all(width / 80),
-    decoration: BoxDecoration(
-      color: Color(0xFF7dc2fc),
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Total Clients",
-          style: TextStyle(
-            fontSize: width / 80,
-            fontFamily: "SB",
+class ReportItem extends StatelessWidget {
+  const ReportItem({
+    Key? key,
+    required this.data,
+    required this.isFirst,
+    required this.isLast,
+    required this.width,
+  }) : super(key: key);
+
+  final ReportItemData data;
+  final bool isFirst;
+  final bool isLast;
+  final double width;
+
+  Widget _buildChild(BuildContext context, ReorderableItemState state) {
+    // Define decoration based on the state
+    BoxDecoration decoration;
+
+    if (state == ReorderableItemState.dragProxy ||
+        state == ReorderableItemState.dragProxyFinished) {
+      // Slightly transparent background while dragging
+      decoration = BoxDecoration(
+        color: Colors.white.withOpacity(0.85),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 8,
+            offset: Offset(0, 4),
           ),
+        ],
+      );
+    } else {
+      bool placeholder = state == ReorderableItemState.placeholder;
+      decoration = BoxDecoration(
+        color: placeholder ? Colors.transparent : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: placeholder 
+            ? [] 
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 5,
+                  offset: Offset(0, 2),
+                ),
+              ],
+      );
+    }
+
+    // Drag handle widget
+    Widget dragHandle = ReorderableListener(
+      child: Container(
+        padding: EdgeInsets.all(width/120),
+        child: Icon(
+          Icons.drag_indicator_rounded, 
+          color: Color.fromARGB(255, 11, 55, 99),
         ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            Icon(
-              Icons.groups_3_rounded,
-              color: Color(0xFF0354A1),
-              size: width / 17,
-            ),
-            SizedBox(width: width / 80),
-            SizedBox(
-              width: width / 15,
-              height: width / 40,
-              child: Center(
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2,
+      ).showCursorOnHover,
+    );
+
+    return Container(
+      margin: EdgeInsets.only(bottom: width / 40),
+      child: Opacity(
+        // Hide content for placeholder
+        opacity: state == ReorderableItemState.placeholder ? 0.0 : 1.0,
+        child: Container(
+          decoration: decoration,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header with title and drag handle
+              Container(
+                decoration: BoxDecoration(
+                  color: Color.fromARGB(255, 11, 55, 99).withOpacity(0.1),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(width/120),
+                    topRight: Radius.circular(width/120),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    dragHandle,
+                    Expanded(
+                      child: Text(
+                        data.title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color.fromARGB(255, 11, 55, 99),
+                          fontSize: width / 80,  // Customize font size here
+                          fontFamily: "B",  // Customize font family here
+                        ),
+                      ),
+                    ),
+                    if (data.isHorizontallyReorderable)
+                      Container(
+                        padding: EdgeInsets.all(width/120),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.swap_horiz, 
+                              color: Color.fromARGB(255, 11, 55, 99),
+                              size: width / 80,
+                            ),
+                            SizedBox(width: width/160),
+                            Text(
+                              "Horizontally reorderable",
+                              style: TextStyle(
+                                color: Color.fromARGB(255, 11, 55, 99),
+                                fontSize: width / 100,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
               ),
-            ),
-          ],
-        )
-      ],
-    ),
-  );
-}
-
-// Helper method for error state of client card
-Widget buildErrorClientCard(double width) {
-  return Container(
-    width: width / 4.6,
-    height: width / 9.5,
-    padding: EdgeInsets.all(width / 80),
-    decoration: BoxDecoration(
-      color: Color(0xFF7dc2fc),
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Total Clients",
-          style: TextStyle(
-            fontSize: width / 80,
-            fontFamily: "SB",
+              // Content widget
+              Padding(
+                padding: EdgeInsets.all(width/100),
+                child: data.widget,
+              ),
+            ],
           ),
         ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            Icon(
-              Icons.groups_3_rounded,
-              color: Color(0xFF0354A1),
-              size: width / 17,
-            ),
-            SizedBox(width: width / 80),
-            Text(
-              "Error",
-              style: TextStyle(
-                fontSize: width / 40,
-                fontFamily: "SB",
-                color: Colors.white,
-              ),
-            ),
-          ],
-        )
-      ],
-    ),
-  );
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ReorderableItem(
+      key: data.key,
+      childBuilder: _buildChild,
+    );
+  }
 }

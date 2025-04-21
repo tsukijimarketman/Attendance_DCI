@@ -158,7 +158,6 @@ class _GenderDistributionPieChartState extends State<GenderDistributionPieChart>
               ],
             ),
           ),
-          SizedBox(height: MediaQuery.of(context).size.width/80),
           Text(
             'Total Users: $totalUsers',
             style: TextStyle(
@@ -166,6 +165,7 @@ class _GenderDistributionPieChartState extends State<GenderDistributionPieChart>
               fontFamily: "B",
             ),
           ),
+          SizedBox(height: MediaQuery.of(context).size.width / 80),
         ],
       ),
     );

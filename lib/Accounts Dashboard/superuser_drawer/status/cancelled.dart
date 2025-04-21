@@ -16,6 +16,7 @@ class _CancelledAppointmentsState extends State<CancelledAppointments> {
   String first_name = '';
   String last_name = '';
   bool isLoading = true;
+  
 
   @override
   void initState() {

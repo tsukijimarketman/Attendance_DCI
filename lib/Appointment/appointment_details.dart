@@ -802,7 +802,7 @@ print("Guest Emails: $guestEmails");  // Log the guest list
       print("✅ Using Access Token: $accessToken");
 
     // Step 2: Delete the Google Calendar Event
-    await googleCalendarService.deleteEvent(accessToken, eventId);
+    await googleCalendarService.deleteCalendarEvent(accessToken, eventId);
 
       // Optionally: Remove the event from Firestore
       // FirebaseFirestore.instance.collection('appointment').doc(eventId).delete();

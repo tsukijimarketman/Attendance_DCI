@@ -1,14 +1,18 @@
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/tabs/details.dart';
+import 'package:attendance_app/Appointment/appointment_details.dart';
 import 'package:flutter/material.dart';
 import 'package:tab_container/tab_container.dart';
 
 class MeetingTabs extends StatefulWidget {
-  const MeetingTabs({super.key});
+  final String selectedAgenda;
+  const MeetingTabs({super.key, required this.selectedAgenda});
 
   @override
   State<MeetingTabs> createState() => _MeetingTabsState();
 }
 
-class _MeetingTabsState extends State<MeetingTabs> with SingleTickerProviderStateMixin {
+class _MeetingTabsState extends State<MeetingTabs>
+    with SingleTickerProviderStateMixin {
   late TextTheme textTheme;
 
   @override
@@ -27,8 +31,8 @@ class _MeetingTabsState extends State<MeetingTabs> with SingleTickerProviderStat
           tabEdge: TabEdge.bottom,
           tabCurve: Curves.easeIn,
           transitionBuilder: (child, animation) {
-            animation = CurvedAnimation(
-                curve: Curves.easeIn, parent: animation);
+            animation =
+                CurvedAnimation(curve: Curves.easeIn, parent: animation);
             return SlideTransition(
               position: Tween(
                 begin: const Offset(0.2, 0.0),
@@ -41,13 +45,13 @@ class _MeetingTabsState extends State<MeetingTabs> with SingleTickerProviderStat
             );
           },
           colors: const <Color>[
-            Color(0xFF60D1D5), // Teal color similar to credit card
+            Color(0xFF60D1D5),
             Color(0xFF5BBCD6),
             Color(0xFF5BA4D6),
             Color(0xFF5B8ED6),
           ],
           selectedTextStyle: textTheme.bodyMedium?.copyWith(
-            fontSize: 16.0, 
+            fontSize: 16.0,
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
@@ -55,7 +59,7 @@ class _MeetingTabsState extends State<MeetingTabs> with SingleTickerProviderStat
             fontSize: 14.0,
             color: Colors.black,
           ),
-          tabs: _getTabs(), 
+          tabs: _getTabs(),
           children: _getChildren(),
         ),
       ),
@@ -64,73 +68,45 @@ class _MeetingTabsState extends State<MeetingTabs> with SingleTickerProviderStat
 
   List<Widget> _getTabs() {
     return <Widget>[
-      Text('Appointment Details', style: TextStyle(fontFamily: "SB", fontSize: MediaQuery.of(context).size.width/90),),
-      Text('Attendance', style: TextStyle(fontFamily: "SB", fontSize: MediaQuery.of(context).size.width/90),),
-      Text('Minutes of Meeting', style: TextStyle(fontFamily: "SB", fontSize: MediaQuery.of(context).size.width/90),),
-      Text('Generate QR', style: TextStyle(fontFamily: "SB", fontSize: MediaQuery.of(context).size.width/90),),
+      Text(
+        'Appointment Details',
+        style: TextStyle(
+            fontFamily: "SB", fontSize: MediaQuery.of(context).size.width / 90),
+      ),
+      Text(
+        'Attendance',
+        style: TextStyle(
+            fontFamily: "SB", fontSize: MediaQuery.of(context).size.width / 90),
+      ),
+      Text(
+        'Minutes of Meeting',
+        style: TextStyle(
+            fontFamily: "SB", fontSize: MediaQuery.of(context).size.width / 90),
+      ),
+      Text(
+        'Generate QR',
+        style: TextStyle(
+            fontFamily: "SB", fontSize: MediaQuery.of(context).size.width / 90),
+      ),
     ];
   }
 
   List<Widget> _getChildren() {
     return <Widget>[
-      _buildAppointmentDetails(),
+      DetailPage(selectedAgenda: widget.selectedAgenda,),
       _buildAttendance(),
       _buildMinutesOfMeeting(),
       _buildGenerateQR(),
     ];
   }
 
-  Widget _buildAppointmentDetails() {
-    return SingleChildScrollView(
-      child: Container(
-        height: MediaQuery.of(context).size.height,
-        width: MediaQuery.of(context).size.width/1.5,
-        padding: EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Meeting Details',
-              style: textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 20),
-            _buildDetailRow('Title:', 'Quarterly Planning Meeting'),
-            _buildDetailRow('Date:', 'April 15, 2025'),
-            _buildDetailRow('Time:', '10:00 AM - 12:00 PM'),
-            _buildDetailRow('Location:', 'Conference Room A'),
-            _buildDetailRow('Organizer:', 'John Doe'),
-            const SizedBox(height: 20),
-            Text(
-              'Agenda',
-              style: textTheme.titleLarge,
-            ),
-            const SizedBox(height: 10),
-            _buildAgendaItem('1. Review of Q1 performance'),
-            _buildAgendaItem('2. Q2 targets and strategy'),
-            _buildAgendaItem('3. Budget allocation'),
-            _buildAgendaItem('4. Open discussion'),
-            const Spacer(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                ElevatedButton(
-                  onPressed: () {},
-                  child: const Text('Edit Details'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  
 
   Widget _buildAttendance() {
     return SingleChildScrollView(
       child: Container(
-        
         height: MediaQuery.of(context).size.height,
-        width: MediaQuery.of(context).size.width/1.5,
+        width: MediaQuery.of(context).size.width / 1.5,
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -146,7 +122,8 @@ class _MeetingTabsState extends State<MeetingTabs> with SingleTickerProviderStat
                   _buildAttendeeCard('John Doe', 'CEO', true),
                   _buildAttendeeCard('Jane Smith', 'CTO', true),
                   _buildAttendeeCard('Robert Johnson', 'CFO', false),
-                  _buildAttendeeCard('Emily Williams', 'Marketing Director', true),
+                  _buildAttendeeCard(
+                      'Emily Williams', 'Marketing Director', true),
                   _buildAttendeeCard('Michael Brown', 'HR Manager', true),
                   _buildAttendeeCard('Sarah Davis', 'Product Manager', false),
                   _buildAttendeeCard('James Wilson', 'Sales Director', true),
@@ -176,9 +153,8 @@ class _MeetingTabsState extends State<MeetingTabs> with SingleTickerProviderStat
   Widget _buildMinutesOfMeeting() {
     return SingleChildScrollView(
       child: Container(
-        
         height: MediaQuery.of(context).size.height,
-        width: MediaQuery.of(context).size.width/1.5,
+        width: MediaQuery.of(context).size.width / 1.5,
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -240,9 +216,8 @@ class _MeetingTabsState extends State<MeetingTabs> with SingleTickerProviderStat
   Widget _buildGenerateQR() {
     return SingleChildScrollView(
       child: Container(
-        
         height: MediaQuery.of(context).size.height,
-        width: MediaQuery.of(context).size.width/1.5,
+        width: MediaQuery.of(context).size.width / 1.5,
         padding: EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -269,7 +244,8 @@ class _MeetingTabsState extends State<MeetingTabs> with SingleTickerProviderStat
               style: textTheme.titleMedium,
             ),
             const SizedBox(height: 10),
-            _buildQRFeature(Icons.calendar_today, 'Add meeting to your calendar'),
+            _buildQRFeature(
+                Icons.calendar_today, 'Add meeting to your calendar'),
             _buildQRFeature(Icons.article, 'Access meeting documents'),
             _buildQRFeature(Icons.check_circle, 'Mark your attendance'),
             _buildQRFeature(Icons.share, 'Share meeting details'),
@@ -296,29 +272,7 @@ class _MeetingTabsState extends State<MeetingTabs> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: textTheme.bodyLarge,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  
 
   Widget _buildAgendaItem(String item) {
     return Padding(
@@ -341,8 +295,10 @@ class _MeetingTabsState extends State<MeetingTabs> with SingleTickerProviderStat
         subtitle: Text(position),
         trailing: Chip(
           label: Text(present ? 'Present' : 'Absent'),
-          backgroundColor: present ? Colors.green.shade100 : Colors.red.shade100,
-          labelStyle: TextStyle(color: present ? Colors.green.shade800 : Colors.red.shade800),
+          backgroundColor:
+              present ? Colors.green.shade100 : Colors.red.shade100,
+          labelStyle: TextStyle(
+              color: present ? Colors.green.shade800 : Colors.red.shade800),
         ),
       ),
     );

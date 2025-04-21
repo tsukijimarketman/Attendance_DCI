@@ -155,14 +155,14 @@ class _RoleDistributionPieChartState extends State<RoleDistributionPieChart> {
                 ),
               ],
             ),
-          ),SizedBox(height: MediaQuery.of(context).size.width/80,),
-          Text(
+          ),Text(
             'Total Users: $totalUsers',
             style: TextStyle(
               fontSize: MediaQuery.of(context).size.width/80,
               fontFamily: "B",
             ),
           ),
+          SizedBox(height: MediaQuery.of(context).size.width / 80),
         ],
       ),
     );

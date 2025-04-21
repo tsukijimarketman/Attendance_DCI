@@ -5,7 +5,9 @@ import 'package:attendance_app/Appointment/add_client.dart';
 import 'package:attendance_app/Appointment/schedule_appointment.dart';
 import 'package:attendance_app/analytical_report/reports.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:typed_data';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/auditSU.dart';
@@ -24,6 +26,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sidebarx/sidebarx.dart';
+import 'package:toastification/toastification.dart';
 
 class SuperUserDashboard extends StatefulWidget {
   const SuperUserDashboard({super.key});
@@ -42,11 +45,17 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
 
   IconData iconSettings = Icons.settings;
 
+  bool _hasShownProfileToast = false;
+
   @override
   void initState() {
     super.initState();
     _subscribeToUserData();
     _fetchProfileImage();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkProfileCompletion();
+    });
   }
 
   bool isHeadersClicked = false;
@@ -138,6 +147,134 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
       print("❌ No profile image found for user: ${user.uid}");
     }
   }
+
+
+void _checkProfileCompletion() async {
+  final user = _auth.currentUser;
+  if (user == null) {
+    print("❌ No current user found");
+    return;
+  }
+
+  try {
+    print("🔍 Checking profile for UID: ${user.uid}");
+    print("👤 Email: ${user.email}");
+    
+    // First approach: Try to find by direct document ID
+    var doc = await _firestore.collection("users").doc(user.uid).get();
+    print("📄 Direct lookup result: ${doc.exists ? 'Found' : 'Not found'}");
+    
+    // Second approach: Query by uid field
+    if (!doc.exists) {
+      print("⚠️ Document not found by direct ID, trying query by uid field");
+      final querySnapshot = await _firestore
+          .collection("users")
+          .where("uid", isEqualTo: user.uid)
+          .limit(1)
+          .get();
+          
+      print("🔎 Query results: ${querySnapshot.docs.length} documents found");
+      
+      if (querySnapshot.docs.isNotEmpty) {
+        doc = querySnapshot.docs.first;
+        print("✅ Found document via query with ID: ${doc.id}");
+      }
+    }
+
+    if (!doc.exists) {
+      print("❌ User document doesn't exist anywhere");
+      _showProfileCompletionToast();
+      return;
+    }
+
+    // Document exists, now check fields
+    try {
+      final userData = doc.data() as Map<String, dynamic>;
+      print("📝 Document data retrieved: ${userData.keys.toList()}");
+      
+      // List of required fields
+      final requiredFields = [
+        'birthdate',
+        'sex',
+        'civil_status',
+        'place_of_birth',
+        'mobile_number',
+        'first_name',
+        'last_name',
+        'citizenship',
+        'dual_citizen',
+      ];
+
+      bool isProfileComplete = true;
+      List<String> missingFields = [];
+
+      // Check each required field
+      for (String field in requiredFields) {
+        final hasField = userData.containsKey(field);
+        final fieldValue = userData[field];
+        final isEmpty = fieldValue == null || 
+                      (fieldValue is String && fieldValue.isEmpty);
+        
+        print("🔍 Field '$field': exists=$hasField, value='$fieldValue', isEmpty=$isEmpty");
+        
+        if (!hasField || isEmpty) {
+          isProfileComplete = false;
+          missingFields.add(field);
+        }
+      }
+
+      // Final result
+      print("📋 Profile check - Complete: $isProfileComplete");
+      if (!isProfileComplete) {
+        print("❌ Missing fields: $missingFields");
+        _showProfileCompletionToast();
+      } else {
+        print("✅ All required fields present");
+        
+        // Save preference to avoid future checks if profile is complete
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('isProfileCompleted_${user.uid}', true);
+          print("💾 Saved preference for completed profile");
+        } catch (e) {
+          print("⚠️ Failed to save preference: $e");
+        }
+      }
+    } catch (e) {
+      print("❌ Error processing document data: $e");
+      _showProfileCompletionToast();
+    }
+  } catch (e) {
+    print("❌ Error checking profile completion: $e");
+    _showProfileCompletionToast();
+  }
+}
+
+// Simplify the toast method
+void _showProfileCompletionToast() {
+  // Delay showing toast slightly to ensure UI is ready
+  Future.delayed(Duration(milliseconds: 800), () {
+    toastification.show(
+      context: context,
+      alignment: Alignment.topRight,
+      icon: Icon(Icons.info_outline, color: Colors.black87),
+      title: Text('Profile Incomplete', style: TextStyle(fontFamily: "B", 
+          fontSize: MediaQuery.of(context).size.width / 80)),
+      description: Text(
+        "Please go to Settings to complete your profile information",
+        style: TextStyle(
+          color: Colors.black87,
+          fontSize: MediaQuery.of(context).size.width / 90,
+          fontFamily: "M",
+        ),
+      ),
+      type: ToastificationType.warning,
+      style: ToastificationStyle.flatColored, // Light yellow color
+      autoCloseDuration: const Duration(seconds: 6),
+      animationDuration: const Duration(milliseconds: 300),
+    );
+  });
+}
 
   @override
   Widget build(BuildContext context) {
@@ -413,7 +550,7 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
       case 4:
         return const AddClient();
       case 5:
-        return const Masterlist();  
+        return const Masterlist();
       default:
         return const Text('Select an option from the menu.',
             style: TextStyle(fontSize: 20));

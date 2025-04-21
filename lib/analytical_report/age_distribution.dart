@@ -102,9 +102,6 @@ class AgeDistributionChartState extends State<AgeDistributionChart> {
     return AspectRatio(
       aspectRatio: 1.6,
       child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        color: Colors.white,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(

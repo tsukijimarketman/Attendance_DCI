@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:attendance_app/analytical_report/presentation/resources/app_resources.dart';
 import 'package:attendance_app/analytical_report/util/extensions/color_extensions.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AppointmentsPerDepartmentChart extends StatefulWidget {
   const AppointmentsPerDepartmentChart({super.key});
@@ -13,23 +15,37 @@ class AppointmentsPerDepartmentChart extends StatefulWidget {
 class AppointmentsPerDepartmentChartState extends State<AppointmentsPerDepartmentChart> {
   final Color barColor = Color.fromARGB(255, 11, 55, 99);
   int touchedIndex = -1;
+  
+  // Department data will be loaded from Firestore
+  Map<String, int> departmentAppointments = {};
+  bool isLoading = true;
+  String error = '';
+  
+  // Stream subscription for Firestore updates
+  StreamSubscription<QuerySnapshot>? _appointmentsSubscription;
 
-  // Mock data - replace with your actual data from Firestore
-  final Map<String, int> departmentAppointments = {
-    'QMS': 25,
-    'IQA': 18,
-    'PMD': 32,
-    'HRA': 15,
-    'BD': 28,
-    'ACCT': 20,
-    'ITO': 22,
-    'ADM': 30,
-    'TID': 14,
-    'PI': 35,
-    'LC': 12,
-    'CA': 16,
-    'CS': 24,
-    'CPD': 19,
+  // List of all departments to show, even if they have 0 appointments
+  final List<String> allDepartments = [
+    'QMS', 'IQA', 'PMD', 'HRA', 'BD', 'ACCT', 'ITO', 'ADM', 
+    'TID', 'PI', 'LC', 'CA', 'CS', 'CPD'
+  ];
+
+  // Mapping between full department names and abbreviations
+  final Map<String, String> departmentAbbreviations = {
+    'Quality Management System': 'QMS',
+    'Internal Quality Audit': 'IQA',
+    'Project Management Department': 'PMD',
+    'Human Resources Admin': 'HRA',
+    'Business Development': 'BD',
+    'Accounting': 'ACCT',
+    'IT Operations': 'ITO',
+    'Admin Operations': 'ADM',
+    'Technology & Innovations': 'TID',
+    'Project Implementation': 'PI',
+    'Legal and Compliance': 'LC',
+    'Corporate Affairs': 'CA',
+    'Customer Service': 'CS',
+    'Corporate Planning & Development': 'CPD',
   };
 
   // Tooltip for showing department full names when needed
@@ -49,6 +65,89 @@ class AppointmentsPerDepartmentChartState extends State<AppointmentsPerDepartmen
     'CS': 'Customer Service',
     'CPD': 'Corporate Planning & Development',
   };
+
+  @override
+  void initState() {
+    super.initState();
+    subscribeToAppointments();
+  }
+
+  @override
+  void dispose() {
+    _appointmentsSubscription?.cancel();
+    super.dispose();
+  }
+
+  // Subscribe to Firestore updates
+  void subscribeToAppointments() {
+    setState(() {
+      isLoading = true;
+      error = '';
+    });
+
+    try {
+      _appointmentsSubscription = FirebaseFirestore.instance
+          .collection('appointment')
+          .snapshots()
+          .listen((snapshot) {
+        processAppointmentData(snapshot);
+      }, onError: (e) {
+        setState(() {
+          error = 'Error: $e';
+          isLoading = false;
+        });
+      });
+    } catch (e) {
+      setState(() {
+        error = 'Failed to subscribe: $e';
+        isLoading = false;
+      });
+    }
+  }
+
+  // Process appointment data and update the state
+  void processAppointmentData(QuerySnapshot snapshot) {
+    try {
+      // Initialize counters for all departments with zero
+      Map<String, int> counts = {};
+      for (String dept in allDepartments) {
+        counts[dept] = 0;
+      }
+      
+      // Count appointments by department
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        String? department = data['department'] as String?;
+        
+        if (department != null && department.isNotEmpty) {
+          // Convert full department name to abbreviation if needed
+          String deptAbbrev = departmentAbbreviations[department] ?? department;
+          
+          // Make sure the abbreviation is one of our known departments
+          if (allDepartments.contains(deptAbbrev)) {
+            counts[deptAbbrev] = (counts[deptAbbrev] ?? 0) + 1;
+          }
+        }
+      }
+      
+      setState(() {
+        departmentAppointments = counts;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        error = 'Error processing data: $e';
+        isLoading = false;
+      });
+    }
+  }
+
+  // Update touchedIndex without rebuilding the whole widget
+  void updateTouchedIndex(int? index) {
+    touchedIndex = index ?? -1;
+    // This setState is isolated from the data update
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,23 +173,39 @@ class AppointmentsPerDepartmentChartState extends State<AppointmentsPerDepartmen
                 ),
               ),
               SizedBox(height: MediaQuery.of(context).size.width/80),
-              Expanded(
-                child: BarChart(
-                  BarChartData(
-                    barTouchData: barTouchData,
-                    titlesData: titlesData,
-                    borderData: borderData,
-                    barGroups: barGroups,
-                    gridData: const FlGridData(
-                      show: true,
-                      drawVerticalLine: false,
-                      getDrawingHorizontalLine: horizontalGridLine,
+              if (isLoading)
+                const Expanded(
+                  child: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else if (error.isNotEmpty)
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      error,
+                      style: TextStyle(color: Colors.red),
                     ),
-                    alignment: BarChartAlignment.spaceAround,
-                    maxY: getMaxY(),
+                  ),
+                )
+              else
+                Expanded(
+                  child: BarChart(
+                    BarChartData(
+                      barTouchData: barTouchData,
+                      titlesData: titlesData,
+                      borderData: borderData,
+                      barGroups: barGroups,
+                      gridData: const FlGridData(
+                        show: true,
+                        drawVerticalLine: false,
+                        getDrawingHorizontalLine: horizontalGridLine,
+                      ),
+                      alignment: BarChartAlignment.spaceAround,
+                      maxY: getMaxY(),
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
@@ -100,17 +215,19 @@ class AppointmentsPerDepartmentChartState extends State<AppointmentsPerDepartmen
 
   // Get maximum Y value plus some padding
   double getMaxY() {
-    return (departmentAppointments.values.reduce((curr, next) => curr > next ? curr : next) * 1.2);
+    if (departmentAppointments.isEmpty) return 10;
+    double max = departmentAppointments.values.fold(0, (max, value) => value > max ? value : max).toDouble();
+    return max > 0 ? max * 1.2 : 10;
   }
 
-  // Bar touch data configuration
+  // Bar touch data configuration - optimized to prevent excessive rebuilds
   BarTouchData get barTouchData => BarTouchData(
         enabled: true,
         touchTooltipData: BarTouchTooltipData(
           getTooltipItem: (group, groupIndex, rod, rodIndex) {
-            String departmentName = departmentAppointments.keys.elementAt(group.x);
+            String departmentAbbrev = allDepartments[group.x];
             return BarTooltipItem(
-              '${departmentFullNames[departmentName]}\n${rod.toY.round()} appointments',
+              '${departmentFullNames[departmentAbbrev] ?? departmentAbbrev}\n${rod.toY.round()} appointments',
               TextStyle(
                 color: Colors.white,
                 fontFamily: "B"
@@ -121,15 +238,19 @@ class AppointmentsPerDepartmentChartState extends State<AppointmentsPerDepartmen
           fitInsideVertically: true,
         ),
         touchCallback: (FlTouchEvent event, barTouchResponse) {
-          setState(() {
-            if (!event.isInterestedForInteractions ||
-                barTouchResponse == null ||
-                barTouchResponse.spot == null) {
-              touchedIndex = -1;
-              return;
+          if (!event.isInterestedForInteractions ||
+              barTouchResponse == null ||
+              barTouchResponse.spot == null) {
+            if (touchedIndex != -1) {
+              updateTouchedIndex(-1);
             }
-            touchedIndex = barTouchResponse.spot!.touchedBarGroupIndex;
-          });
+            return;
+          }
+          
+          int newIndex = barTouchResponse.spot!.touchedBarGroupIndex;
+          if (touchedIndex != newIndex) {
+            updateTouchedIndex(newIndex);
+          }
         },
       );
 
@@ -177,10 +298,10 @@ class AppointmentsPerDepartmentChartState extends State<AppointmentsPerDepartmen
         ),
       );
 
-  // Bottom titles widget
+  // Bottom titles widget - display department abbreviations
   Widget bottomTitles(double value, TitleMeta meta) {
     final index = value.toInt();
-    if (index < 0 || index >= departmentAppointments.length) {
+    if (index < 0 || index >= allDepartments.length) {
       return const SizedBox.shrink();
     }
     
@@ -190,7 +311,7 @@ class AppointmentsPerDepartmentChartState extends State<AppointmentsPerDepartmen
       fontSize: 10,
     );
     
-    final text = departmentAppointments.keys.elementAt(index);
+    final text = allDepartments[index];
     
     return SideTitleWidget(
       meta: meta,
@@ -229,14 +350,16 @@ class AppointmentsPerDepartmentChartState extends State<AppointmentsPerDepartmen
   // Generate bar groups
   List<BarChartGroupData> get barGroups {
     return List.generate(
-      departmentAppointments.length,
+      allDepartments.length,
       (index) {
-        final data = departmentAppointments.entries.elementAt(index);
+        final deptAbbrev = allDepartments[index];
+        final count = departmentAppointments[deptAbbrev] ?? 0;
+        
         return BarChartGroupData(
           x: index,
           barRods: [
             BarChartRodData(
-              toY: data.value.toDouble(),
+              toY: count.toDouble(),
               color: touchedIndex == index 
                   ? Color.fromARGB(255, 11, 55, 99) 
                   : Color.fromARGB(255, 11, 55, 99).withOpacity(0.7),

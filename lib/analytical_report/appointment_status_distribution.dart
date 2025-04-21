@@ -6,7 +6,8 @@ class AppointmentStatusPieChart extends StatefulWidget {
   const AppointmentStatusPieChart({super.key});
 
   @override
-  State<AppointmentStatusPieChart> createState() => _AppointmentStatusPieChartState();
+  State<AppointmentStatusPieChart> createState() =>
+      _AppointmentStatusPieChartState();
 }
 
 class _AppointmentStatusPieChartState extends State<AppointmentStatusPieChart> {
@@ -26,7 +27,8 @@ class _AppointmentStatusPieChartState extends State<AppointmentStatusPieChart> {
   Future<void> fetchStatusData() async {
     try {
       // Access Firestore and get appointments collection
-      final appointmentsCollection = FirebaseFirestore.instance.collection('appointment');
+      final appointmentsCollection =
+          FirebaseFirestore.instance.collection('appointment');
       final querySnapshot = await appointmentsCollection.get();
 
       // Process each appointment document
@@ -34,29 +36,37 @@ class _AppointmentStatusPieChartState extends State<AppointmentStatusPieChart> {
       totalAppointments = querySnapshot.docs.length;
 
       // Define expected status values for grouping
-      final expectedStatuses = ['Scheduled', 'In Progress', 'Completed', 'Cancelled'];
-      
+      final expectedStatuses = [
+        'Scheduled',
+        'In Progress',
+        'Completed',
+        'Cancelled'
+      ];
+
       for (var status in expectedStatuses) {
         statusCounts[status] = 0; // Initialize all expected statuses with 0
       }
 
       for (var doc in querySnapshot.docs) {
         final appointmentData = doc.data();
-        
+
         if (appointmentData.containsKey('status')) {
           final status = appointmentData['status'];
-          
+
           if (status is String) {
             // Standardize status capitalization to match expected values
             String normalizedStatus = status.trim();
-            
+
             // Find the matching expected status (case-insensitive)
             String? matchedStatus = expectedStatuses.firstWhere(
-              (expectedStatus) => expectedStatus.toLowerCase() == normalizedStatus.toLowerCase(),
+              (expectedStatus) =>
+                  expectedStatus.toLowerCase() ==
+                  normalizedStatus.toLowerCase(),
               orElse: () => 'Other',
             );
-            
-            statusCounts[matchedStatus] = (statusCounts[matchedStatus] ?? 0) + 1;
+
+            statusCounts[matchedStatus] =
+                (statusCounts[matchedStatus] ?? 0) + 1;
           }
         } else {
           // Count appointments with no status defined
@@ -71,8 +81,9 @@ class _AppointmentStatusPieChartState extends State<AppointmentStatusPieChart> {
       statusData = statusCounts.entries.map((entry) {
         final statusName = entry.key;
         final count = entry.value;
-        final double percentage = totalAppointments > 0 ? (count / totalAppointments) * 100 : 0;
-        
+        final double percentage =
+            totalAppointments > 0 ? (count / totalAppointments) * 100 : 0;
+
         return StatusData(
           status: statusName,
           count: count,
@@ -101,7 +112,9 @@ class _AppointmentStatusPieChartState extends State<AppointmentStatusPieChart> {
     }
 
     if (errorMessage != null) {
-      return Center(child: Text(errorMessage!, style: const TextStyle(color: Colors.red)));
+      return Center(
+          child:
+              Text(errorMessage!, style: const TextStyle(color: Colors.red)));
     }
 
     if (statusData.isEmpty) {
@@ -115,12 +128,12 @@ class _AppointmentStatusPieChartState extends State<AppointmentStatusPieChart> {
           Text(
             'Appointment Status Distribution',
             style: TextStyle(
-              fontSize: MediaQuery.of(context).size.width/80,
+              fontSize: MediaQuery.of(context).size.width / 80,
               fontFamily: "SB",
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(height: MediaQuery.of(context).size.width/80),
+          SizedBox(height: MediaQuery.of(context).size.width / 80),
           Expanded(
             child: Row(
               children: [
@@ -150,7 +163,7 @@ class _AppointmentStatusPieChartState extends State<AppointmentStatusPieChart> {
                     ),
                   ),
                 ),
-                SizedBox(width: MediaQuery.of(context).size.width/100),
+                SizedBox(width: MediaQuery.of(context).size.width / 100),
                 Column(
                   mainAxisSize: MainAxisSize.max,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -160,14 +173,14 @@ class _AppointmentStatusPieChartState extends State<AppointmentStatusPieChart> {
               ],
             ),
           ),
-          SizedBox(height: MediaQuery.of(context).size.width/80),
           Text(
             'Total Appointments: $totalAppointments',
             style: TextStyle(
-              fontSize: MediaQuery.of(context).size.width/80,
+              fontSize: MediaQuery.of(context).size.width / 80,
               fontFamily: "B",
             ),
           ),
+          SizedBox(height: MediaQuery.of(context).size.width / 80),
         ],
       ),
     );
@@ -175,7 +188,7 @@ class _AppointmentStatusPieChartState extends State<AppointmentStatusPieChart> {
 
   List<Widget> generateStatusIndicators() {
     final List<Widget> indicators = [];
-    
+
     // Define specific colors for appointment statuses
     final Map<String, Color> statusColors = {
       'Scheduled': Color(0xFF082649),
@@ -191,11 +204,12 @@ class _AppointmentStatusPieChartState extends State<AppointmentStatusPieChart> {
       indicators.add(
         Indicator(
           color: statusColors[data.status] ?? Colors.teal,
-          text: '${data.status}: ${data.percentage.toStringAsFixed(1)}% (${data.count})',
+          text:
+              '${data.status}: ${data.percentage.toStringAsFixed(1)}% (${data.count})',
           isSquare: true,
         ),
       );
-      
+
       if (i < statusData.length - 1) {
         indicators.add(const SizedBox(height: 4));
       }
@@ -214,14 +228,18 @@ class _AppointmentStatusPieChartState extends State<AppointmentStatusPieChart> {
       'Unknown': Colors.grey,
       'Other': Colors.purple,
     };
-      
+
     return List.generate(statusData.length, (i) {
       final isTouched = i == touchedIndex;
-      final fontSize = isTouched ? MediaQuery.of(context).size.width/50 : MediaQuery.of(context).size.width/70;
-      final radius = isTouched ? MediaQuery.of(context).size.width/17 : MediaQuery.of(context).size.width/20;
-      
+      final fontSize = isTouched
+          ? MediaQuery.of(context).size.width / 50
+          : MediaQuery.of(context).size.width / 70;
+      final radius = isTouched
+          ? MediaQuery.of(context).size.width / 17
+          : MediaQuery.of(context).size.width / 20;
+
       final Color color = statusColors[statusData[i].status] ?? Colors.teal;
-      
+
       return PieChartSectionData(
         color: color,
         value: statusData[i].percentage,
@@ -284,7 +302,7 @@ class Indicator extends StatelessWidget {
         Text(
           text,
           style: TextStyle(
-            fontSize: MediaQuery.of(context).size.width/90,
+            fontSize: MediaQuery.of(context).size.width / 90,
             fontFamily: "R",
             color: textColor,
           ),

@@ -162,7 +162,6 @@ class _CivilStatusPieChartState extends State<CivilStatusPieChart> {
               ],
             ),
           ),
-          SizedBox(height: MediaQuery.of(context).size.width/80),
           Text(
             'Total Users: $totalUsers',
             style: TextStyle(
@@ -170,6 +169,7 @@ class _CivilStatusPieChartState extends State<CivilStatusPieChart> {
               fontFamily: "B",
             ),
           ),
+          SizedBox(height: MediaQuery.of(context).size.width / 80),
         ],
       ),
     );

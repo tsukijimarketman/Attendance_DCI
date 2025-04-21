@@ -1,6 +1,5 @@
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/tabs.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/tabs/tabs.dart';
 import 'package:attendance_app/Animation/loader.dart';
-import 'package:attendance_app/Appointment/appointment_details.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -19,6 +18,9 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
   String first_name = '';
   String last_name = '';
   bool isLoading = true;
+  
+  // Add selectedAgenda state variable
+  String selectedAgenda = '';
 
   // Pagination variables
   int currentPage = 1;
@@ -236,8 +238,7 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
                                     onChanged: (value) {
                                       setState(() {
                                         searchQuery = value;
-                                        currentPage =
-                                            1; // Reset to first page when searching
+                                        currentPage = 1; // Reset to first page when searching
                                       });
                                     },
                                   ),
@@ -293,8 +294,6 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
                             ),
                           ),
                           SizedBox(height: screenWidth / 80),
-                          // Items per page selector
-                          
       
                           // Appointments List
                           Padding(
@@ -369,48 +368,44 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
                                                       BorderRadius.circular(
                                                           screenWidth / 160),
                                                 ),
-                                                color: Colors.green
-                                                    .shade50, // Light green to indicate completion
-                                                child: ListTile(
-                                                  title: Row(
-                                                    children: [
-                                                      Expanded(
-                                                        child: Text(
-                                                          agenda,
-                                                          style: TextStyle(
-                                                              fontSize:
-                                                                  screenWidth /
-                                                                      90,
-                                                              fontFamily: "B"),
+                                                color: selectedAgenda == agenda
+                                                    ? Colors.green.shade100 // Highlight selected item
+                                                    : Colors.green.shade50,
+                                                child: InkWell( // Added InkWell for tap detection
+                                                  onTap: () {
+                                                    setState(() {
+                                                      selectedAgenda = agenda;
+                                                    });
+                                                    print("Selected agenda: $agenda");
+                                                  },
+                                                  child: ListTile(
+                                                    title: Row(
+                                                      children: [
+                                                        Expanded(
+                                                          child: Text(
+                                                            agenda,
+                                                            style: TextStyle(
+                                                                fontSize:
+                                                                    screenWidth /
+                                                                    90,
+                                                                fontFamily: "B"),
+                                                          ),
                                                         ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  subtitle: Text(
-                                                    "Scheduled: $schedule",
-                                                    style: TextStyle(
-                                                        fontSize:
-                                                            screenWidth / 110,
-                                                        fontFamily: "R"),
-                                                  ),
-                                                  trailing: Icon(
-                                                      Icons.arrow_forward_ios,
-                                                      size: screenWidth / 50),
-                                                  leading: Icon(
+                                                      ],
+                                                    ),
+                                                    subtitle: Text(
+                                                      "Scheduled: $schedule",
+                                                      style: TextStyle(
+                                                          fontSize:
+                                                              screenWidth / 110,
+                                                          fontFamily: "R"),
+                                                    ),
+                                                    leading: Icon(
                                                       Icons.check_circle,
                                                       color: Colors.green,
-                                                      size: screenWidth / 40),
-                                                  onTap: () {
-                                                    Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                        builder: (context) =>
-                                                            AppointmentDetails(
-                                                                selectedAgenda:
-                                                                    agenda),
-                                                      ),
-                                                    );
-                                                  },
+                                                      size: screenWidth / 40,
+                                                    ),
+                                                  ),
                                                 ),
                                               ),
                                             );
@@ -587,7 +582,9 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
                       width: screenWidth / 1.5,
                       height: screenHeight,
                       color: Color(0xFFf2edf3),
-                      child: MeetingTabs(),
+                      child: MeetingTabs(
+                        selectedAgenda: selectedAgenda, // Pass the selected agenda
+                      ),
                     )
                   ],
                 ),
