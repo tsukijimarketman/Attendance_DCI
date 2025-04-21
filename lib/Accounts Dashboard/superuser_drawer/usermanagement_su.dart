@@ -131,8 +131,6 @@ class _UserManagementState extends State<UserManagement> {
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            bool requiresDepartment =
-                !(selectedRoles == "Super User" || selectedRoles == "Admin");
 
             return CupertinoAlertDialog(
               title: Text(
@@ -181,7 +179,6 @@ class _UserManagementState extends State<UserManagement> {
                     ),
 
                     // ✅ Show department dropdown only if required
-                    if (requiresDepartment)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 16.0),
                         child: DropdownButtonFormField<String>(
@@ -236,8 +233,7 @@ class _UserManagementState extends State<UserManagement> {
                     ElevatedButton(
                         onPressed: () {
                           // ✅ Prevent saving if a department is required but not selected
-                          if (requiresDepartment &&
-                              selectedDepartment == null) {
+                          if ( selectedDepartment == null) {
                             _showErrorDialog(
                                 context, "Please select a department.");
                             return;

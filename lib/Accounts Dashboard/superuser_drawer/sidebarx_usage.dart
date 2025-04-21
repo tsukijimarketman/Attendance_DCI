@@ -42,6 +42,8 @@ class SideBarXUsage extends StatelessWidget {
         SidebarXItem(icon: Icons.event, label: 'Appointments'),
         SidebarXItem(icon: Icons.group, label: 'Clients'),
         SidebarXItem(icon: Icons.list_alt, label: 'Master List of Users'),
+        SidebarXItem(icon: Icons.list_alt, label: 'Master List of Departments'),
+
       ],
     );
   }

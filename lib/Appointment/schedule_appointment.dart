@@ -40,6 +40,7 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
     descriptionAgendaController.clear();
     setState(() {
       selectedGuests.clear();
+      selectedUsers.clear();
       selectedScheduleTime = null;
     });
   }
@@ -53,12 +54,17 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
       String descriptionText = descriptionAgendaController.text.trim();
       // Copy selectedGuests to a local variable to avoid side effects
       List<Map<String, dynamic>> localSelectedGuests =
-          List.from(selectedGuests ?? []);
+          List.from(selectedGuests);
+
+          List<Map<String, dynamic>> localSelectedUsers = List.from(selectedUsers);
+
 
       List<String> guestEmails = localSelectedGuests
           .map((guest) => guest['emailAdd'] as String?)
           .whereType<String>()
           .toList();
+
+          print('before saving: $selectedUsers');
 
       DateTime startDateTime = DateTime.parse(scheduleController.text);
       DateTime endDateTime = startDateTime.add(Duration(hours: 1));
@@ -95,11 +101,14 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
         'schedule': scheduleText, // Ensure schedule value is being passed here
         'agendaDescript': descriptionText,
         'guest': localSelectedGuests, // Store local copy of selected guests
-        'internal_users': selectedUsers,
+        'internal_users': localSelectedUsers,
         'status': 'Scheduled',
         'createdBy': fullName,
         'googleEventId': eventId, // Store the eventId after creating the event
       });
+
+                print('after saving: $selectedUsers');
+
 
       await logAuditTrail("Created Appointment",
           "User $fullName scheduled an appointment with agenda: $agendaText");
@@ -252,6 +261,13 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
     final TextEditingController emailAdd = TextEditingController();
     final TextEditingController companyName = TextEditingController();
 
+     void clearAddnewguest(){
+    fullName.clear();
+    contactNum.clear();
+    emailAdd.clear();
+    companyName.clear();
+  }
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -330,23 +346,66 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
             ],
           ),
           actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text("Cancel"),
-            ),
-            TextButton(
-              onPressed: () async {
-                await _firestore.collection('clients').add({
-                  'fullName': fullName.text,
-                  'contactNum': contactNum.text,
-                  'emailAdd': emailAdd.text,
-                  'companyName': companyName.text,
-                });
-                Navigator.pop(context);
-              },
-              child: Text("Add"),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text("Cancel", style: TextStyle(color: Colors.white)),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                  // Check if the guest already exists
+                  QuerySnapshot duplicateCheck = await _firestore
+                      .collection('clients')
+                      .where('fullName', isEqualTo: fullName.text)
+                      .where('contactNum', isEqualTo: contactNum.text)
+                      .where('emailAdd', isEqualTo: emailAdd.text)
+                      .where('companyName', isEqualTo: companyName.text)
+                      .get();
+                
+                  if (duplicateCheck.docs.isNotEmpty) {
+                    // Show a message if the guest already exists
+                        clearAddnewguest();
+                
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Guest already exists.")),
+                    );
+                  } else {
+                    // Add the new guest
+                    await _firestore.collection('clients').add({
+                      'fullName': fullName.text,
+                      'contactNum': contactNum.text,
+                      'emailAdd': emailAdd.text,
+                      'companyName': companyName.text,
+                    });
+                
+                        clearAddnewguest();
+                    Navigator.pop(context);
+                
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Guest added successfully.")),
+                    );
+                  }
+                },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text("Add Guest", style: TextStyle(color: Colors.white)),
+                ),
+              ],
             ),
           ],
         );
@@ -524,12 +583,22 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                     return [
                                       ListTile(
                                         title: Text("No guests found"),
-                                        subtitle: TextButton(
-                                          onPressed: () {
-                                            controller.closeView(null);
-                                            _showAddGuestDialog();
-                                          },
-                                          child: Text("Add a new guest"),
+                                        subtitle: Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: ElevatedButton(
+                                            onPressed: () {
+                                              controller.closeView(null);
+                                              _showAddGuestDialog();
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.blue,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                              ),
+                                            ),
+                                            child: Text("Add a new guest", style: TextStyle(color: Colors.white),),
+                                          ),
                                         ),
                                       )
                                     ];
@@ -537,7 +606,10 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
 
                                   return filteredGuests.map((guest) {
                                     bool isSelected = selectedGuests.any((g) =>
-                                        g["fullName"] == guest["fullName"]);
+    g["fullName"] == guest["fullName"] &&
+    g["emailAdd"] == guest["emailAdd"] &&
+    g["companyName"] == guest["companyName"] &&
+    g["contactNum"] == guest["contactNum"]);
 
                                     return ListTile(
                                       title: Text(guest["fullName"]),
@@ -552,8 +624,11 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                         setState(() {
                                           if (isSelected) {
                                             selectedGuests.removeWhere((g) =>
-                                                g["fullName"] ==
-                                                guest["fullName"]);
+    g["fullName"] == guest["fullName"] &&
+    g["emailAdd"] == guest["emailAdd"] &&
+    g["companyName"] == guest["companyName"] &&
+    g["contactNum"] == guest["contactNum"]);
+
                                           } else {
                                             selectedGuests.add(guest);
                                           }
@@ -606,8 +681,10 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                       onPressed: () {
                                         setState(() {
                                           selectedGuests.removeWhere((g) =>
-                                              g["fullName"] ==
-                                              guest["fullName"]);
+                                              g["fullName"] == guest["fullName"] &&
+    g["emailAdd"] == guest["emailAdd"] &&
+    g["companyName"] == guest["companyName"] &&
+    g["contactNum"] == guest["contactNum"]);
                                         });
                                       },
                                     ),
@@ -687,9 +764,9 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
 
                                           return filteredUsers.map((users) {
                                             bool isSelected = selectedUsers.any(
-                                                (g) =>
-                                                    g["fullName"] ==
-                                                    users["fullName"]);
+                                                (g) => g["fullName"] == users["fullName"] &&
+                                                      g["email"] == users["email"] &&
+                                                g["department"] == users["department"]);   
 
                                             return ListTile(
                                               title: Text(users["fullName"]),
@@ -706,7 +783,9 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                                     selectedUsers.removeWhere(
                                                         (g) =>
                                                             g["fullName"] ==
-                                                            users["fullName"]);
+                                                            users["fullName"]&&
+                                                              g["email"] == users["email"] &&
+                                                g["department"] == users["department"]);
                                                   } else {
                                                     selectedUsers.add(users);
                                                   }
@@ -760,9 +839,9 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                                 setState(() {
                                                   selectedUsers.removeWhere(
                                                       (g) =>
-                                                          g["fullName"] ==
-                                                          users["fullName"]);
-                                                });
+                                                         g["fullName"] == users["fullName"] &&
+                                                      g["email"] == users["email"] &&
+                                                g["department"] == users["department"]);                                    });
                                               },
                                             ),
                                           ),

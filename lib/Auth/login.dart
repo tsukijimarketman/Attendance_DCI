@@ -671,8 +671,8 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
       'email': email,
       'password': encryptedPassword,
       'status': 'pending',
-      'isDeleted': false
-    });
+      'isDeleted': false,
+        });
 
     _showDialog('Pending Approval', 'Your account request has been sent for approval.');
     _clearFields();

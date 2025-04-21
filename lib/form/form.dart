@@ -7,6 +7,7 @@ import 'package:attendance_app/form/signature.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:signature/signature.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -51,9 +52,21 @@ class _AttendanceFormState extends State<AttendanceForm> {
   int remainingTime = 0; // Time in seconds
   late DateTime scheduledTime; // Moved initialization inside initState()
 
+  bool isValidPhone(String input) {
+    return RegExp(r'^(09|\+639)\d{9}$|^0\d{7,10}$').hasMatch(input);
+  }
+
+  bool isNameValid = true;
+bool isCompanyValid = true;
+bool isEmailValid = true;
+List<bool> contactFieldValidity = [];
+
+
   @override
   void initState() {
     super.initState();
+    contactControllers = [TextEditingController()];
+  contactFieldValidity = [true];
     scheduledTime =
         DateTime.fromMillisecondsSinceEpoch(widget.selectedScheduleTime);
 
@@ -156,7 +169,37 @@ class _AttendanceFormState extends State<AttendanceForm> {
     return "$minutes:${secs.toString().padLeft(2, '0')}";
   }
 
+  bool validateForm() {
+  setState(() {
+    isNameValid = nameController.text.trim().isNotEmpty;
+    isCompanyValid = companyController.text.trim().isNotEmpty;
+
+    final email = emailAddController.text.trim();
+    final emailRegExp = RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
+    isEmailValid = emailRegExp.hasMatch(email);
+
+    contactFieldValidity = contactControllers.map((controller) {
+      String number = controller.text.trim();
+      return isValidPhone(number);
+    }).toList();
+  });
+
+  // Check if all are valid
+  bool allContactsValid = contactFieldValidity.any((valid) => valid);
+  if (!isNameValid || !isCompanyValid || !isEmailValid || !allContactsValid) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Please correct the highlighted fields.")),
+    );
+    return false;
+  }
+
+  return true;
+}
+
+
   void submitForm() async {
+      if (!validateForm()) return; // Early exit if validation fails
+
     if (_signatureController.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please add a signature!")),
@@ -296,51 +339,79 @@ class _AttendanceFormState extends State<AttendanceForm> {
                     elevation: 3,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
-                   child: Column(
-                     crossAxisAlignment: CrossAxisAlignment.start,
-                     children: [
-                       ListTile(
-                         leading:
-                             Icon(Icons.event_note, color: Colors.blue, size: 18,),
-                         title: Text("Agenda", style: TextStyle(fontSize: 14),),
-                         subtitle: Text(widget.agenda, style: TextStyle(fontSize: 10),),
-                       ),
-                       ListTile(
-                         leading: Icon(Icons.account_tree_outlined, size: 18,
-                             color: Colors.green),
-                         title: Text("Department", style: TextStyle(fontSize: 14),),
-                         subtitle: Text(widget.department, style: TextStyle(fontSize: 10),),
-                       ),
-                       ListTile(
-                         leading:
-                             Icon(Icons.schedule, color: Colors.orange, size: 18,),
-                         title: Text("Scheduled at", style: TextStyle(fontSize: 14),),
-                         subtitle: Text(formatDateTime(scheduledTime), style: TextStyle(fontSize: 10),),
-                       ),
-                       ListTile(
-                         leading: Icon(Icons.person_outline, size: 18,
-                             color: Colors.purple),
-                         title: Text("Created By", style: TextStyle(fontSize: 14),),
-                         subtitle: Text(
-                             "${widget.firstName} ${widget.lastName}", style: TextStyle(fontSize: 10),),
-                       ),
-                       SizedBox(height: 10),
-                       Center(
-                         child: Text(
-                           remainingTime > 0
-                               ? "Expires in: ${_formatTime(remainingTime)} minutes"
-                               : "Form has expired",
-                           style: TextStyle(
-                             fontSize: 16,
-                             fontWeight: FontWeight.bold,
-                             color: remainingTime > 0
-                                 ? Colors.red
-                                 : Colors.grey,
-                           ),
-                         ),
-                       ),
-                     ],
-                   ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ListTile(
+                          leading: Icon(
+                            Icons.event_note,
+                            color: Colors.blue,
+                            size: 18,
+                          ),
+                          title: Text(
+                            "Agenda",
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          subtitle: Text(
+                            widget.agenda,
+                            style: TextStyle(fontSize: 10),
+                          ),
+                        ),
+                        ListTile(
+                          leading: Icon(Icons.account_tree_outlined,
+                              size: 18, color: Colors.green),
+                          title: Text(
+                            "Department",
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          subtitle: Text(
+                            widget.department,
+                            style: TextStyle(fontSize: 10),
+                          ),
+                        ),
+                        ListTile(
+                          leading: Icon(
+                            Icons.schedule,
+                            color: Colors.orange,
+                            size: 18,
+                          ),
+                          title: Text(
+                            "Scheduled at",
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          subtitle: Text(
+                            formatDateTime(scheduledTime),
+                            style: TextStyle(fontSize: 10),
+                          ),
+                        ),
+                        ListTile(
+                          leading: Icon(Icons.person_outline,
+                              size: 18, color: Colors.purple),
+                          title: Text(
+                            "Created By",
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          subtitle: Text(
+                            "${widget.firstName} ${widget.lastName}",
+                            style: TextStyle(fontSize: 10),
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        Center(
+                          child: Text(
+                            remainingTime > 0
+                                ? "Expires in: ${_formatTime(remainingTime)} minutes"
+                                : "Form has expired",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color:
+                                  remainingTime > 0 ? Colors.red : Colors.grey,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 SizedBox(
@@ -350,12 +421,14 @@ class _AttendanceFormState extends State<AttendanceForm> {
                     height: 50,
                     width: 400,
                     child: CupertinoTextField(
+                      
                       textCapitalization: TextCapitalization.words,
                       keyboardType: TextInputType.name,
                       controller: nameController,
                       placeholder: 'Name',
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.blue, width: 1),
+    border: Border.all(color: isNameValid ? Colors.blue : Colors.red),
+                        
                         borderRadius: BorderRadius.circular(10),
                       ),
                     )),
@@ -370,7 +443,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
                       controller: companyController,
                       placeholder: 'Company',
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.blue, width: 1),
+    border: Border.all(color: isCompanyValid ? Colors.blue : Colors.red),
                         borderRadius: BorderRadius.circular(10),
                       ),
                     )),
@@ -385,16 +458,26 @@ class _AttendanceFormState extends State<AttendanceForm> {
                       controller: emailAddController,
                       placeholder: 'Email Address',
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.blue, width: 1),
+    border: Border.all(color: isEmailValid ? Colors.blue : Colors.red),
                         borderRadius: BorderRadius.circular(10),
                       ),
+                      onChanged: (value) {
+                        final isValid =
+                            RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$")
+                                .hasMatch(value);
+                        if (!isValid) {
+                          // You can show a message or visual feedback if needed
+                        }
+                      },
                     )),
                 SizedBox(
                   height: 10,
                 ),
-                ...contactControllers.map((controller) {
-                  int index = contactControllers.indexOf(
-                      controller); // Get index of the current controller
+                ...contactControllers.asMap().entries.map((entry) {
+  int index = entry.key;
+  TextEditingController controller = entry.value;
+  bool isValid = index < contactFieldValidity.length ? contactFieldValidity[index] : true;
+
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 5),
                     child: SizedBox(
@@ -402,9 +485,15 @@ class _AttendanceFormState extends State<AttendanceForm> {
                       child: CupertinoTextField(
                         controller: controller,
                         placeholder: 'Contact Number',
-                        keyboardType: TextInputType.number,
+                        keyboardType: TextInputType.phone,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'[\d\+]')), // Allow only digits and "+"
+                          LengthLimitingTextInputFormatter(
+                              12), // limit to max 13 digits (adjust as needed)
+                        ],
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.blue),
+          border: Border.all(color: isValid ? Colors.blue : Colors.red),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         suffix: index == 0

@@ -1,5 +1,6 @@
 import 'package:attendance_app/widget/custom_animation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AnimatedTextField extends StatefulWidget {
   final bool obscureText;
@@ -7,6 +8,8 @@ class AnimatedTextField extends StatefulWidget {
   final String label;
   final Widget? suffix;
   final bool readOnly;
+  final List<TextInputFormatter>? inputFormatters; // 👈 Add this
+
 
   const AnimatedTextField({
     Key? key,
@@ -15,6 +18,7 @@ class AnimatedTextField extends StatefulWidget {
     this.obscureText = false,
     this.controller,
     required this.readOnly,
+    this.inputFormatters,
   }) : super(key: key);
 
   @override
@@ -80,6 +84,7 @@ class _AnimatedTextFieldState extends State<AnimatedTextField>
             readOnly: widget.readOnly,
             onTap: () => _toggleAnimation(true),
             onEditingComplete: () => _toggleAnimation(false),
+            inputFormatters: widget.inputFormatters, // 👈 This is important#
             decoration: InputDecoration(
               label: Text(
                 widget.label,

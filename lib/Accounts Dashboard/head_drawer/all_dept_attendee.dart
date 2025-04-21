@@ -43,6 +43,7 @@ bool isLoading = true;
   List<Map<String, dynamic>> attendanceList = [];
 
   List<Map<String, dynamic>> guests = [];
+  List<Map<String, dynamic>> users = [];
 
 @override
 void initState() {
@@ -87,6 +88,10 @@ void initState() {
           // Fetch guests array from Firestore
           if (data.containsKey('guest') && data['guest'] is List) {
             guests = List<Map<String, dynamic>>.from(data['guest']);
+          }
+
+           if (data.containsKey('internal_users') && data['internal_users'] is List) {
+            users = List<Map<String, dynamic>>.from(data['internal_users']);
           }
         });
       } else {
@@ -459,8 +464,6 @@ void initState() {
     );
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -567,7 +570,7 @@ void initState() {
                             ),
                             child: Text(
                               departmentController.text.isNotEmpty
-                                  ? "{$formatDate(departmentController.text)}"
+                                  ? departmentController.text
                                   : "Loading...",
                               style: TextStyle(fontSize: 16, color: Colors.black),
                             ),
@@ -587,7 +590,7 @@ void initState() {
                             ),
                             child: Text(
                               scheduleController.text.isNotEmpty
-                                  ? scheduleController.text
+                                  ? '${formatDate(scheduleController.text)}'
                                   : "Loading...",
                               style: TextStyle(fontSize: 16, color: Colors.black),
                             ),
@@ -632,6 +635,52 @@ void initState() {
                                               "📞 Contact: ${guest["contactNum"] ?? "N/A"}"),
                                           Text(
                                               "🏢 Company: ${guest["companyName"] ?? "N/A"}"),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+
+
+
+                          Divider(
+                            thickness: 1,
+                            height: 1,
+                            color: Colors.black,
+                          ),
+                          SizedBox(
+                            child: users.isEmpty
+                                ? Center(child: Text("No users invited"))
+                                : Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Text(
+                                      "Invited Internal Users",
+                                      style: TextStyle(color: Colors.black, fontSize: 18),
+                                    ),
+                                  ),
+                          ),
+                          Expanded(
+                            // ✅ Wrap ListView.builder in Expanded
+                            child: ListView.builder(
+                              itemCount: users.length,
+                              itemBuilder: (context, index) {
+                                var user = users[index];
+                                return Padding(
+                                  padding: const EdgeInsets.fromLTRB(50, 0, 50, 0),
+                                  child: Card(
+                                    margin: EdgeInsets.all(2),
+                                    child: ListTile(
+                                      title: Text(user["fullName"] ?? "Unknown"),
+                                      subtitle: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                              "📧 Email: ${user["email"] ?? "N/A"}"),
+                                          Text(
+                                              "🏢 Department: ${user["department"] ?? "N/A"}"),
                                         ],
                                       ),
                                     ),

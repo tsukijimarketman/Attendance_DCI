@@ -20,8 +20,6 @@ import 'package:universal_html/html.dart' as html;
 import 'package:share_plus/share_plus.dart';
 import 'package:attendance_app/Calendar/calendar.dart';
 
-
-
 class AppointmentDetails extends StatefulWidget {
   final String selectedAgenda;
 
@@ -53,7 +51,6 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
   String lastName = "";
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
 
   bool isEditing =
       false; // Keeps track of whether the button is in Edit or Save mode
@@ -580,7 +577,7 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
     );
   }
 
-  void _showCancelDialog() {
+  void _showCancelDialog(String agenda) {
     TextEditingController remarkController = TextEditingController();
 
     showDialog(
@@ -622,9 +619,9 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
                 }
 
                 Navigator.of(context).pop(); // Close dialog
-                deleteEvent(widget.selectedAgenda); // 👈 Call delete here
+                deleteEvent(agenda); // 👈 Call delete here
                 updateAppointmentStatus('Cancelled',
-                    remark: remark); // 👈 Call update here
+                    remark: remark); // 👈 Update status
               },
             ),
           ],
@@ -703,119 +700,131 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
     return minute.toString().padLeft(2, '0');
   }
 
- Future<void> saveDataToFirestore() async {
-  try {
-    // Query for the document matching the agenda
-    QuerySnapshot snapshot = await FirebaseFirestore.instance
-        .collection('appointment')
-        .where('agenda', isEqualTo: widget.selectedAgenda)
-        .limit(1)
-        .get();
-
-    if (snapshot.docs.isNotEmpty) {
-      // Get the document ID and the stored Google Calendar eventId
-      String docId = snapshot.docs.first.id;
-      var appointmentData = snapshot.docs.first.data() as Map<String, dynamic>;
-      String eventId = appointmentData['googleEventId']; // Retrieve the eventId
-
-      // Update the Firestore document
-      await FirebaseFirestore.instance
+  Future<void> saveDataToFirestore() async {
+    try {
+      // Query for the document matching the agenda
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
           .collection('appointment')
-          .doc(docId)
-          .update({
-        'agenda': agendaController.text,
-        'schedule': scheduleController.text,
-        'agendaDescript': descriptionAgendaController.text,
-      });
+          .where('agenda', isEqualTo: widget.selectedAgenda)
+          .limit(1)
+          .get();
 
-      await logAuditTrail("Updated Appointment",
-          "User $fullName updated the appointment with agenda: ${agendaController.text}");
+      if (snapshot.docs.isNotEmpty) {
+        // Get the document ID and the stored Google Calendar eventId
+        String docId = snapshot.docs.first.id;
+        var appointmentData =
+            snapshot.docs.first.data() as Map<String, dynamic>;
+        String eventId =
+            appointmentData['googleEventId']; // Retrieve the eventId
 
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Form submitted successfully!")));
+        // Update the Firestore document
+        await FirebaseFirestore.instance
+            .collection('appointment')
+            .doc(docId)
+            .update({
+          'agenda': agendaController.text,
+          'schedule': scheduleController.text,
+          'agendaDescript': descriptionAgendaController.text,
+        });
 
-      // 🌟 Retrieve or Authenticate Google Token
-      GoogleCalendarService googleCalendarService = GoogleCalendarService();
-      String? accessToken = await googleCalendarService.authenticateUser();
+        await logAuditTrail("Updated Appointment",
+            "User $fullName updated the appointment with agenda: ${agendaController.text}");
 
-      if (accessToken == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Google authentication required!")));
-        return;
+            const SnackBar(content: Text("Form submitted successfully!")));
+
+        // 🌟 Retrieve or Authenticate Google Token
+        GoogleCalendarService googleCalendarService = GoogleCalendarService();
+        String? accessToken = await googleCalendarService.authenticateUser();
+
+        if (accessToken == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Google authentication required!")));
+          return;
+        }
+
+        print("✅ Using Access Token: $accessToken");
+
+        // Ensure to parse the updated schedule to DateTime
+        DateTime startDateTime = DateTime.parse(scheduleController.text);
+        DateTime endDateTime = startDateTime.add(Duration(hours: 1));
+
+        // Make sure the updated guest list is included (if any changes were made)
+        List<String> guestEmails = (guests ?? [])
+            .map((guest) => guest['emailAdd'] as String?)
+            .whereType<String>()
+            .toList();
+
+        print("Guest Emails: $guestEmails"); // Log the guest list
+
+        // 🌟 Update Google Calendar Event
+        await googleCalendarService.updateCalendarEvent(
+          accessToken,
+          eventId, // The eventId from Firestore for updating
+          agendaController.text,
+          startDateTime,
+          endDateTime,
+          guestEmails,
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Appointment updated successfully")),
+        );
+      } else {
+        // No matching document found
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("No matching appointment found.")),
+        );
       }
-
-      print("✅ Using Access Token: $accessToken");
-
-      // Ensure to parse the updated schedule to DateTime
-      DateTime startDateTime = DateTime.parse(scheduleController.text);
-      DateTime endDateTime = startDateTime.add(Duration(hours: 1));
-
-      // Make sure the updated guest list is included (if any changes were made)
-      List<String> guestEmails = (guests ?? [])
-    .map((guest) => guest['emailAdd'] as String?)
-    .whereType<String>()
-    .toList();
-
-print("Guest Emails: $guestEmails");  // Log the guest list
-
-
-      // 🌟 Update Google Calendar Event
-      await googleCalendarService.updateCalendarEvent(
-        accessToken,
-        eventId, // The eventId from Firestore for updating
-        agendaController.text,
-        startDateTime,
-        endDateTime,
-        guestEmails,
-      );
-
+    } catch (e) {
+      print("Error updating Firestore: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Appointment updated successfully")),
-      );
-    } else {
-      // No matching document found
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("No matching appointment found.")),
+        SnackBar(content: Text("Failed to update appointment")),
       );
     }
-  } catch (e) {
-    print("Error updating Firestore: $e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Failed to update appointment")),
-    );
   }
-}
 
-  
-
-  void deleteEvent(String eventId) async {
+  Future<void> deleteEvent(String agenda) async {
     try {
+      // Step 1: Get the document and the Google eventId
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('appointment')
+          .where('agenda', isEqualTo: agenda)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        print("❌ No matching appointment found to delete.");
+        return;
+      }
+
+      var appointmentData = snapshot.docs.first.data() as Map<String, dynamic>;
+      String eventId =
+          appointmentData['googleEventId']; // ✅ Get the Google event ID
+
+      // Step 2: Authenticate with Google
       GoogleCalendarService googleCalendarService = GoogleCalendarService();
       String? accessToken = await googleCalendarService.authenticateUser();
 
       if (accessToken == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Google authentication required!")));
+          SnackBar(content: Text("Google authentication required!")),
+        );
         return;
       }
 
-      print("✅ Using Access Token: $accessToken");
-
-    // Step 2: Delete the Google Calendar Event
-    await googleCalendarService.deleteCalendarEvent(accessToken, eventId);
-
-      // Optionally: Remove the event from Firestore
-      // FirebaseFirestore.instance.collection('appointment').doc(eventId).delete();
+      // Step 3: Delete the event from Google Calendar
+      await googleCalendarService.deleteCalendarEvent(accessToken, eventId);
 
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Event deleted successfully!")));
+        SnackBar(content: Text("Event deleted successfully!")),
+      );
     } catch (e) {
       print("❌ Error deleting event: $e");
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text("Error: $e")));
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -865,128 +874,150 @@ print("Guest Emails: $guestEmails");  // Log the guest list
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Text(
-              "Schedule an Appointment",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-            // Agenda
-            Container(
-              height: 50,
-              width: 400,
-              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.amber, width: 1),
-                borderRadius: BorderRadius.circular(10),
-                color: Colors.grey[200],
-              ),
-              child: isEditing
-                  ? TextField(
-                      controller: agendaController,
-                      decoration: InputDecoration.collapsed(hintText: ""),
-                    )
-                  : Text(
-                      agendaController.text.isNotEmpty
-                          ? agendaController.text
-                          : "Loading...",
-                      style: TextStyle(fontSize: 16, color: Colors.black),
-                    ),
-            ),
-            SizedBox(height: 10),
-            // Description
-            Container(
-              height: 50,
-              width: 400,
-              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.amber, width: 1),
-                borderRadius: BorderRadius.circular(10),
-                color: Colors.grey[200],
-              ),
-              child: isEditing
-                  ? TextField(
-                      controller: descriptionAgendaController,
-                      decoration: InputDecoration.collapsed(hintText: ""),
-                    )
-                  : Text(
-                      descriptionAgendaController.text.isNotEmpty
-                          ? descriptionAgendaController.text
-                          : "Loading...",
-                      style: TextStyle(fontSize: 16, color: Colors.black),
-                    ),
-            ),
-            SizedBox(height: 10),
-            // Department
-            Container(
-              height: 50,
-              width: 400,
-              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.amber, width: 1),
-                borderRadius: BorderRadius.circular(10),
-                color: Colors.grey[200],
-              ),
-              child: isEditing
-                  ? TextField(
-                      controller: departmentController,
-                      decoration: InputDecoration.collapsed(hintText: ""),
-                    )
-                  : Text(
-                      departmentController.text.isNotEmpty
-                          ? departmentController.text
-                          : "Loading...",
-                      style: TextStyle(fontSize: 16, color: Colors.black),
-                    ),
-            ),
-            SizedBox(height: 10),
-            // Schedule Date Picker
-            GestureDetector(
-              onTap: isEditing ? pickScheduleDateTime : null, // Only editable when in edit mode
-              child: Container(
-                height: 50,
-                width: 400,
-                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.amber, width: 1),
-                  borderRadius: BorderRadius.circular(10),
-                  color: Colors.grey[200],
-                ),
-                child: Text(
-      selectedScheduleTime != null
-                ? formatDateTime(selectedScheduleTime!.toLocal()) // Nicely formatted
+                            "Appointment Details",
+                            style: TextStyle(
+                                fontSize: 24, fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: 10),
+                          // Agenda
+                          Container(
+                            height: 50,
+                            width: 400,
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 12),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.amber, width: 1),
+                              borderRadius: BorderRadius.circular(10),
+                              color: Colors.grey[200],
+                            ),
+                            child: isEditing
+                                ? TextField(
+                                    controller: agendaController,
+                                    decoration:
+                                        InputDecoration.collapsed(hintText: ""),
+                                  )
+                                : Text(
+                                    agendaController.text.isNotEmpty
+                                        ? agendaController.text
+                                        : "Loading...",
+                                    style: TextStyle(
+                                        fontSize: 16, color: Colors.black),
+                                  ),
+                          ),
+                          SizedBox(height: 10),
+                          // Description
+                          Container(
+                            height: 50,
+                            width: 400,
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 12),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.amber, width: 1),
+                              borderRadius: BorderRadius.circular(10),
+                              color: Colors.grey[200],
+                            ),
+                            child: isEditing
+                                ? TextField(
+                                    controller: descriptionAgendaController,
+                                    decoration:
+                                        InputDecoration.collapsed(hintText: ""),
+                                  )
+                                : Text(
+                                    descriptionAgendaController.text.isNotEmpty
+                                        ? descriptionAgendaController.text
+                                        : "Loading...",
+                                    style: TextStyle(
+                                        fontSize: 16, color: Colors.black),
+                                  ),
+                          ),
+                          SizedBox(height: 10),
+                          // Department
+                          Container(
+                            height: 50,
+                            width: 400,
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 12),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.amber, width: 1),
+                              borderRadius: BorderRadius.circular(10),
+                              color: Colors.grey[200],
+                            ),
+                            child: isEditing
+                                ? TextField(
+                                    controller: departmentController,
+                                    decoration:
+                                        InputDecoration.collapsed(hintText: ""),
+                                  )
+                                : Text(
+                                    departmentController.text.isNotEmpty
+                                        ? departmentController.text
+                                        : "Loading...",
+                                    style: TextStyle(
+                                        fontSize: 16, color: Colors.black),
+                                  ),
+                          ),
+                          SizedBox(height: 10),
+                          // Schedule Date Picker
+                          GestureDetector(
+                            onTap: isEditing
+                                ? pickScheduleDateTime
+                                : null, // Only editable when in edit mode
+                            child: Container(
+                              height: 50,
+                              width: 400,
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 12),
+                              decoration: BoxDecoration(
+                                border:
+                                    Border.all(color: Colors.amber, width: 1),
+                                borderRadius: BorderRadius.circular(10),
+                                color: Colors.grey[200],
+                              ),
+                              child: Text(
+                                selectedScheduleTime != null
+                                    ? formatDateTime(selectedScheduleTime!
+                                        .toLocal()) // Nicely formatted
 
-                            : "${formatDate(scheduleController.text)}",
+                                    : "${formatDate(scheduleController.text)}",
+                                style: TextStyle(
+                                    fontSize: 16, color: Colors.black),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 10),
+                          // Edit / Save Button
+                          (Status == "Scheduled")
+  ?
+                          Container(
+                            height: 50,
+                            width: 400,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                setState(() {
+                                  if (isEditing) {
+                                    // Save data to Firestore when save button is clicked
+                                    saveDataToFirestore();
+                                  }
+                                  isEditing =
+                                      !isEditing; // Toggle between Edit and Save
+                                });
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    isEditing ? Colors.blue : Colors.green,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              child: Text(
+                                isEditing ? "Save" : "Edit",
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ),
                             
-                        style: TextStyle(fontSize: 16, color: Colors.black),
-                      ),
-              ),
-            ),
-            SizedBox(height: 10),
-            // Edit / Save Button
-            Container(
-              height: 50,
-              width: 400,
-              child: ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    if (isEditing) {
-                      // Save data to Firestore when save button is clicked
-                      saveDataToFirestore();
-                    }
-                    isEditing = !isEditing; // Toggle between Edit and Save
-                  });
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isEditing ? Colors.blue : Colors.green,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: Text(
-                  isEditing ? "Save" : "Edit",
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ),
+                          )
+                            : SizedBox.shrink(), // returns nothing if not "Scheduled"
+
                           // External Guest
                           SizedBox(
                             height: 10,
@@ -1214,27 +1245,31 @@ print("Guest Emails: $guestEmails");  // Log the guest list
                                         children: [
                                           Row(
                                             children: [
-                                              // IconButton(
-                                              //   icon: Icon(
-                                              //     Icons.close,
-                                              //     color: Colors.red,
-                                              //   ),
-                                              //   onPressed: Status == "Completed"
-                                              //       ? null
-                                              //       : _showCancelDialog(eventId),
-                                              // ),
-                                              IconButton(
-                                                  icon: Icon(
-                                                    Icons.check_sharp,
-                                                    color: Colors.blue,
-                                                  ),
-                                                  onPressed:
-                                                      Status == "Cancelled"
-                                                          ? null
-                                                          : () {
-                                                              updateAppointmentStatus(
-                                                                  "Completed");
-                                                            }),
+                                              (Status == "Cancelled" ||
+                                                      Status == "Completed")
+                                                  ? SizedBox
+                                                      .shrink() // returns an empty widget
+                                                  : IconButton(
+                                                      icon: Icon(
+                                                        Icons.close,
+                                                        color: Colors.red,
+                                                      ),
+                                                      onPressed: () =>
+                                                          _showCancelDialog(widget
+                                                              .selectedAgenda),
+                                                    ),
+                                              (Status == "Cancelled" ||
+                                                      Status == "Completed")
+                                                  ? SizedBox
+                                                      .shrink() // returns an empty widget
+                                                  : IconButton(
+                                                      icon: Icon(
+                                                        Icons.check_sharp,
+                                                        color: Colors.blue,
+                                                      ),
+                                                      onPressed: () =>
+                                                          updateAppointmentStatus(
+                                                              "Completed"))
                                             ],
                                           ),
                                           Text("Current Status: ${Status}"),

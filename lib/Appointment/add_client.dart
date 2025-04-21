@@ -5,6 +5,7 @@ import 'package:attendance_app/widget/animated_textfield.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:toastification/toastification.dart';
 
 class AddClient extends StatefulWidget {
@@ -111,83 +112,67 @@ class _AddClientState extends State<AddClient> {
     
     }
 
-    void _updateGuest(String docId, String name, String contact, String email,
-        String company) async {
-         if (fullName.text.trim().isEmpty ||
-          contactNum.text.trim().isEmpty ||
-          emailAdd.text.trim().isEmpty ||
-          companyName.text.trim().isEmpty) {
-        toastification.show(
-          context: context,
-          alignment: Alignment.topRight,
-          icon: Icon(Icons.error, color: Colors.red),
-          title: Text('Missing Fields'),
-          description: Text('All fields are required.'),
-          type: ToastificationType.error,
-          style: ToastificationStyle.flatColored,
-          autoCloseDuration: const Duration(seconds: 3),
-          animationDuration: const Duration(milliseconds: 300),
-        );
-        return;
-      }
+    void _updateGuest(String docId, String fullName, String contactNum, String emailAdd, String companyName) async {
+  final trimmedName = fullName.trim();
+  final trimmedContact = contactNum.trim();
+  final trimmedEmail = emailAdd.trim();
+  final trimmedCompany = companyName.trim();
 
-      if (contactNum.text.length < 11) {
-        toastification.show(
-          context: context,
-          alignment: Alignment.topRight,
-          icon: Icon(Icons.error, color: Colors.red),
-          title: Text('Invalid Contact Number'),
-          description: Text('Contact number must be 11 digits.'),
-          type: ToastificationType.error,
-          style: ToastificationStyle.flatColored,
-          autoCloseDuration: const Duration(seconds: 3),
-          animationDuration: const Duration(milliseconds: 300),
-        );
-        return;
-      }
+  // OPTIONAL: Only validate fields that have values
+  if (trimmedContact.isNotEmpty && trimmedContact.length < 11) {
+    toastification.show(
+      context: context,
+      alignment: Alignment.topRight,
+      icon: Icon(Icons.error, color: Colors.red),
+      title: Text('Invalid Contact Number'),
+      description: Text('Contact number must be 11 digits.'),
+      type: ToastificationType.error,
+      style: ToastificationStyle.flatColored,
+      autoCloseDuration: const Duration(seconds: 3),
+      animationDuration: const Duration(milliseconds: 300),
+    );
+    return;
+  }
 
-      final emailRegex = RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
+  final emailRegex = RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
+  if (trimmedEmail.isNotEmpty && !emailRegex.hasMatch(trimmedEmail)) {
+    toastification.show(
+      context: context,
+      alignment: Alignment.topRight,
+      icon: Icon(Icons.error, color: Colors.red),
+      title: Text('Invalid Email'),
+      description: Text('Please enter a valid email address.'),
+      type: ToastificationType.error,
+      style: ToastificationStyle.flatColored,
+      autoCloseDuration: const Duration(seconds: 3),
+      animationDuration: const Duration(milliseconds: 300),
+    );
+    return;
+  }
 
-      if (!emailRegex.hasMatch(emailAdd.text.trim())) {
-        toastification.show(
-          context: context,
-          alignment: Alignment.topRight,
-          icon: Icon(Icons.error, color: Colors.red),
-          title: Text('Invalid Email'),
-          description: Text('Please enter a valid email address.'),
-          type: ToastificationType.error,
-          style: ToastificationStyle.flatColored,
-          autoCloseDuration: const Duration(seconds: 3),
-          animationDuration: const Duration(milliseconds: 300),
-        );
-        return;
-      }
+  await _firestore.collection('clients').doc(docId).update({
+    'fullName': trimmedName,
+    'contactNum': trimmedContact,
+    'emailAdd': trimmedEmail,
+    'companyName': trimmedCompany,
+  });
 
-      await _firestore.collection('clients').doc(docId).update({
-        'fullName': name,
-        'contactNum': contact,
-        'emailAdd': email,
-        'companyName': company,
-      });
-      await logAuditTrail(
-          "Updated Guest", "User updated guest $name (Email: $email)");
-      _clearFields();
+  await logAuditTrail("Updated Guest", "User updated guest $trimmedName (Email: $trimmedEmail)");
+  _clearFields();
 
-      toastification.show(
-          context: context,
-          alignment: Alignment.topRight,
-          icon: Icon(Icons.check_circle_outline, color: Colors.green),
-          title: Text('Updated Successfully'),
-          description: Text('Client updated successfully'),
-          type: ToastificationType.info,
-          style: ToastificationStyle.flatColored,
-          autoCloseDuration: const Duration(seconds: 3),
-          animationDuration: const Duration(milliseconds: 300),
-        );
-        return;
-      
-    
-    }
+  toastification.show(
+    context: context,
+    alignment: Alignment.topRight,
+    icon: Icon(Icons.check_circle_outline, color: Colors.green),
+    title: Text('Updated Successfully'),
+    description: Text('Client updated successfully'),
+    type: ToastificationType.info,
+    style: ToastificationStyle.flatColored,
+    autoCloseDuration: const Duration(seconds: 3),
+    animationDuration: const Duration(milliseconds: 300),
+  );
+}
+
 
     void _deleteGuest(String docId, String guestName, String guestEmail) async {
       await _firestore.collection('clients').doc(docId).update({
@@ -310,6 +295,10 @@ class _AddClientState extends State<AddClient> {
                       suffix: null,
                       readOnly: false,
                       obscureText: false,
+                       inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(11),
+                ],
                     ),
                   ),
                   SizedBox(height: 8),
@@ -491,6 +480,10 @@ class _AddClientState extends State<AddClient> {
                   suffix: null,
                   readOnly: false,
                   obscureText: false,
+                  inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(11),
+                ],
                 ),
               ),
               SizedBox(height: 8),
