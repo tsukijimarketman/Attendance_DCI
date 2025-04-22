@@ -1,4 +1,5 @@
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/tabs/details.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/tabs/attendance/attendance.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/tabs/details/details.dart';
 import 'package:attendance_app/Appointment/appointment_details.dart';
 import 'package:flutter/material.dart';
 import 'package:tab_container/tab_container.dart';
@@ -45,7 +46,7 @@ class _MeetingTabsState extends State<MeetingTabs>
             );
           },
           colors: const <Color>[
-            Color(0xFF60D1D5),
+            Color(0xFF134679),
             Color(0xFF5BBCD6),
             Color(0xFF5BA4D6),
             Color(0xFF5B8ED6),
@@ -93,61 +94,15 @@ class _MeetingTabsState extends State<MeetingTabs>
 
   List<Widget> _getChildren() {
     return <Widget>[
-      DetailPage(selectedAgenda: widget.selectedAgenda,),
-      _buildAttendance(),
+      DetailPage(
+        selectedAgenda: widget.selectedAgenda,
+      ),
+      Attendance(
+        selectedAgenda: widget.selectedAgenda,
+      ),
       _buildMinutesOfMeeting(),
       _buildGenerateQR(),
     ];
-  }
-
-  
-
-  Widget _buildAttendance() {
-    return SingleChildScrollView(
-      child: Container(
-        height: MediaQuery.of(context).size.height,
-        width: MediaQuery.of(context).size.width / 1.5,
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Attendance',
-              style: textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: ListView(
-                children: [
-                  _buildAttendeeCard('John Doe', 'CEO', true),
-                  _buildAttendeeCard('Jane Smith', 'CTO', true),
-                  _buildAttendeeCard('Robert Johnson', 'CFO', false),
-                  _buildAttendeeCard(
-                      'Emily Williams', 'Marketing Director', true),
-                  _buildAttendeeCard('Michael Brown', 'HR Manager', true),
-                  _buildAttendeeCard('Sarah Davis', 'Product Manager', false),
-                  _buildAttendeeCard('James Wilson', 'Sales Director', true),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Total: 7 | Present: 5 | Absent: 2',
-                  style: textTheme.bodyLarge,
-                ),
-                ElevatedButton(
-                  onPressed: () {},
-                  child: const Text('Add Attendee'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Widget _buildMinutesOfMeeting() {
@@ -272,34 +227,12 @@ class _MeetingTabsState extends State<MeetingTabs>
     );
   }
 
-  
-
   Widget _buildAgendaItem(String item) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Text(
         item,
         style: textTheme.bodyLarge,
-      ),
-    );
-  }
-
-  Widget _buildAttendeeCard(String name, String position, bool present) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        leading: CircleAvatar(
-          child: Text(name[0]),
-        ),
-        title: Text(name),
-        subtitle: Text(position),
-        trailing: Chip(
-          label: Text(present ? 'Present' : 'Absent'),
-          backgroundColor:
-              present ? Colors.green.shade100 : Colors.red.shade100,
-          labelStyle: TextStyle(
-              color: present ? Colors.green.shade800 : Colors.red.shade800),
-        ),
       ),
     );
   }

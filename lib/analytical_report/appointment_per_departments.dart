@@ -287,6 +287,7 @@ class AppointmentsPerDepartmentChartState extends State<AppointmentsPerDepartmen
           sideTitles: SideTitles(
             showTitles: true,
             reservedSize: 45,
+            interval: 1, // Ensure indicators are spaced by 1 unit
             getTitlesWidget: leftTitles,
           ),
         ),
@@ -329,15 +330,16 @@ class AppointmentsPerDepartmentChartState extends State<AppointmentsPerDepartmen
 
   // Left titles widget
   Widget leftTitles(double value, TitleMeta meta) {
-    if (value % 5 != 0) {
+    final maxY = getMaxY();
+    if (value > maxY || value < 0) {
       return Container();
     }
-    
+
     final style = TextStyle(
-      fontSize: MediaQuery.of(context).size.width/120,
+      fontSize: MediaQuery.of(context).size.width / 120,
       color: Color.fromARGB(255, 11, 55, 99),
     );
-    
+
     return SideTitleWidget(
       meta: meta,
       child: Text(
