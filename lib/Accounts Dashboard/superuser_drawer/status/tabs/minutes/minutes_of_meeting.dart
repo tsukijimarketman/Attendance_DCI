@@ -1,9 +1,14 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
-import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'dart:convert'; // For base64Encoding
+import 'package:attendance_app/secrets.dart';
 
 class MinutesOfMeeting extends StatefulWidget {
   final String selectedAgenda;
@@ -23,12 +28,20 @@ class _MinutesOfMeetingState extends State<MinutesOfMeeting> {
   List<Map<String, dynamic>> attendeesList = [];
   String _fileAttachmentPath = '';
   String _fileAttachmentName = '';
+  Uint8List? _fileBytes;
   bool _isUploading = false;
+  bool _isSendingEmail = false;
+  String _fileUrl = ''; // Store the URL after upload
+
+  final String _senderName = 'DBP-Data Center Inc.';
 
   // Email composition fields
   TextEditingController _recipientsController = TextEditingController();
   TextEditingController _subjectController = TextEditingController();
   TextEditingController _messageController = TextEditingController();
+  String basicAuth = 'Basic ' +
+      base64Encode(utf8.encode(
+          '5d09ff1e473502c5a7d9a1b454ac2683:7a2b7330a295f7029038950630e85509'));
 
   @override
   void initState() {
@@ -218,6 +231,8 @@ class _MinutesOfMeetingState extends State<MinutesOfMeeting> {
         setState(() {
           _fileAttachmentPath = result.files.single.path!;
           _fileAttachmentName = result.files.single.name;
+          _fileBytes = result.files.single.bytes;
+          _fileUrl = ''; // Reset file URL when new file is selected
         });
         print("Selected file: $_fileAttachmentName");
       }
@@ -229,58 +244,227 @@ class _MinutesOfMeetingState extends State<MinutesOfMeeting> {
   }
 
   Future<void> _uploadFileToSupabase() async {
-  if (_fileAttachmentPath.isEmpty) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('Please select a file first')));
-    return;
-  }
-
-  setState(() => _isUploading = true);
-
-  try {
-    // Ensure Supabase client is initialized
-    if (_supabase == null) {
+    if (_fileBytes == null || _fileAttachmentName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Connecting to storage... Please wait.')));
-      await _initializeSupabase();
-      if (_supabase == null) {
-        // If it's still null after waiting, something is wrong
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to connect to storage.')));
-        return;
-      }
+        SnackBar(content: Text('Please select a file first')),
+      );
+      return;
     }
 
-    final file = File(_fileAttachmentPath);
-    final fileName =
-        '${DateTime.now().millisecondsSinceEpoch}_$_fileAttachmentName';
+    setState(() => _isUploading = true);
 
-    // Upload to Supabase storage using the existing instance
-    await _supabase!.storage.from('meetingminutes').upload(fileName, file);
+    try {
+      final fileName =
+          '${DateTime.now().millisecondsSinceEpoch}_$_fileAttachmentName';
 
-    // Get public URL
-    final fileUrl =
-        _supabase!.storage.from('meetingminutes').getPublicUrl(fileName);
+      await _supabase!.storage
+          .from('meetingminutes')
+          .uploadBinary(fileName, _fileBytes!);
 
-    // Update email template with the download link
-    String updatedEmailBody =
-        _messageController.text.replaceAll('[DOWNLOAD_LINK]', fileUrl);
-    _messageController.text = updatedEmailBody;
+      final fileUrl =
+          _supabase!.storage.from('meetingminutes').getPublicUrl(fileName);
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('File uploaded successfully!')));
-  } catch (e) {
-    print("Error uploading file: $e");
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('Error uploading file: $e')));
-  } finally {
-    if (mounted) {
+      // Store the URL for later use
+      setState(() {
+        _fileUrl = fileUrl;
+      });
+
+      // Replace placeholder in message
+      String updatedEmailBody =
+          _messageController.text.replaceAll('[DOWNLOAD_LINK]', fileUrl);
+      _messageController.text = updatedEmailBody;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('File uploaded successfully!')),
+      );
+    } catch (e) {
+      print("Error uploading file: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error uploading file: $e')),
+      );
+    } finally {
       setState(() => _isUploading = false);
     }
   }
+
+  // Validate email addresses
+  bool _validateEmails(List<String> emails) {
+    // Fixed regex - escaped the single quote properly
+    RegExp emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    bool allValid = true;
+    for (String email in emails) {
+      String trimmedEmail = email.trim();
+      if (trimmedEmail.isNotEmpty && !emailRegex.hasMatch(trimmedEmail)) {
+        allValid = false;
+        break;
+      }
+    }
+    return allValid;
+  }
+
+  // New method to send emails
+  Future<void> _sendEmail() async {
+  // Check if file has been uploaded
+  if (_fileUrl.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+          content:
+              Text('Please upload a file first before sending the email')),
+    );
+    return;
+  }
+
+  // Get and validate recipients
+  List<String> recipients = _recipientsController.text
+      .split(',')
+      .map((e) => e.trim())
+      .where((e) => e.isNotEmpty)
+      .toList();
+
+  if (recipients.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Please add at least one recipient')),
+    );
+    return;
+  }
+
+  if (!_validateEmails(recipients)) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('One or more email addresses are invalid')),
+    );
+    return;
+  }
+
+  setState(() => _isSendingEmail = true);
+
+  try {
+    // Create a Dio instance
+    final dio = Dio();
+    
+    // Build the list of recipients in the format Mailjet expects
+    List<Map<String, String>> recipientsList = recipients
+        .map((email) => {
+              'Email': email,
+            })
+        .toList();
+
+    // Prepare the email content with the file URL
+    String emailBody =
+        _messageController.text.replaceAll('[DOWNLOAD_LINK]', _fileUrl);
+
+    // Prepare data for Mailjet API
+    final Map<String, dynamic> emailData = {
+      'Messages': [
+        {
+          'From': {
+            'Email': AppSecrets.mailjetSenderEmail,
+            'Name': _senderName
+          },
+          'To': recipientsList,
+          'Subject': _subjectController.text,
+          'HTMLPart': emailBody,
+          'TextPart':
+              'Meeting minutes for ${widget.selectedAgenda} are available. Please download them using the link in this email.'
+        }
+      ]
+    };
+
+    // Add debug prints to check API request details
+    print('Sending request to Mailjet API with dio');
+    print('Headers: ${{'Content-Type': 'application/json', 'Authorization': basicAuth}}');
+    print('Email data: $emailData');
+
+    // Configure Dio options
+    Options options = Options(
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': basicAuth,
+      },
+      validateStatus: (status) {
+        return status! < 500; // Accept all status codes less than 500
+      },
+    );
+
+    // Send the request to Mailjet API
+    final response = await dio.post(
+      'https://cors-anywhere.herokuapp.com/https://api.mailjet.com/v3.1/send',
+      data: emailData,
+      options: options,
+    );
+
+    print('Response status code: ${response.statusCode}');
+    print('Response data: ${response.data}');
+
+    if (response.statusCode == 200) {
+      // Try to create a record in Firestore for tracking, but don't let it block the success flow
+      try {
+        await _firestore.collection('email_logs').add({
+          'agenda': widget.selectedAgenda,
+          'sent_by': AppSecrets.mailjetSenderEmail,
+          'recipients': recipients,
+          'sent_at': FieldValue.serverTimestamp(),
+          'file_url': _fileUrl,
+          'subject': _subjectController.text,
+          'provider': 'Mailjet',
+        });
+        print("Successfully logged email to Firestore");
+      } catch (firestoreError) {
+        // Log the error but don't prevent success notification
+        print("Warning: Could not log email to Firestore: $firestoreError");
+        // This is optional - you can show a warning that logging failed but email was sent
+        // or just silently continue
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(
+                'Email sent successfully to ${recipients.length} recipients!')),
+      );
+    } else {
+      print('Mailjet API error response: ${response.data}');
+      throw Exception('Failed to send email: ${response.statusCode} - ${response.data}');
+    }
+  } catch (e) {
+    print("Error sending email with dio: $e");
+    
+    // More detailed error handling
+    if (e is DioException) {
+      print("Dio error type: ${e.type}");
+      print("Dio error message: ${e.message}");
+      print("Dio error response: ${e.response?.data}");
+      
+      // Handle different types of Dio errors
+      switch (e.type) {
+        case DioExceptionType.connectionTimeout:
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Connection timeout. Please check your internet connection.')),
+          );
+          break;
+        case DioExceptionType.receiveTimeout:
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Receive timeout. The server took too long to respond.')),
+          );
+          break;
+        case DioExceptionType.connectionError:
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Connection error. Please check your internet connection.')),
+          );
+          break;
+        default:
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to send email: ${e.message}')),
+          );
+          break;
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to send email: $e')),
+      );
+    }
+  } finally {
+    setState(() => _isSendingEmail = false);
+  }
 }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -417,6 +601,8 @@ class _MinutesOfMeetingState extends State<MinutesOfMeeting> {
                                   setState(() {
                                     _fileAttachmentPath = '';
                                     _fileAttachmentName = '';
+                                    _fileUrl = '';
+                                    _fileBytes = null;
                                   });
                                 },
                               ),
@@ -479,16 +665,36 @@ class _MinutesOfMeetingState extends State<MinutesOfMeeting> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
+                      if (_fileUrl.isNotEmpty)
+                        Chip(
+                          avatar: Icon(Icons.check_circle,
+                              color: Colors.green, size: 16),
+                          label: Text('File Ready'),
+                          backgroundColor: Colors.green.withOpacity(0.1),
+                        ),
+                      SizedBox(width: 10),
                       ElevatedButton(
-                        onPressed: () {
-                          // Placeholder for sending email functionality
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text('Email sent successfully!')));
-                        },
+                        onPressed: _isSendingEmail ? null : _sendEmail,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Color(0xFF0e2643),
                         ),
-                        child: Text('Send Email'),
+                        child: _isSendingEmail
+                            ? Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text('Sending...'),
+                                ],
+                              )
+                            : Text('Send Email'),
                       ),
                     ],
                   ),
