@@ -229,41 +229,58 @@ class _MinutesOfMeetingState extends State<MinutesOfMeeting> {
   }
 
   Future<void> _uploadFileToSupabase() async {
-    if (_fileAttachmentPath.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Please select a file first')));
-      return;
+  if (_fileAttachmentPath.isEmpty) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('Please select a file first')));
+    return;
+  }
+
+  setState(() => _isUploading = true);
+
+  try {
+    // Ensure Supabase client is initialized
+    if (_supabase == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Connecting to storage... Please wait.')));
+      await _initializeSupabase();
+      if (_supabase == null) {
+        // If it's still null after waiting, something is wrong
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to connect to storage.')));
+        return;
+      }
     }
 
-    setState(() => _isUploading = true);
+    final file = File(_fileAttachmentPath);
+    final fileName =
+        '${DateTime.now().millisecondsSinceEpoch}_$_fileAttachmentName';
 
-    try {
-      final file = File(_fileAttachmentPath);
-      final fileName =
-          '${DateTime.now().millisecondsSinceEpoch}_$_fileAttachmentName';
+    // Upload to Supabase storage using the existing instance
+    await _supabase!.storage.from('meetingminutes').upload(fileName, file);
 
-      // Upload to Supabase storage using the existing instance
-      await _supabase!.storage.from('meetingminutes').upload(fileName, file);
+    // Get public URL
+    final fileUrl =
+        _supabase!.storage.from('meetingminutes').getPublicUrl(fileName);
 
-      // Get public URL
-      final fileUrl =
-          _supabase!.storage.from('meetingminutes').getPublicUrl(fileName);
+    // Update email template with the download link
+    String updatedEmailBody =
+        _messageController.text.replaceAll('[DOWNLOAD_LINK]', fileUrl);
+    _messageController.text = updatedEmailBody;
 
-      // Update email template with the download link
-      String updatedEmailBody =
-          _messageController.text.replaceAll('[DOWNLOAD_LINK]', fileUrl);
-      _messageController.text = updatedEmailBody;
-
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('File uploaded successfully!')));
-    } catch (e) {
-      print("Error uploading file: $e");
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error uploading file: $e')));
-    } finally {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('File uploaded successfully!')));
+  } catch (e) {
+    print("Error uploading file: $e");
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('Error uploading file: $e')));
+  } finally {
+    if (mounted) {
       setState(() => _isUploading = false);
     }
   }
+}
+
+
 
   @override
   Widget build(BuildContext context) {
