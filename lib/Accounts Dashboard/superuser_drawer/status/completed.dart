@@ -21,6 +21,9 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
   
   // Add selectedAgenda state variable
   String selectedAgenda = '';
+  
+  // Add boolean to track if an appointment is selected
+  bool isAppointmentSelected = false;
 
   // Pagination variables
   int currentPage = 1;
@@ -174,7 +177,8 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      width: screenWidth / 3.5,
+                      // Adjust width based on whether an appointment is selected
+                      width: isAppointmentSelected ? screenWidth / 3.5 : screenWidth / 3.5,
                       height: screenHeight/1.155,
                       color: Colors.white,
                       child: Column(
@@ -375,6 +379,7 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
                                                   onTap: () {
                                                     setState(() {
                                                       selectedAgenda = agenda;
+                                                      isAppointmentSelected = true; // Set to true when an appointment is selected
                                                     });
                                                     print("Selected agenda: $agenda");
                                                   },
@@ -578,12 +583,30 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
                         ],
                       ),
                     ),
-                    Container(
-                      width: screenWidth / 1.5,
-                      height: screenHeight,
-                      color: Color(0xFFf2edf3),
-                      child: MeetingTabs(
-                        selectedAgenda: selectedAgenda, // Pass the selected agenda
+
+                    isAppointmentSelected == false ? Container(
+                      width: screenWidth/1.5,
+                      height: screenHeight/2,
+                      child: Center(
+                        child: Text(
+                          "Select an Appointment to view details",
+                          style: TextStyle(
+                            fontSize: screenWidth / 60,
+                            fontFamily: "B",
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                    ):
+                    Visibility(
+                      visible: isAppointmentSelected,
+                      child: Container(
+                        width: screenWidth / 1.5,
+                        height: screenHeight,
+                        color: Color(0xFFf2edf3),
+                        child: MeetingTabs(
+                          selectedAgenda: selectedAgenda, 
+                        ),
                       ),
                     )
                   ],

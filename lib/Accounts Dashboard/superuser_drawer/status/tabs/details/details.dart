@@ -166,7 +166,9 @@ class _DetailPageState extends State<DetailPage> {
                   ],
                   SizedBox(width: MediaQuery.of(context).size.width / 80),
                   if (users.isNotEmpty) ...[
-                    InternalUsers(selectedAgenda: widget.selectedAgenda,),
+                    InternalUsers(
+                      selectedAgenda: widget.selectedAgenda,
+                    ),
                   ],
                 ],
               ),
@@ -180,28 +182,33 @@ class _DetailPageState extends State<DetailPage> {
   Widget _buildDetailRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: MediaQuery.of(context).size.width / 12,
-            child: Text(
-              label,
-              style: TextStyle(
-                  fontSize: MediaQuery.of(context).size.width / 90,
-                  fontFamily: "R",
-                  color: Colors.white),
-            ),
-          ),
-          SizedBox(width: MediaQuery.of(context).size.width / 100),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                  fontSize: MediaQuery.of(context).size.width / 90,
-                  fontFamily: "SB",
-                  color: Colors.white),
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: MediaQuery.of(context).size.width / 12,
+                child: Text(
+                  label,
+                  style: TextStyle(
+                      fontSize: MediaQuery.of(context).size.width / 90,
+                      fontFamily: "R",
+                      color: Colors.white),
+                ),
+              ),
+              SizedBox(width: MediaQuery.of(context).size.width / 100),
+              Expanded(
+                child: Text(
+                  value,
+                  style: TextStyle(
+                      fontSize: MediaQuery.of(context).size.width / 90,
+                      fontFamily: "SB",
+                      color: Colors.white),
+                ),
+              ),
+            ],
           ),
         ],
       ),
