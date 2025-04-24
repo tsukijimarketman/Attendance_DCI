@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/Manager_DB.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/UserMasterlist.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/departmentMasterlist.dart';
 import 'package:attendance_app/Appointment/add_client.dart';
@@ -554,6 +555,8 @@ void _showProfileCompletionToast() {
         return const Masterlist();
       case 6:
         return const DepartmentMasterlist();
+      case 7:
+        return const ManagerDB();
       default:
         return const Text('Select an option from the menu.',
             style: TextStyle(fontSize: 20));
