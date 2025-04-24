@@ -289,12 +289,6 @@ class _ReportsState extends State<Reports> {
                                   fontSize: width / 37,
                                   fontFamily: "BL",
                                   color: Color.fromARGB(255, 11, 55, 99))),
-                          SizedBox.shrink(),
-                          Text("View and analyze reports of attendance and other data",
-                              style: TextStyle(
-                                  fontSize: width / 70,
-                                  fontFamily: "M",
-                                  color: Colors.grey.withOpacity(0.7))),
                           Container(
                             decoration: BoxDecoration(
                                 border: Border(
@@ -302,9 +296,7 @@ class _ReportsState extends State<Reports> {
                                         color: Color.fromARGB(255, 11, 55, 99),
                                         width: 2))),
                           ),
-                          SizedBox(
-                            height: width / 70,
-                          ),
+                          
                         ],
                       ),
                     ),
@@ -326,8 +318,6 @@ class _ReportsState extends State<Reports> {
                     ),
                   ),
                   SliverToBoxAdapter(
-                    // Add some bottom padding for better scrolling experience
-                    child: SizedBox(height: width / 20),
                   ),
                 ],
               ),

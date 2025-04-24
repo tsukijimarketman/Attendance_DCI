@@ -1,4 +1,6 @@
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/tabs/details.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/tabs/attendance/attendance.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/tabs/details/details.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/tabs/minutes/minutes_of_meeting.dart';
 import 'package:attendance_app/Appointment/appointment_details.dart';
 import 'package:flutter/material.dart';
 import 'package:tab_container/tab_container.dart';
@@ -45,8 +47,8 @@ class _MeetingTabsState extends State<MeetingTabs>
             );
           },
           colors: const <Color>[
-            Color(0xFF60D1D5),
-            Color(0xFF5BBCD6),
+            Color(0xFF134679),
+            Color(0xFF125292),
             Color(0xFF5BA4D6),
             Color(0xFF5B8ED6),
           ],
@@ -93,125 +95,20 @@ class _MeetingTabsState extends State<MeetingTabs>
 
   List<Widget> _getChildren() {
     return <Widget>[
-      DetailPage(selectedAgenda: widget.selectedAgenda,),
-      _buildAttendance(),
-      _buildMinutesOfMeeting(),
+      DetailPage(
+        selectedAgenda: widget.selectedAgenda,
+      ),
+      Attendance(
+        selectedAgenda: widget.selectedAgenda,
+      ),
+      MinutesOfMeeting(
+        selectedAgenda: widget.selectedAgenda,
+      ),
       _buildGenerateQR(),
     ];
   }
 
   
-
-  Widget _buildAttendance() {
-    return SingleChildScrollView(
-      child: Container(
-        height: MediaQuery.of(context).size.height,
-        width: MediaQuery.of(context).size.width / 1.5,
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Attendance',
-              style: textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: ListView(
-                children: [
-                  _buildAttendeeCard('John Doe', 'CEO', true),
-                  _buildAttendeeCard('Jane Smith', 'CTO', true),
-                  _buildAttendeeCard('Robert Johnson', 'CFO', false),
-                  _buildAttendeeCard(
-                      'Emily Williams', 'Marketing Director', true),
-                  _buildAttendeeCard('Michael Brown', 'HR Manager', true),
-                  _buildAttendeeCard('Sarah Davis', 'Product Manager', false),
-                  _buildAttendeeCard('James Wilson', 'Sales Director', true),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Total: 7 | Present: 5 | Absent: 2',
-                  style: textTheme.bodyLarge,
-                ),
-                ElevatedButton(
-                  onPressed: () {},
-                  child: const Text('Add Attendee'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMinutesOfMeeting() {
-    return SingleChildScrollView(
-      child: Container(
-        height: MediaQuery.of(context).size.height,
-        width: MediaQuery.of(context).size.width / 1.5,
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Minutes of Meeting',
-              style: textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildMinuteSection(
-                      'Opening',
-                      'Meeting called to order at 10:05 AM by John Doe. Attendance taken and quorum confirmed.',
-                    ),
-                    _buildMinuteSection(
-                      'Q1 Performance Review',
-                      'Jane Smith presented the Q1 results showing a 15% increase in revenue compared to the previous quarter. Key factors contributing to growth included the launch of Product X and expansion into European markets.',
-                    ),
-                    _buildMinuteSection(
-                      'Q2 Strategy',
-                      'Discussion led by Michael Brown on targets for Q2. Agreement to focus on APAC region expansion and the development of Product Y. Budget allocation of \$1.2M approved for marketing initiatives.',
-                    ),
-                    _buildMinuteSection(
-                      'Action Items',
-                      '1. Emily to prepare marketing plan by April 25\n2. James to contact potential partners in Japan by May 1\n3. Robert to revise Q2 budget allocation by April 20\n4. Sarah to schedule follow-up meeting for product development team',
-                    ),
-                    _buildMinuteSection(
-                      'Closing',
-                      'Meeting adjourned at 11:55 AM. Next meeting scheduled for May 15, 2025.',
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                OutlinedButton(
-                  onPressed: () {},
-                  child: const Text('Export as PDF'),
-                ),
-                ElevatedButton(
-                  onPressed: () {},
-                  child: const Text('Edit Minutes'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildGenerateQR() {
     return SingleChildScrollView(
@@ -272,8 +169,6 @@ class _MeetingTabsState extends State<MeetingTabs>
     );
   }
 
-  
-
   Widget _buildAgendaItem(String item) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
@@ -284,43 +179,7 @@ class _MeetingTabsState extends State<MeetingTabs>
     );
   }
 
-  Widget _buildAttendeeCard(String name, String position, bool present) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        leading: CircleAvatar(
-          child: Text(name[0]),
-        ),
-        title: Text(name),
-        subtitle: Text(position),
-        trailing: Chip(
-          label: Text(present ? 'Present' : 'Absent'),
-          backgroundColor:
-              present ? Colors.green.shade100 : Colors.red.shade100,
-          labelStyle: TextStyle(
-              color: present ? Colors.green.shade800 : Colors.red.shade800),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMinuteSection(String title, String content) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          content,
-          style: textTheme.bodyMedium,
-        ),
-        const Divider(height: 30),
-      ],
-    );
-  }
+  
 
   Widget _buildQRFeature(IconData icon, String text) {
     return Padding(

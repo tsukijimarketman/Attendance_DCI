@@ -16,6 +16,7 @@ class _GenderDistributionPieChartState extends State<GenderDistributionPieChart>
   Map<String, int> genderCounts = {
     'Male': 0,
     'Female': 0,
+    'Unspecified': 0, // Added unspecified category
   };
   int totalUsers = 0;
   List<GenderData> genderData = [];
@@ -36,32 +37,31 @@ class _GenderDistributionPieChartState extends State<GenderDistributionPieChart>
       genderCounts = {
         'Male': 0,
         'Female': 0,
+        'Unspecified': 0, // Added unspecified category
       };
       
-      int countedUsers = 0;
+      // Get the total number of users
+      totalUsers = querySnapshot.docs.length;
 
       for (var doc in querySnapshot.docs) {
         final userData = doc.data();
         
-        // Check if the sex field exists
-        if (userData.containsKey('sex')) {
+        // Check if the sex field exists and has valid data
+        if (userData.containsKey('sex') && 
+            userData['sex'] is String && 
+            (userData['sex'] == 'Male' || userData['sex'] == 'Female')) {
           final gender = userData['sex'];
           
-          if (gender is String) {
-            // Only count exact matches for 'Male' or 'Female'
-            if (gender == 'Male') {
-              genderCounts['Male'] = (genderCounts['Male'] ?? 0) + 1;
-              countedUsers++;
-            } else if (gender == 'Female') {
-              genderCounts['Female'] = (genderCounts['Female'] ?? 0) + 1;
-              countedUsers++;
-            }
+          if (gender == 'Male') {
+            genderCounts['Male'] = (genderCounts['Male'] ?? 0) + 1;
+          } else if (gender == 'Female') {
+            genderCounts['Female'] = (genderCounts['Female'] ?? 0) + 1;
           }
+        } else {
+          // Count users with missing or invalid gender as "Unspecified"
+          genderCounts['Unspecified'] = (genderCounts['Unspecified'] ?? 0) + 1;
         }
       }
-
-      // Set total as only the counted Male/Female users
-      totalUsers = countedUsers;
 
       // Convert gender counts to percentage-based data for the chart
       genderData = genderCounts.entries.map((entry) {
@@ -165,6 +165,19 @@ class _GenderDistributionPieChartState extends State<GenderDistributionPieChart>
               fontFamily: "B",
             ),
           ),
+          if (genderCounts['Unspecified'] != null && genderCounts['Unspecified']! > 0)
+            Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Text(
+                '${genderCounts['Unspecified']} users have not specified their gender',
+                style: TextStyle(
+                  fontSize: MediaQuery.of(context).size.width/100,
+                  fontFamily: "R",
+                  fontStyle: FontStyle.italic,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ),
           SizedBox(height: MediaQuery.of(context).size.width / 80),
         ],
       ),
@@ -174,10 +187,11 @@ class _GenderDistributionPieChartState extends State<GenderDistributionPieChart>
   List<Widget> generateGenderIndicators() {
     final List<Widget> indicators = [];
     
-    // Define gender-specific colors (only Male and Female)
+    // Define gender-specific colors (including Unspecified)
     final Map<String, Color> genderColors = {
       'Male': Colors.blue,
       'Female': Colors.pink,
+      'Unspecified': Colors.grey,
     };
 
     for (var i = 0; i < genderData.length; i++) {
@@ -185,7 +199,7 @@ class _GenderDistributionPieChartState extends State<GenderDistributionPieChart>
       indicators.add(
         Indicator(
           color: genderColors[data.gender]!,
-          text: '${data.gender}: ${data.percentage.toStringAsFixed(1)}%',
+          text: '${data.gender}: ${data.percentage.toStringAsFixed(1)}% (${data.count})',
           isSquare: true,
         ),
       );
@@ -199,10 +213,11 @@ class _GenderDistributionPieChartState extends State<GenderDistributionPieChart>
   }
 
   List<PieChartSectionData> showingSections() {
-    // Define gender-specific colors (only Male and Female)
+    // Define gender-specific colors (including Unspecified)
     final Map<String, Color> genderColors = {
       'Male': Colors.blue,
       'Female': Colors.pink,
+      'Unspecified': Colors.grey,
     };
       
     return List.generate(genderData.length, (i) {
