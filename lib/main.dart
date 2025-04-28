@@ -1,5 +1,4 @@
 import 'package:attendance_app/404.dart';
-import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_dashoard.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/sidebar_provider.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/su_address_provider.dart';
 import 'package:attendance_app/edit_mode_provider.dart';
@@ -7,7 +6,6 @@ import 'package:attendance_app/firebase_options.dart';
 import 'package:attendance_app/form/form.dart';
 import 'package:attendance_app/Auth/Persistent.dart';
 import 'package:attendance_app/Auth/login.dart';
-import 'package:attendance_app/head/splashscreen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -53,38 +51,40 @@ class MyApp extends StatelessWidget {
     );
   }
 
-  /// **Route Handler Function**
+  /// Handles route generation based on the incoming route settings.
   Route<dynamic> _generateRoute(RouteSettings settings) {
     Uri uri = Uri.parse(settings.name ?? "/");
 
+  /// - If the route is '/', navigates to Login page.
     switch (uri.path) {
       case '/':
         return MaterialPageRoute(builder: (context) => const Login());
-
+  
+  /// - If the route is '/attendance_form', validates expiry time and opens AttendanceForm page.
       case '/attendance_form':
         return _handleAttendanceFormRoute(uri);
 
+  /// - For any unknown routes, navigates to NotFoundPage.
       default:
         return MaterialPageRoute(builder: (context) => const NotFoundPage());
     }
   }
 
-  /// **Handles the `/attendance_form` route safely**
+  /// **Handles the `/attendance_form` route**
   MaterialPageRoute _handleAttendanceFormRoute(Uri uri) {
-    // Parse expiry time and validate
+
+    /// - Extracts and validates important parameters like `expiryTime` and `selectedScheduleTime`.
     int expiryTime = int.tryParse(uri.queryParameters['expiryTime'] ?? "") ?? 0;
     int currentTime = DateTime.now().millisecondsSinceEpoch;
     int selectedScheduleTime =
         int.tryParse(uri.queryParameters['selectedScheduleTime'] ?? "") ?? 0;
 
-    print("Schedule Appointment Time: $selectedScheduleTime");
-
-    print("Extracted expiryTime: $expiryTime, Current Time: $currentTime");
-
+    /// - If the form link is expired (expiryTime < currentTime), redirects to NotFoundPage.
     if (expiryTime == 0 || expiryTime < currentTime) {
       return MaterialPageRoute(builder: (context) => const NotFoundPage());
     }
 
+    /// - If valid, passes all query parameters to the AttendanceForm widget.
     return MaterialPageRoute(
       builder: (context) => AttendanceForm(
         selectedScheduleTime: selectedScheduleTime,

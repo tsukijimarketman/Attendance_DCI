@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:attendance_app/404.dart';
-import 'package:attendance_app/Animation/Animation.dart';
 import 'package:attendance_app/form/signature.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -57,9 +56,9 @@ class _AttendanceFormState extends State<AttendanceForm> {
   }
 
   bool isNameValid = true;
-bool isCompanyValid = true;
-bool isEmailValid = true;
-List<bool> contactFieldValidity = [];
+  bool isCompanyValid = true;
+  bool isEmailValid = true;
+  List<bool> contactFieldValidity = [];
 
 
   @override
@@ -196,35 +195,49 @@ List<bool> contactFieldValidity = [];
   return true;
 }
 
-
+  // Submit the form data to Firestore and upload the signature to Supabase
   void submitForm() async {
-      if (!validateForm()) return; // Early exit if validation fails
+    // Check if the form is valid
+    // Early exit if validation fails
+      if (!validateForm()) return;
 
+    // Check if the signature is empty
+    // Early exit if signature is empty
     if (_signatureController.isEmpty) {
+      // Show a message to the user that say Please add a signature
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please add a signature!")),
       );
       return;
     }
 
-    // Convert signature to PNG bytes
+    // Convert the signature to PNG bytes
     final Uint8List? signatureImage = await _signatureController.toPngBytes();
+    // Check if the image is null or empty
+    // Early exit if the image is null or empty
     if (signatureImage == null || signatureImage.isEmpty) {
-      print("⚠️ Signature image is empty or null.");
+      // Show a message to the user that say Failed to convert signature
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to convert signature!")),
+      );
       return;
     }
-    print("✅ Signature image size: ${signatureImage.length} bytes");
-
-    // Upload to Supabase Storage
+  
+    // Upload the signature to Supabase
     final String? signatureUrl = await _uploadToSupabase(signatureImage);
+    // Check if the upload was successful
+    // Early exit if the upload failed
     if (signatureUrl == null) {
+      // Show a message to the user that say Failed to save signature
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Failed to save signature!")),
       );
       return;
     }
 
-    // Prepare data to save
+    // Prepare the form data to be saved in Firestore
+    // Use the correct field names as per your Firestore structure
+    // Ensure that the keys match your Firestore document structure
     Map<String, dynamic> formData = {
       'name': nameController.text,
       'company': companyController.text,
@@ -239,17 +252,19 @@ List<bool> contactFieldValidity = [];
           ? widget.createdBy // If User, store the original creator
           : "${widget.firstName} ${widget.lastName}", // Otherwise, store current user
       'selectedScheduleTime': widget.selectedScheduleTime,
-      'signature_url': signatureUrl, // Save signature URL
+      'signature_url': signatureUrl,
     };
 
-    // If the role is "User", add `attendanceCreator`
+    // If the role is "User", add `attendanceCreator` field name
     if (widget.roles == "User") {
       formData['attendanceCreator'] = "${widget.firstName} ${widget.lastName}";
     }
 
     // Save form data to Firestore
+    // Ensure the collection name is attendance
     await FirebaseFirestore.instance.collection('attendance').add(formData);
 
+    // Show a success message to the user
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Form submitted successfully!")),
     );
@@ -258,18 +273,20 @@ List<bool> contactFieldValidity = [];
     nameController.clear();
     companyController.clear();
     emailAddController.clear();
+    // Clear all contact number fields after submission
     for (var controller in contactControllers) {
       controller.dispose();
     }
 
-// Reset to one empty contact field
+    // Reset to one empty contact field after submission
     setState(() {
       contactControllers = [TextEditingController()];
     });
 
+    // Clear the signature controller after submission
     _signatureController.clear();
   }
-
+  
   Future<String?> _uploadToSupabase(Uint8List imageBytes) async {
     try {
       final client = Supabase.instance.client;
@@ -302,6 +319,9 @@ List<bool> contactFieldValidity = [];
     }
   }
 
+  // Format the date and time
+  // to a more readable format
+  // Example: "January 1, 2023 at 12:00 PM"
   String formatDateTime(DateTime dateTime) {
     return DateFormat("MMMM d, yyyy 'at' h:mm a").format(dateTime);
   }
