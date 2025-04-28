@@ -3,23 +3,27 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
-class MonthlyAppointmentTrends extends StatefulWidget {
-  final String? status; // Optional status filter
+class AppointmentTrendsChart extends StatefulWidget {
+  final String? status;
   
-  const MonthlyAppointmentTrends({
+  const AppointmentTrendsChart({
     Key? key,
     this.status,
   }) : super(key: key);
 
   @override
-  State<MonthlyAppointmentTrends> createState() => _MonthlyAppointmentTrendsState();
+  State<AppointmentTrendsChart> createState() => _AppointmentTrendsChartState();
 }
 
-class _MonthlyAppointmentTrendsState extends State<MonthlyAppointmentTrends> {
+class _AppointmentTrendsChartState extends State<AppointmentTrendsChart> {
   bool isLoading = true;
-  List<Map<String, dynamic>> monthlyData = [];
+  List<Map<String, dynamic>> trendData = [];
   bool showAverage = false;
   double averageCount = 0;
+  
+  // Track currently selected time period
+  String _selectedTimePeriod = 'Monthly';
+  final List<String> _timePeriods = ['Weekly', 'Monthly', 'Yearly'];
   
   // Colors for the chart
   final List<Color> gradientColors = [
@@ -34,6 +38,10 @@ class _MonthlyAppointmentTrendsState extends State<MonthlyAppointmentTrends> {
   }
 
   Future<void> fetchAppointmentsData() async {
+    setState(() {
+      isLoading = true;
+    });
+
     try {
       // Reference to the appointments collection
       Query query = FirebaseFirestore.instance.collection('appointment');
@@ -46,8 +54,8 @@ class _MonthlyAppointmentTrendsState extends State<MonthlyAppointmentTrends> {
       // Get all appointments
       final QuerySnapshot snapshot = await query.get();
       
-      // Process data by month
-      final Map<String, int> monthlyCounts = {};
+      // Process data based on selected time period
+      final Map<String, int> periodCounts = {};
       
       for (var doc in snapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
@@ -56,26 +64,85 @@ class _MonthlyAppointmentTrendsState extends State<MonthlyAppointmentTrends> {
         String dateStr = data['schedule'] as String;
         DateTime appointmentDate = DateTime.parse(dateStr);
         
-        // Format the month and year
-        String monthYear = DateFormat('MMM yyyy').format(appointmentDate);
+        // Format based on selected time period
+        String periodKey;
         
-        // Increment the count for this month
-        monthlyCounts[monthYear] = (monthlyCounts[monthYear] ?? 0) + 1;
+        switch (_selectedTimePeriod) {
+          case 'Weekly':
+            // Get the start of the week (Monday)
+            final startOfWeek = appointmentDate.subtract(Duration(days: appointmentDate.weekday - 1));
+            periodKey = '${DateFormat('MMM d').format(startOfWeek)}';
+            break;
+          case 'Monthly':
+            periodKey = DateFormat('MMM yyyy').format(appointmentDate);
+            break;
+          case 'Yearly':
+            periodKey = DateFormat('yyyy').format(appointmentDate);
+            break;
+          default:
+            periodKey = DateFormat('MMM yyyy').format(appointmentDate);
+        }
+        
+        // Increment the count for this period
+        periodCounts[periodKey] = (periodCounts[periodKey] ?? 0) + 1;
       }
       
-      // Convert to list and sort by date
+      // Convert to list
       List<Map<String, dynamic>> result = [];
-      monthlyCounts.forEach((month, count) {
+      periodCounts.forEach((period, count) {
         result.add({
-          'month': month,
+          'period': period,
           'count': count,
         });
       });
       
       // Sort by date
       result.sort((a, b) {
-        final DateTime dateA = DateFormat('MMM yyyy').parse(a['month']);
-        final DateTime dateB = DateFormat('MMM yyyy').parse(b['month']);
+        DateTime dateA;
+        DateTime dateB;
+        
+        switch (_selectedTimePeriod) {
+          case 'Weekly':
+            // Extract date from "Week of MMM d" format
+            final regexWeek = RegExp(r'(.+)');
+            final matchA = regexWeek.firstMatch(a['period']);
+            final matchB = regexWeek.firstMatch(b['period']);
+            final dateStrA = matchA?.group(1) ?? '';
+            final dateStrB = matchB?.group(1) ?? '';
+            
+            try {
+              dateA = DateFormat('MMM d').parse(dateStrA);
+              dateB = DateFormat('MMM d').parse(dateStrB);
+            } catch (e) {
+              // Fallback to string comparison if parsing fails
+              return a['period'].compareTo(b['period']);
+            }
+            break;
+          case 'Monthly':
+            try {
+              dateA = DateFormat('MMM yyyy').parse(a['period']);
+              dateB = DateFormat('MMM yyyy').parse(b['period']);
+            } catch (e) {
+              return a['period'].compareTo(b['period']);
+            }
+            break;
+          case 'Yearly':
+            try {
+              dateA = DateFormat('yyyy').parse(a['period']);
+              dateB = DateFormat('yyyy').parse(b['period']);
+            } catch (e) {
+              return a['period'].compareTo(b['period']);
+            }
+            break;
+          default:
+            try {
+              dateA = DateFormat('MMM yyyy').parse(a['period']);
+              dateB = DateFormat('MMM yyyy').parse(b['period']);
+            } catch (e) {
+              return a['period'].compareTo(b['period']);
+            }
+        }
+        
         return dateA.compareTo(dateB);
       });
       
@@ -89,7 +156,7 @@ class _MonthlyAppointmentTrendsState extends State<MonthlyAppointmentTrends> {
       }
       
       setState(() {
-        monthlyData = result;
+        trendData = result;
         isLoading = false;
       });
     } catch (e) {
@@ -114,38 +181,71 @@ class _MonthlyAppointmentTrendsState extends State<MonthlyAppointmentTrends> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Monthly Appointments Trend',
-                  style: TextStyle(
+                Text(
+                  '$_selectedTimePeriod Appointments Trend',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      showAverage = !showAverage;
-                    });
-                  },
-                  child: Text(
-                    'Show ${showAverage ? 'Trend' : 'Average'}',
-                    style: TextStyle(
-                      color: showAverage ? Colors.white.withOpacity(0.5) : Colors.white,
+                Row(
+                  children: [
+                    // Time period selection dropdown
+                    DropdownButton<String>(
+                      value: _selectedTimePeriod,
+                      dropdownColor: const Color(0xFF2c3e50),
+                      style: const TextStyle(color: Colors.white),
+                      underline: Container(
+                        height: 2,
+                        color: Colors.blueAccent,
+                      ),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            _selectedTimePeriod = newValue;
+                          });
+                          fetchAppointmentsData();
+                        }
+                      },
+                      items: _timePeriods.map<DropdownMenuItem<String>>((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
                     ),
-                  ),
+                    const SizedBox(width: 16),
+                    // Average toggle button
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          showAverage = !showAverage;
+                        });
+                      },
+                      child: Text(
+                        'Show ${showAverage ? 'Trend' : 'Average'}',
+                        style: TextStyle(
+                          color: showAverage ? Colors.white.withOpacity(0.5) : Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
             const SizedBox(height: 8),
             if (isLoading)
               const Center(
-                child: CircularProgressIndicator(),
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: CircularProgressIndicator(),
+                ),
               )
-            else if (monthlyData.isEmpty)
+            else if (trendData.isEmpty)
               const Center(
                 child: Padding(
-                  padding: EdgeInsets.all(20),
+                  padding: EdgeInsets.all(24),
                   child: Text(
                     'No appointment data available',
                     style: TextStyle(color: Colors.white70),
@@ -176,8 +276,8 @@ class _MonthlyAppointmentTrendsState extends State<MonthlyAppointmentTrends> {
   LineChartData mainData() {
     // Convert data to spots
     final List<FlSpot> spots = [];
-    for (int i = 0; i < monthlyData.length; i++) {
-      spots.add(FlSpot(i.toDouble(), monthlyData[i]['count'].toDouble()));
+    for (int i = 0; i < trendData.length; i++) {
+      spots.add(FlSpot(i.toDouble(), trendData[i]['count'].toDouble()));
     }
 
     return LineChartData(
@@ -210,19 +310,20 @@ class _MonthlyAppointmentTrendsState extends State<MonthlyAppointmentTrends> {
         bottomTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
-            reservedSize: 30,
+            reservedSize: getReservedSizeForLabels(),
             interval: 1,
             getTitlesWidget: (value, meta) {
-              if (value.toInt() >= 0 && value.toInt() < monthlyData.length) {
-                final month = monthlyData[value.toInt()]['month'];
+              if (value.toInt() >= 0 && value.toInt() < trendData.length) {
+                final period = trendData[value.toInt()]['period'];
                 return SideTitleWidget(
                   meta: meta,
+                  angle: _selectedTimePeriod == 'Weekly' ? 0.3 : 0,
                   child: Text(
-                    month,
+                    _formatLabel(period),
                     style: const TextStyle(
                       color: Colors.white70,
                       fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                      fontSize: 10,
                     ),
                   ),
                 );
@@ -258,9 +359,9 @@ class _MonthlyAppointmentTrendsState extends State<MonthlyAppointmentTrends> {
         border: Border.all(color: const Color(0xff37434d)),
       ),
       minX: 0,
-      maxX: (monthlyData.length - 1).toDouble(),
+      maxX: (trendData.length - 1).toDouble(),
       minY: 0,
-      maxY: monthlyData.isEmpty ? 10 : monthlyData.map((e) => e['count'] as int).reduce((a, b) => a > b ? a : b).toDouble() + 2,
+      maxY: trendData.isEmpty ? 10 : trendData.map((e) => e['count'] as int).reduce((a, b) => a > b ? a : b).toDouble() + 2,
       lineBarsData: [
         LineChartBarData(
           spots: spots,
@@ -296,10 +397,10 @@ class _MonthlyAppointmentTrendsState extends State<MonthlyAppointmentTrends> {
           getTooltipItems: (List<LineBarSpot> touchedSpots) {
             return touchedSpots.map((LineBarSpot touchedSpot) {
               final int index = touchedSpot.x.toInt();
-              final String month = monthlyData[index]['month'];
-              final int count = monthlyData[index]['count'];
+              final String period = trendData[index]['period'];
+              final int count = trendData[index]['count'];
               return LineTooltipItem(
-                '$month\n$count appointments',
+                '$period\n$count appointments',
                 const TextStyle(color: Colors.white),
               );
             }).toList();
@@ -313,7 +414,7 @@ class _MonthlyAppointmentTrendsState extends State<MonthlyAppointmentTrends> {
   LineChartData averageData() {
     // Create spots for average line
     final List<FlSpot> averageSpots = [];
-    for (int i = 0; i < monthlyData.length; i++) {
+    for (int i = 0; i < trendData.length; i++) {
       averageSpots.add(FlSpot(i.toDouble(), averageCount));
     }
 
@@ -354,18 +455,19 @@ class _MonthlyAppointmentTrendsState extends State<MonthlyAppointmentTrends> {
         bottomTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
-            reservedSize: 30,
+            reservedSize: getReservedSizeForLabels(),
             getTitlesWidget: (value, meta) {
-              if (value.toInt() >= 0 && value.toInt() < monthlyData.length) {
-                final month = monthlyData[value.toInt()]['month'];
+              if (value.toInt() >= 0 && value.toInt() < trendData.length) {
+                final period = trendData[value.toInt()]['period'];
                 return SideTitleWidget(
                   meta: meta,
+                  angle: _selectedTimePeriod == 'Weekly' ? 0.3 : 0,
                   child: Text(
-                    month,
+                    _formatLabel(period),
                     style: const TextStyle(
                       color: Colors.white70,
                       fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                      fontSize: 10,
                     ),
                   ),
                 );
@@ -408,9 +510,9 @@ class _MonthlyAppointmentTrendsState extends State<MonthlyAppointmentTrends> {
         border: Border.all(color: const Color(0xff37434d)),
       ),
       minX: 0,
-      maxX: (monthlyData.length - 1).toDouble(),
+      maxX: (trendData.length - 1).toDouble(),
       minY: 0,
-      maxY: monthlyData.isEmpty ? 10 : monthlyData.map((e) => e['count'] as int).reduce((a, b) => a > b ? a : b).toDouble() + 2,
+      maxY: trendData.isEmpty ? 10 : trendData.map((e) => e['count'] as int).reduce((a, b) => a > b ? a : b).toDouble() + 2,
       lineBarsData: [
         LineChartBarData(
           spots: averageSpots,
@@ -433,5 +535,39 @@ class _MonthlyAppointmentTrendsState extends State<MonthlyAppointmentTrends> {
         ),
       ],
     );
+  }
+
+  // Helper function to adjust label appearance based on time period
+  String _formatLabel(String label) {
+    switch (_selectedTimePeriod) {
+      case 'Weekly':
+        // For weekly view, we might want to show abbreviated weeks
+        if (label.length > 12) {
+          return label.substring(0, 12) + '...';
+        }
+        return label;
+      case 'Monthly':
+        // For monthly view, no special formatting needed
+        return label;
+      case 'Yearly':
+        // For yearly view, just show the year
+        return label;
+      default:
+        return label;
+    }
+  }
+
+  // Adjust the bottom title height based on the selected time period
+  double getReservedSizeForLabels() {
+    switch (_selectedTimePeriod) {
+      case 'Weekly':
+        return 60; // More space for weekly labels
+      case 'Monthly':
+        return 30; // Standard space for monthly labels
+      case 'Yearly':
+        return 30; // Standard space for yearly labels
+      default:
+        return 30;
+    }
   }
 }

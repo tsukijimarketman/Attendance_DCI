@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:toastification/toastification.dart';
+import 'dart:async';
 
 class UserManagement extends StatefulWidget {
   const UserManagement({super.key});
@@ -15,12 +16,22 @@ class UserManagement extends StatefulWidget {
 }
 
 class _UserManagementState extends State<UserManagement> {
+  Timer? _debounce;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   String selectedRoles = '---';
 
   List<String> departmentList = [];
   String? selectedDepartment;
+
+  // Search and pagination variables
+  final TextEditingController _searchController = TextEditingController();
+  String _searchText = "";
+  int _currentPage = 1;
+  final int _itemsPerPage = 10;
+  List<DocumentSnapshot> _allUsers = [];
+  List<DocumentSnapshot> _filteredUsers = [];
+  bool _isLoading = true;
 
   final Map<String, String> rolesMap = {
     '---': '',
@@ -34,7 +45,43 @@ class _UserManagementState extends State<UserManagement> {
   @override
   void initState() {
     super.initState();
-    _fetchDepartments(); // Fetch departments when the screen loads
+    _fetchDepartments();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    // Cancel the previous timer if it's still active
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+    // Set a new timer
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      setState(() {
+        _searchText = _searchController.text;
+        _filterUsers();
+        _currentPage = 1; // Reset to first page when search changes
+      });
+    });
+  }
+
+  void _filterUsers() {
+    if (_searchText.isEmpty) {
+      _filteredUsers = List.from(_allUsers);
+    } else {
+      _filteredUsers = _allUsers.where((user) {
+        String fullName = "${user["first_name"]} ${user["last_name"]}";
+        String email = user["email"];
+        return fullName.toLowerCase().contains(_searchText.toLowerCase()) ||
+            email.toLowerCase().contains(_searchText.toLowerCase());
+      }).toList();
+    }
   }
 
   // Function to fetch department references
@@ -66,62 +113,232 @@ class _UserManagementState extends State<UserManagement> {
     }
   }
 
+  List<DocumentSnapshot> _getCurrentPageItems() {
+    final startIndex = (_currentPage - 1) * _itemsPerPage;
+    final endIndex = startIndex + _itemsPerPage;
+
+    if (startIndex >= _filteredUsers.length) {
+      return [];
+    }
+
+    if (endIndex > _filteredUsers.length) {
+      return _filteredUsers.sublist(startIndex);
+    }
+
+    return _filteredUsers.sublist(startIndex, endIndex);
+  }
+
+  int get _totalPages {
+    return (_filteredUsers.length / _itemsPerPage).ceil();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: StreamBuilder(
-        stream: _firestore
-            .collection("users")
-            .where("status", isEqualTo: "pending")
-            .where("isDeleted", isEqualTo: false)
-            .snapshots(),
-        builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(child: Text("No pending users."));
-          }
-
-          return ListView.builder(
-            itemCount: snapshot.data!.docs.length,
-            itemBuilder: (context, index) {
-              var user = snapshot.data!.docs[index];
-              return ListTile(
-                tileColor: Colors.grey.shade100
-                    .withOpacity(0.5), // 50% transparent grey
-                hoverColor: Colors.amber,
-                title: Text(
-                  "${user["first_name"]} ${user["last_name"]}",
-                  style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.black87,
-                      fontWeight: FontWeight.w400),
+    return Container(
+      width: MediaQuery.of(context).size.width,
+      height: MediaQuery.of(context).size.width / 2.30,
+      padding: EdgeInsets.symmetric(
+          horizontal: MediaQuery.of(context).size.width / 40),
+      child: Column(children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("User Management",
+                style: TextStyle(
+                    fontSize: MediaQuery.of(context).size.width / 41,
+                    fontFamily: "BL",
+                    fontWeight: FontWeight.bold,
+                    color: Color.fromARGB(255, 11, 55, 99))),
+            Container(
+              decoration: BoxDecoration(
+                  border: Border(
+                      bottom: BorderSide(
+                          color: Color.fromARGB(255, 11, 55, 99), width: 2))),
+            ),
+            // Search bar
+            Container(
+              margin: EdgeInsets.symmetric(vertical: 16.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search by name or email',
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  contentPadding: EdgeInsets.symmetric(vertical: 12.0),
                 ),
-                subtitle: Text(user["email"],
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.black87,
-                    )),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.check, color: Colors.green),
-                      onPressed: () => _showDialog(context, user),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _showDialogReject(user.id),
-                    ),
-                  ],
-                ),
-              );
-            },
-          );
-        },
-      ),
+              ),
+            ),
+            Container(
+              width: MediaQuery.of(context).size.width,
+              height: MediaQuery.of(context).size.width / 2.95,
+              child: StreamBuilder(
+                stream: _firestore
+                    .collection("users")
+                    .where("status", isEqualTo: "pending")
+                    .where("isDeleted", isEqualTo: false)
+                    .snapshots(),
+                builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Center(child: Text("No pending users."));
+                  }
+
+                  // Update all users when the data changes
+                  _allUsers = snapshot.data!.docs;
+                  if (_searchText.isEmpty) {
+                    _filteredUsers = _allUsers;
+                  } else {
+                    _filterUsers();
+                  }
+
+                  final currentPageItems = _getCurrentPageItems();
+
+                  return Column(
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(5),
+                            color: const Color.fromARGB(255, 216, 216, 216)
+                          ),
+                          padding: EdgeInsets.all(8),
+                          child: ListView.builder(
+                            itemCount: currentPageItems.length,
+                            itemBuilder: (context, index) {
+                              var user = currentPageItems[index];
+                              return Column(
+                                children: [
+                                  Container(
+                                    margin: EdgeInsets.symmetric(vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                    child: ListTile(
+                                      tileColor: index % 2 == 0
+                                          ? Colors.grey.shade50
+                                          : Colors.white,
+                                      title: Text(
+                                        "${user["first_name"]} ${user["last_name"]}",
+                                        style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.black87,
+                                            fontWeight: FontWeight.w500),
+                                      ),
+                                      subtitle: Text(user["email"],
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black54,
+                                          )),
+                                      trailing: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: Icon(
+                                                Icons.check_circle_outline,
+                                                color: Colors.green),
+                                            onPressed: () =>
+                                                _showDialog(context, user),
+                                            tooltip: 'Approve User',
+                                          ),
+                                          IconButton(
+                                            icon: Icon(Icons.cancel_outlined,
+                                                color: Colors.red),
+                                            onPressed: () =>
+                                                _showDialogReject(user.id),
+                                            tooltip: 'Reject User',
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  if (index < currentPageItems.length - 1)
+                                    Divider(
+                                      color: Colors.black26,
+                                        height: 1,
+                                        thickness: 1,
+                                        indent: 16,
+                                        endIndent: 16),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+
+                      // Pagination controls
+                      Container(
+                        padding: EdgeInsets.symmetric(vertical: 16.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.first_page),
+                              onPressed: _currentPage > 1
+                                  ? () => setState(() => _currentPage = 1)
+                                  : null,
+                              tooltip: 'First Page',
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.chevron_left),
+                              onPressed: _currentPage > 1
+                                  ? () => setState(() => _currentPage--)
+                                  : null,
+                              tooltip: 'Previous Page',
+                            ),
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 16.0),
+                              child: Text(
+                                'Page $_currentPage of $_totalPages',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.chevron_right),
+                              onPressed: _currentPage < _totalPages
+                                  ? () => setState(() => _currentPage++)
+                                  : null,
+                              tooltip: 'Next Page',
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.last_page),
+                              onPressed: _currentPage < _totalPages
+                                  ? () =>
+                                      setState(() => _currentPage = _totalPages)
+                                  : null,
+                              tooltip: 'Last Page',
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Display item count information
+                      Text(
+                        'Showing ${_getCurrentPageItems().length} of ${_filteredUsers.length} pending users',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ]),
     );
   }
 
@@ -131,7 +348,6 @@ class _UserManagementState extends State<UserManagement> {
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setState) {
-
             return CupertinoAlertDialog(
               title: Text(
                 'Assign Role',
@@ -178,38 +394,38 @@ class _UserManagementState extends State<UserManagement> {
                       ),
                     ),
 
-                    // ✅ Show department dropdown only if required
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16.0),
-                        child: DropdownButtonFormField<String>(
-                          value: selectedDepartment,
-                          decoration: InputDecoration(
-                            contentPadding: EdgeInsets.symmetric(
-                              vertical: 15,
-                              horizontal: 10,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8.0),
-                              borderSide: BorderSide(color: Colors.grey),
-                            ),
+                    // Show department dropdown only if required
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: DropdownButtonFormField<String>(
+                        value: selectedDepartment,
+                        decoration: InputDecoration(
+                          contentPadding: EdgeInsets.symmetric(
+                            vertical: 15,
+                            horizontal: 10,
                           ),
-                          items: departmentList.map((String department) {
-                            return DropdownMenuItem<String>(
-                              value: department,
-                              child: Text(department,
-                                  style: TextStyle(fontSize: 18)),
-                            );
-                          }).toList(),
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              selectedDepartment = newValue;
-                            });
-                          },
-                          hint: Text("Select Department",
-                              style: TextStyle(
-                                  fontSize: 18, color: Colors.black54)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.0),
+                            borderSide: BorderSide(color: Colors.grey),
+                          ),
                         ),
+                        items: departmentList.map((String department) {
+                          return DropdownMenuItem<String>(
+                            value: department,
+                            child: Text(department,
+                                style: TextStyle(fontSize: 18)),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            selectedDepartment = newValue;
+                          });
+                        },
+                        hint: Text("Select Department",
+                            style:
+                                TextStyle(fontSize: 18, color: Colors.black54)),
                       ),
+                    ),
                   ],
                 ),
               ),
@@ -220,8 +436,7 @@ class _UserManagementState extends State<UserManagement> {
                     ElevatedButton(
                         onPressed: () => Navigator.pop(context),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              Colors.red, // Set the background color to red
+                          backgroundColor: Colors.red,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -232,8 +447,8 @@ class _UserManagementState extends State<UserManagement> {
                         )),
                     ElevatedButton(
                         onPressed: () {
-                          // ✅ Prevent saving if a department is required but not selected
-                          if ( selectedDepartment == null) {
+                          // Prevent saving if a department is required but not selected
+                          if (selectedDepartment == null) {
                             _showErrorDialog(
                                 context, "Please select a department.");
                             return;
@@ -243,8 +458,7 @@ class _UserManagementState extends State<UserManagement> {
                           _approveUser(user);
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              Colors.blue, // Set the background color to red
+                          backgroundColor: Colors.blue,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -263,7 +477,7 @@ class _UserManagementState extends State<UserManagement> {
     );
   }
 
-// ✅ Helper function to show an error dialog
+  // Helper function to show an error dialog
   void _showErrorDialog(BuildContext context, String message) {
     showDialog(
       context: context,
@@ -294,8 +508,7 @@ class _UserManagementState extends State<UserManagement> {
                 ElevatedButton(
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        Colors.red, // Set the background color to red
+                    backgroundColor: Colors.red,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -311,8 +524,7 @@ class _UserManagementState extends State<UserManagement> {
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        Colors.blue, // Set the background color to red
+                    backgroundColor: Colors.blue,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),

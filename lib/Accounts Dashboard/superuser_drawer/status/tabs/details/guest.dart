@@ -280,7 +280,7 @@ class _GuestState extends State<Guest> {
                               snapshot.data!.docs.isEmpty) {
                             return Center(
                                 child: Text(
-                                    "No appointment found with this agenda"));
+                                    "No guests found"));
                           }
 
                           // Extract the guest data from the appointment document

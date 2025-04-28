@@ -3,13 +3,13 @@ import 'dart:async';
 import 'package:attendance_app/analytical_report/age_distribution.dart';
 import 'package:attendance_app/analytical_report/appointment_per_departments.dart';
 import 'package:attendance_app/analytical_report/appointment_status_distribution.dart';
-import 'package:attendance_app/analytical_report/appointment_summary.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/appointment_summary.dart';
 import 'package:attendance_app/analytical_report/civil_status.dart';
 import 'package:attendance_app/analytical_report/gender_distribution.dart';
 import 'package:attendance_app/analytical_report/key_metrics.dart';
-import 'package:attendance_app/analytical_report/monthly_appointment_trends.dart';
+import 'package:attendance_app/analytical_report/appointment_trends.dart';
 import 'package:attendance_app/analytical_report/role_ristribution.dart';
-import 'package:attendance_app/analytical_report/weekly_attendance_trends.dart';
+import 'package:attendance_app/analytical_report/attendance_trends.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:flutter/material.dart' hide ReorderableList;
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -210,14 +210,14 @@ class _ReportsState extends State<Reports> {
       
       // More vertical reorderable items
       ReportItemData(
-        "Monthly Appointment Trends", 
-        MonthlyAppointmentTrends(), 
-        ValueKey('monthly_trends')
+        "Appointment Trends", 
+        AppointmentTrendsChart(),
+        ValueKey('appointment_trends')
       ),
       ReportItemData(
-        "Weekly Attendance Trends", 
-        WeeklyAttendanceTrends(), 
-        ValueKey('weekly_trends')
+        "Attendance Trends", 
+        AttendanceTrends(), 
+        ValueKey('attendance_trends')
       ),
     ];
   }
@@ -276,7 +276,7 @@ class _ReportsState extends State<Reports> {
                 slivers: [
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.all(width / 40),
+                      padding: EdgeInsets.symmetric(horizontal: width / 40, vertical: width / 80),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [

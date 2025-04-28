@@ -661,7 +661,7 @@ class _AttendanceState extends State<Attendance> {
                                 border: Border.all(color: Colors.grey),
                                 borderRadius:
                                     BorderRadius.circular(screenWidth / 120),
-                                color: Colors.white),
+                                color: Colors.yellow),
                             child: Center(
                               child: Text(
                                 'Apply',
@@ -684,9 +684,8 @@ class _AttendanceState extends State<Attendance> {
                     width: screenWidth / 12,
                     height: screenWidth / 33,
                     decoration: BoxDecoration(
-                      border: Border.all(color: Color(0xFF0e2643)),
                       borderRadius: BorderRadius.circular(screenWidth / 120),
-                      color: Color(0xFF0e2643),
+                      color: Colors.yellow,
                     ),
                     child: Center(
                       child: Text(
@@ -694,7 +693,7 @@ class _AttendanceState extends State<Attendance> {
                         style: TextStyle(
                           fontSize: screenWidth / 140,
                           fontFamily: "SB",
-                          color: Colors.white,
+                          color: Colors.black,
                         ),
                       ),
                     ),
