@@ -1,9 +1,5 @@
 import 'dart:async';
-
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/cancelled.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/completed.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/inprogress.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/scheduled.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/appointment_view.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -159,9 +155,11 @@ class _AppointmentStatusState extends State<AppointmentStatus> {
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => ScheduledAppointments()));
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AppointmentView(statusType: 'Scheduled')
+                        )
+                      );
                     },
                     child: Container(
                       width: width / 5.5,
@@ -217,10 +215,11 @@ class _AppointmentStatusState extends State<AppointmentStatus> {
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) =>
-                                  InProgressAppointments()));
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AppointmentView(statusType: 'In Progress')
+                        )
+                      );
                     },
                     child: Container(
                       width: width / 5.5,
@@ -276,9 +275,11 @@ class _AppointmentStatusState extends State<AppointmentStatus> {
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => CompletedAppointments()));
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AppointmentView(statusType: 'Completed')
+                        )
+                      );
                     },
                     child: Container(
                       width: width / 5.5,
@@ -334,9 +335,11 @@ class _AppointmentStatusState extends State<AppointmentStatus> {
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => CancelledAppointments()));
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AppointmentView(statusType: 'Cancelled')
+                        )
+                      );
                     },
                     child: Container(
                       width: width / 5.5,

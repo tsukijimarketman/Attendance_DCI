@@ -202,7 +202,7 @@ class QRCodeScreen extends StatefulWidget {
       required this.qrData,
       required this.firstName,
       required this.lastName,
-      required this.createdBy});
+      required this.createdBy,});
 
   @override
   State<QRCodeScreen> createState() => _QRCodeScreenState();

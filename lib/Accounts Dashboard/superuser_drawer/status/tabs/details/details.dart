@@ -6,8 +6,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DetailPage extends StatefulWidget {
   final String selectedAgenda;
+  final String statusType;
 
-  const DetailPage({super.key, required this.selectedAgenda});
+  const DetailPage({super.key, required this.selectedAgenda, required this.statusType});
 
   @override
   State<DetailPage> createState() => _DetailPageState();
@@ -161,7 +162,7 @@ class _DetailPageState extends State<DetailPage> {
                 children: [
                   if (guests.isNotEmpty) ...[
                     Guest(
-                      selectedAgenda: widget.selectedAgenda,
+                      selectedAgenda: widget.selectedAgenda, statusType: widget.statusType,
                     ),
                   ],
                   SizedBox(width: MediaQuery.of(context).size.width / 80),

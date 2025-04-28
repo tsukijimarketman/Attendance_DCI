@@ -1,9 +1,5 @@
 import 'dart:async';
 
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/cancelled.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/completed.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/inprogress.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/scheduled.dart';
 import 'package:attendance_app/analytical_report/age_distribution.dart';
 import 'package:attendance_app/analytical_report/appointment_per_departments.dart';
 import 'package:attendance_app/analytical_report/appointment_status_distribution.dart';

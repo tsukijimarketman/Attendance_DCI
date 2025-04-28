@@ -1,13 +1,15 @@
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/tabs/attendance/attendance.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/tabs/details/details.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/tabs/minutes/minutes_of_meeting.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/tabs/qrcode/qr.dart';
 import 'package:attendance_app/Appointment/appointment_details.dart';
 import 'package:flutter/material.dart';
 import 'package:tab_container/tab_container.dart';
 
 class MeetingTabs extends StatefulWidget {
   final String selectedAgenda;
-  const MeetingTabs({super.key, required this.selectedAgenda});
+  final String statusType;
+  const MeetingTabs({super.key, required this.selectedAgenda, required this.statusType});
 
   @override
   State<MeetingTabs> createState() => _MeetingTabsState();
@@ -27,7 +29,10 @@ class _MeetingTabsState extends State<MeetingTabs>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        color: Color(0xFFf2edf3),
+        
+        decoration: BoxDecoration(color: Color(0xFFf2edf3),
+          borderRadius: BorderRadius.circular(20),
+        ),
         child: TabContainer(
           radius: 20,
           tabEdge: TabEdge.bottom,
@@ -47,10 +52,10 @@ class _MeetingTabsState extends State<MeetingTabs>
             );
           },
           colors: const <Color>[
-            Color(0xFF134679),
-            Color(0xFF125292),
-            Color(0xFF5BA4D6),
-            Color(0xFF5B8ED6),
+            Color(0xFF0e2643),
+            Color(0xFF0e2643),
+            Color(0xFF0e2643),
+            Color(0xFF0e2643)
           ],
           selectedTextStyle: textTheme.bodyMedium?.copyWith(
             fontSize: 16.0,
@@ -96,7 +101,7 @@ class _MeetingTabsState extends State<MeetingTabs>
   List<Widget> _getChildren() {
     return <Widget>[
       DetailPage(
-        selectedAgenda: widget.selectedAgenda,
+        selectedAgenda: widget.selectedAgenda, statusType: widget.statusType,
       ),
       Attendance(
         selectedAgenda: widget.selectedAgenda,
@@ -104,69 +109,10 @@ class _MeetingTabsState extends State<MeetingTabs>
       MinutesOfMeeting(
         selectedAgenda: widget.selectedAgenda,
       ),
-      _buildGenerateQR(),
-    ];
-  }
-
-  
-
-  Widget _buildGenerateQR() {
-    return SingleChildScrollView(
-      child: Container(
-        height: MediaQuery.of(context).size.height,
-        width: MediaQuery.of(context).size.width / 1.5,
-        padding: EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(
-              'Meeting QR Code',
-              style: textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 40),
-            Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Center(
-                child: Icon(Icons.qr_code, size: 150),
-              ),
-            ),
-            const SizedBox(height: 30),
-            Text(
-              'Scan this QR code to:',
-              style: textTheme.titleMedium,
-            ),
-            const SizedBox(height: 10),
-            _buildQRFeature(
-                Icons.calendar_today, 'Add meeting to your calendar'),
-            _buildQRFeature(Icons.article, 'Access meeting documents'),
-            _buildQRFeature(Icons.check_circle, 'Mark your attendance'),
-            _buildQRFeature(Icons.share, 'Share meeting details'),
-            const Spacer(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.download),
-                  label: const Text('Download QR Code'),
-                ),
-                const SizedBox(width: 20),
-                OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.share),
-                  label: const Text('Share QR Code'),
-                ),
-              ],
-            ),
-          ],
-        ),
+      QrCode(
+        selectedAgenda: widget.selectedAgenda,
       ),
-    );
+    ];
   }
 
   Widget _buildAgendaItem(String item) {
@@ -175,24 +121,6 @@ class _MeetingTabsState extends State<MeetingTabs>
       child: Text(
         item,
         style: textTheme.bodyLarge,
-      ),
-    );
-  }
-
-  
-
-  Widget _buildQRFeature(IconData icon, String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.blue),
-          const SizedBox(width: 10),
-          Text(
-            text,
-            style: textTheme.bodyLarge,
-          ),
-        ],
       ),
     );
   }
