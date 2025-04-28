@@ -5,10 +5,11 @@ import 'package:flutter/material.dart';
 
 class Guest extends StatefulWidget {
   final String selectedAgenda;
+  final String statusType;
 
   const Guest({
     super.key,
-    required this.selectedAgenda,
+    required this.selectedAgenda, required this.statusType,
   });
 
   @override
@@ -267,7 +268,7 @@ class _GuestState extends State<Guest> {
                         stream: FirebaseFirestore.instance
                             .collection('appointment')
                             .where('agenda', isEqualTo: widget.selectedAgenda)
-                            .where('status', isEqualTo: "Completed")
+                            .where('status', isEqualTo: widget.statusType)
                             .snapshots(),
                         builder: (context, snapshot) {
                           if (snapshot.connectionState ==

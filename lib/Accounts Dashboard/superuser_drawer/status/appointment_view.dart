@@ -6,22 +6,24 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-class CompletedAppointments extends StatefulWidget {
-  const CompletedAppointments({super.key});
+class AppointmentView extends StatefulWidget {
+  final String statusType; // This will hold the selected status type
+  
+  const AppointmentView({super.key, required this.statusType});
 
   @override
-  State<CompletedAppointments> createState() => _CompletedAppointmentsState();
+  State<AppointmentView> createState() => _AppointmentViewState();
 }
 
-class _CompletedAppointmentsState extends State<CompletedAppointments> {
+class _AppointmentViewState extends State<AppointmentView> {
   String userDepartment = '';
   String first_name = '';
   String last_name = '';
   bool isLoading = true;
-  
+
   // Add selectedAgenda state variable
   String selectedAgenda = '';
-  
+
   // Add boolean to track if an appointment is selected
   bool isAppointmentSelected = false;
 
@@ -38,11 +40,48 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
   // Store all appointments to manage pagination locally
   List<QueryDocumentSnapshot> allUniqueAppointments = [];
 
+  // Status-specific colors and icons
+  late Color statusColor;
+  late IconData statusIcon;
+  late String statusTitle;
+
   @override
   void initState() {
     super.initState();
     fetchUserDepartment();
     itemsPerPageController.text = itemsPerPage.toString();
+    
+    // Set status-specific properties
+    setStatusProperties();
+  }
+  
+  void setStatusProperties() {
+    switch (widget.statusType) {
+      case 'Completed':
+        statusColor = Colors.green;
+        statusIcon = Icons.check_circle;
+        statusTitle = "Completed Appointments";
+        break;
+      case 'Scheduled':
+        statusColor = Color(0xFF082649);
+        statusIcon = Icons.schedule_rounded;
+        statusTitle = "Scheduled Appointments";
+        break;
+      case 'In Progress':
+        statusColor = Colors.orange;
+        statusIcon = Icons.access_time_rounded;
+        statusTitle = "In Progress Appointments";
+        break;
+      case 'Cancelled':
+        statusColor = Colors.red;
+        statusIcon = Icons.cancel_rounded;
+        statusTitle = "Cancelled Appointments";
+        break;
+      default:
+        statusColor = Colors.blue;
+        statusIcon = Icons.calendar_today;
+        statusTitle = "All Appointments";
+    }
   }
 
   @override
@@ -161,7 +200,7 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "Completed Appointments",
+          statusTitle,
           style: TextStyle(fontSize: screenWidth / 80),
         ),
       ),
@@ -178,19 +217,21 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
                   children: [
                     Container(
                       // Adjust width based on whether an appointment is selected
-                      width: isAppointmentSelected ? screenWidth / 3.5 : screenWidth / 3.5,
-                      height: screenHeight/1.155,
+                      width: isAppointmentSelected
+                          ? screenWidth / 3.5
+                          : screenWidth / 3.5,
+                      height: screenHeight / 1.155,
                       color: Colors.white,
                       child: Column(
                         children: [
-                          // Search Bar
+                          // Header
                           Container(
                             width: screenWidth / 3.5,
                             height: screenWidth / 20,
                             color: Color(0xFF0E2643),
                             child: Center(
                               child: Text(
-                                "List of Completed Appointments",
+                                "List of ${widget.statusType} Appointments",
                                 style: TextStyle(
                                   fontSize: screenWidth / 100,
                                   fontFamily: "B",
@@ -203,7 +244,8 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
                             height: screenWidth / 80,
                           ),
                           Padding(
-                            padding: EdgeInsets.symmetric(horizontal: screenWidth/70),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: screenWidth / 70),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -216,7 +258,7 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
                                         screenWidth / 160),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black12,  
+                                        color: Colors.black12,
                                         blurRadius: 5,
                                         offset: Offset(0, 2),
                                       ),
@@ -242,7 +284,8 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
                                     onChanged: (value) {
                                       setState(() {
                                         searchQuery = value;
-                                        currentPage = 1; // Reset to first page when searching
+                                        currentPage =
+                                            1; // Reset to first page when searching
                                       });
                                     },
                                   ),
@@ -298,17 +341,18 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
                             ),
                           ),
                           SizedBox(height: screenWidth / 80),
-      
+
                           // Appointments List
                           Padding(
-                            padding: EdgeInsets.symmetric(horizontal: screenWidth/90),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: screenWidth / 90),
                             child: Container(
                               width: screenWidth / 3.8,
                               height: screenHeight / 1.56,
                               child: StreamBuilder<QuerySnapshot>(
                                 stream: FirebaseFirestore.instance
                                     .collection('appointment')
-                                    .where('status', isEqualTo: "Completed")
+                                    .where('status', isEqualTo: widget.statusType)
                                     .snapshots(),
                                 builder: (context, snapshot) {
                                   if (snapshot.connectionState ==
@@ -319,26 +363,26 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
                                       snapshot.data!.docs.isEmpty) {
                                     return Center(
                                         child:
-                                            Text("No completed appointments"));
+                                            Text("No ${widget.statusType.toLowerCase()} appointments"));
                                   }
-                            
+
                                   var appointmentDocs = snapshot.data!.docs;
                                   Set<String> uniqueAgendas = {};
                                   allUniqueAppointments = [];
-                            
+
                                   for (var doc in appointmentDocs) {
                                     var data =
                                         doc.data() as Map<String, dynamic>;
                                     String agenda = data['agenda'] ?? 'N/A';
-                            
+
                                     if (!uniqueAgendas.contains(agenda)) {
                                       uniqueAgendas.add(agenda);
                                       allUniqueAppointments.add(doc);
                                     }
                                   }
-                            
+
                                   var currentItems = getCurrentPageItems();
-                            
+
                                   if (currentItems.isEmpty &&
                                       searchQuery.isNotEmpty) {
                                     return Center(
@@ -349,7 +393,7 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
                                         child: Text(
                                             "No appointments on this page"));
                                   }
-                            
+
                                   return Column(
                                     children: [
                                       Expanded(
@@ -362,8 +406,9 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
                                                 data['agenda'] ?? 'N/A';
                                             String schedule =
                                                 formatDate(data['schedule']);
-                            
+
                                             return Container(
+                                              color: Colors.white,
                                               height: screenWidth / 18,
                                               child: Card(
                                                 elevation: 2,
@@ -373,42 +418,49 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
                                                           screenWidth / 160),
                                                 ),
                                                 color: selectedAgenda == agenda
-                                                    ? Colors.green.shade100 // Highlight selected item
-                                                    : Colors.green.shade50,
-                                                child: InkWell( // Added InkWell for tap detection
+                                                    ? statusColor.withOpacity(0.2) // Highlight selected item with status color
+                                                    : statusColor.withOpacity(0.1),
+                                                child: InkWell(
+                                                  // Added InkWell for tap detection
                                                   onTap: () {
                                                     setState(() {
                                                       selectedAgenda = agenda;
-                                                      isAppointmentSelected = true; // Set to true when an appointment is selected
+                                                      isAppointmentSelected =
+                                                          true; // Set to true when an appointment is selected
                                                     });
-                                                    print("Selected agenda: $agenda");
+                                                    print(
+                                                        "Selected agenda: $agenda");
                                                   },
-                                                  child: ListTile(
-                                                    title: Row(
-                                                      children: [
-                                                        Expanded(
-                                                          child: Text(
-                                                            agenda,
-                                                            style: TextStyle(
-                                                                fontSize:
-                                                                    screenWidth /
-                                                                    90,
-                                                                fontFamily: "B"),
+                                                  child: Container(
+                                                    color: Colors.white,
+                                                    child: ListTile(
+                                                      title: Row(
+                                                        children: [
+                                                          Expanded(
+                                                            child: Text(
+                                                              agenda,
+                                                              style: TextStyle(
+                                                                  fontSize:
+                                                                      screenWidth /
+                                                                          90,
+                                                                  fontFamily:
+                                                                      "B"),
+                                                            ),
                                                           ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    subtitle: Text(
-                                                      "Scheduled: $schedule",
-                                                      style: TextStyle(
-                                                          fontSize:
-                                                              screenWidth / 110,
-                                                          fontFamily: "R"),
-                                                    ),
-                                                    leading: Icon(
-                                                      Icons.check_circle,
-                                                      color: Colors.green,
-                                                      size: screenWidth / 40,
+                                                        ],
+                                                      ),
+                                                      subtitle: Text(
+                                                        "Scheduled: $schedule",
+                                                        style: TextStyle(
+                                                            fontSize:
+                                                                screenWidth / 110,
+                                                            fontFamily: "R"),
+                                                      ),
+                                                      leading: Icon(
+                                                        statusIcon,
+                                                        color: statusColor,
+                                                        size: screenWidth / 40,
+                                                      ),
                                                     ),
                                                   ),
                                                 ),
@@ -417,7 +469,7 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
                                           },
                                         ),
                                       ),
-                            
+
                                       // Pagination controls
                                       Container(
                                         width: screenWidth / 4,
@@ -450,7 +502,7 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
                                                   ? Colors.blue
                                                   : Colors.grey,
                                             ),
-                            
+
                                             // Page numbers
                                             SizedBox(
                                               height: screenWidth / 25,
@@ -471,7 +523,7 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
                                                         bool isCurrentPage =
                                                             pageNumber ==
                                                                 currentPage;
-                            
+
                                                         return Container(
                                                           margin: EdgeInsets
                                                               .symmetric(
@@ -544,7 +596,7 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
                                                 ),
                                               ),
                                             ),
-                            
+
                                             // Next page button
                                             IconButton(
                                               icon: Icon(Icons.chevron_right),
@@ -561,7 +613,7 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
                                           ],
                                         ),
                                       ),
-                            
+
                                       // Page info text
                                       Padding(
                                         padding: EdgeInsets.only(
@@ -583,32 +635,33 @@ class _CompletedAppointmentsState extends State<CompletedAppointments> {
                         ],
                       ),
                     ),
-
-                    isAppointmentSelected == false ? Container(
-                      width: screenWidth/1.5,
-                      height: screenHeight/2,
-                      child: Center(
-                        child: Text(
-                          "Select an Appointment to view details",
-                          style: TextStyle(
-                            fontSize: screenWidth / 60,
-                            fontFamily: "B",
-                            color: Colors.black,
-                          ),
-                        ),
-                      ),
-                    ):
-                    Visibility(
-                      visible: isAppointmentSelected,
-                      child: Container(
-                        width: screenWidth / 1.5,
-                        height: screenHeight,
-                        color: Color(0xFFf2edf3),
-                        child: MeetingTabs(
-                          selectedAgenda: selectedAgenda, 
-                        ),
-                      ),
-                    )
+                    isAppointmentSelected == false
+                        ? Container(
+                            width: screenWidth / 1.5,
+                            height: screenHeight / 2,
+                            color: Colors.transparent,
+                            child: Center(
+                              child: Text(
+                                "Select an Appointment to view details",
+                                style: TextStyle(
+                                  fontSize: screenWidth / 60,
+                                  fontFamily: "B",
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                          )
+                        : Visibility(
+                            visible: isAppointmentSelected,
+                            child: Container(
+                              color: Colors.transparent,
+                              width: screenWidth / 1.5,
+                              height: screenHeight,
+                              child: MeetingTabs(
+                                selectedAgenda: selectedAgenda, statusType: widget.statusType,
+                              ),
+                            ),
+                          )
                   ],
                 ),
         ),
