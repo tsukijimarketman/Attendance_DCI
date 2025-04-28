@@ -2,8 +2,6 @@ import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/account_inf
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/caddress.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/profile.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/su_address_provider.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/super_user_dashboard.dart';
-import 'package:attendance_app/Animation/Animation.dart';
 import 'package:attendance_app/Animation/loader.dart';
 import 'package:attendance_app/edit_mode_provider.dart';
 import 'package:attendance_app/hover_extensions.dart';
@@ -13,9 +11,6 @@ import 'package:dropdown_textfield/dropdown_textfield.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:attendance_app/Accounts Dashboard/superuser_drawer/settings_su.dart';
 import 'package:provider/provider.dart';
 
 class SettingsSU extends StatefulWidget {
@@ -527,6 +522,14 @@ class _SettingsSUState extends State<SettingsSU> {
   String? selectedCityOrMunicipality;
   String? selectedBarangay;
 
+  // The _updateUserData function is responsible for updating the user's profile information in Firestore. 
+// It first retrieves the current user's UID using FirebaseAuth, and then queries the 'users' collection 
+// in Firestore to find the corresponding document based on the UID. Once the correct document is found, 
+// it constructs a map of updated user data, including personal details, address information from the AddressProvider, 
+// and selections from dropdown menus and checkboxes. The function then attempts to update the document 
+// with the new data. If the update is successful, it disables the editing mode and shows a success message via a SnackBar. 
+// If an error occurs during the update, an error message is displayed. This method ensures that all relevant user information 
+// is updated in one go, with validation and feedback to the user for a smooth experience.
   Future<void> _updateUserData() async {
     final addressProvider =
         Provider.of<AddressProvider>(context, listen: false);
@@ -598,7 +601,6 @@ class _SettingsSUState extends State<SettingsSU> {
           SnackBar(content: Text("Profile updated successfully!", style: TextStyle(color: Colors.white, fontFamily: "SB"),), backgroundColor: Colors.green,),
         );
       } catch (e) {
-        print("Error updating profile: $e");
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Failed to update profile!", style: TextStyle(color: Colors.white, fontFamily: "SB")), backgroundColor: Colors.red,),
         );
@@ -610,6 +612,15 @@ class _SettingsSUState extends State<SettingsSU> {
   Widget build(BuildContext context) {
     final editModeProvider = Provider.of<EditModeProvider>(context);
     double width = MediaQuery.of(context).size.width;
+
+    // This code retrieves the currently authenticated user's data from Firebase Firestore 
+// and populates relevant fields in the UI. It first checks if the user is logged in 
+// by obtaining the user's UID from FirebaseAuth. If the user is not logged in, 
+// it displays a message indicating that the user is not logged in. If the user is logged in, 
+// a StreamBuilder is used to listen for real-time updates from the 'users' collection in Firestore. 
+// When the user data is fetched, it populates form controllers (such as firstNameController, emailController, etc.) 
+// with the data retrieved from Firestore. It also updates state variables for dropdown fields and checkboxes, 
+// ensuring that the UI is always in sync with the user's data. In case of no data or loading, a loading indicator (CustomLoader) is shown.
     final String? currentUserUid = FirebaseAuth.instance.currentUser?.uid;
     if (currentUserUid == null) {
       return Center(child: Text("User not logged in"));
@@ -1747,6 +1758,14 @@ class _SettingsSUState extends State<SettingsSU> {
                               SizedBox(
                                   height:
                                       MediaQuery.of(context).size.height / 50),
+                                      // GestureDetector triggers onTap event for toggling between edit and save modes.
+// Initially, it checks if the user is in edit mode using `editModeProvider.isEditing`.
+// If not in edit mode, it enables editing by setting various state variables 
+// and making input fields (text fields, dropdowns, calendar, etc.) editable.
+// The button's color and text content are updated accordingly to reflect the change to edit mode.
+// If in edit mode, it triggers saving the updated user data through `_updateUserData` method, 
+// then switches back to non-edit mode by disabling all input fields and resetting the button's color and text.
+// The addressProvider is used to log the selected region name during the save operation.
                               GestureDetector(
                                 onTap: () async {
                                   final editModeProvider =
@@ -1770,8 +1789,6 @@ class _SettingsSUState extends State<SettingsSU> {
                                   } else {
                                     // Save changes first, then disable editing mode
                                     await _updateUserData();
-                                    print(
-                                        "Selected Regions: ${addressProvider.selectedRegionName}");
 
                                     editModeProvider.toggleEditMode();
                                     setState(() {
@@ -2657,6 +2674,7 @@ class _BirthDatePickerState extends State<BirthDatePicker> {
     _dateController = TextEditingController(text: widget.initialDate);
   }
 
+  // This will show a Date Picker
   Future<void> _selectDate(BuildContext context) async {
     var results = await showCalendarDatePicker2Dialog(
       context: context,

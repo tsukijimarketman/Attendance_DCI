@@ -41,6 +41,10 @@ class _AttendanceState extends State<Attendance> {
 
   String appointmentSchedule = "";
 
+  // The initState method is called when the widget is first created. It initializes the itemsPerPageController with the current value of itemsPerPage.
+  // Then it triggers the fetchUserDepartment method, which fetches the department data for the current user.
+  // After the user department data is successfully fetched, it proceeds to fetch the appointment data and attendance data sequentially.
+  // This ensures that all necessary data is fetched and ready for use when the widget is displayed.
   @override
   void initState() {
     super.initState();
@@ -51,6 +55,7 @@ class _AttendanceState extends State<Attendance> {
     });
   }
 
+  // Prevent for memory Leaks
   @override
   void dispose() {
     searchController.dispose();
@@ -58,6 +63,10 @@ class _AttendanceState extends State<Attendance> {
     super.dispose();
   }
 
+  // The fetchUserDepartment method retrieves the department information of the currently logged-in user.
+  // It first checks if the user is logged in using FirebaseAuth. If the user is logged in, it queries the 'users' collection in Firestore
+  // to fetch the user document using their unique 'uid'. If the user document is found, it extracts the department and full name from the document
+  // and updates the state with the fetched data. If no user is logged in or an error occurs, the loading state is set to false.
   Future<void> fetchUserDepartment() async {
     User? user = FirebaseAuth.instance.currentUser;
 
@@ -82,7 +91,6 @@ class _AttendanceState extends State<Attendance> {
           setState(() => isLoading = false);
         }
       } catch (e) {
-        print("Error fetching user data: $e");
         setState(() => isLoading = false);
       }
     } else {
@@ -90,6 +98,11 @@ class _AttendanceState extends State<Attendance> {
     }
   }
 
+  // The fetchAppointmentData method retrieves appointment-related data from Firestore based on the selected agenda.
+  // It queries the 'appointment' collection in Firestore to find the appointment document associated with the selected agenda.
+  // If the appointment data is found, it extracts the list of external guests, internal users, and the appointment schedule.
+  // These data points are then stored in their respective variables, and the consolidated list of attendees is updated by calling the updateConsolidatedList method.
+  // If no data is found or an error occurs during the fetch operation, a Snackbar is displayed to inform the user.
   Future<void> fetchAppointmentData() async {
     try {
       QuerySnapshot querySnapshot = await _firestore
@@ -121,13 +134,20 @@ class _AttendanceState extends State<Attendance> {
         // Update the consolidated list after fetching both invited lists
         updateConsolidatedList();
       } else {
-        print("No appointment data found.");
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("No appointment data found.")));
       }
     } catch (e) {
-      print("Error fetching appointment data: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error fetching appointment data: $e")));
     }
   }
 
+  // The fetchAttendanceData method retrieves attendance data from Firestore based on the selected agenda.
+  // It queries the 'attendance' collection to find all attendance records associated with the agenda.
+  // If the attendance data is found, it updates the state with the list of attendees and calls the updateConsolidatedList method
+  // to update the list of attendees, marking them as present or absent accordingly.
+  // If no data is found, a Snackbar is shown to inform the user, and the consolidated list is still updated with everyone marked as absent.
   Future<void> fetchAttendanceData() async {
     try {
       QuerySnapshot querySnapshot = await _firestore
@@ -145,15 +165,24 @@ class _AttendanceState extends State<Attendance> {
           updateConsolidatedList();
         });
       } else {
-        print("No attendance data found.");
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text("No attendance data found.")));
         // Still update consolidated list with everyone marked as absent
         updateConsolidatedList();
       }
     } catch (e) {
-      print("Error fetching attendance data: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error fetching attendance data: $e")));
     }
   }
 
+  // The updateConsolidatedList method creates a complete list of attendees by merging data from invited internal users, external guests,
+  // and actual attendance records. It tracks attendance by email, where emails are used as unique identifiers to check if a person attended.
+  // First, it processes the attendance list, marking users as present based on whether their email exists in the attendance data.
+  // Then it processes the internal users, checking if they attended and adding their details to the consolidated list.
+  // The same is done for external guests, using email as the primary key. Afterward, it checks for any additional attendees who might have attended
+  // but weren't part of the initial invitation and adds them to the list.
+  // Finally, it updates the state with the full consolidated list of attendees and triggers the filterAttendees method to filter the list.
   void updateConsolidatedList() {
     List<Map<String, dynamic>> consolidated = [];
 
@@ -340,6 +369,7 @@ class _AttendanceState extends State<Attendance> {
   int get absentCount =>
       consolidatedAttendees.where((p) => p['present'] == false).length;
 
+  // This will generate/download a PDF
   void _generatePDF() async {
     await AttendanceExportUtils.generatePDF(
       attendanceList: attendanceList,
@@ -348,6 +378,7 @@ class _AttendanceState extends State<Attendance> {
     );
   }
 
+  // This will generate/download a CSV
   void _generateCSV() async {
     await AttendanceExportUtils.generateCSV(attendanceList);
   }
@@ -431,7 +462,9 @@ class _AttendanceState extends State<Attendance> {
                       Colors.red.shade100,
                       Color(0xFFD32F2F),
                       () {
+                        // THis will Trigger the Download to PDf Attendance
                         _generatePDF();
+                        // This will close the SHow Dialog Box
                         Navigator.of(context).pop();
                       },
                     ),
@@ -441,7 +474,9 @@ class _AttendanceState extends State<Attendance> {
                       Colors.green.shade100,
                       Color(0xFF2E7D32),
                       () {
+                        // This will trigger the csv Download of attendance
                         _generateCSV();
+                        // This will close the Show Dialog Box
                         Navigator.of(context).pop();
                       },
                     ),
@@ -679,6 +714,7 @@ class _AttendanceState extends State<Attendance> {
                 ),
 
                 GestureDetector(
+                  // This will show the show Dialog Box for Downloading a pdf or csv of the attendance
                   onTap: showcsvpdfdialog,
                   child: Container(
                     width: screenWidth / 12,
@@ -753,9 +789,11 @@ class _AttendanceState extends State<Attendance> {
                                 // Previous page button
                                 IconButton(
                                   icon: Icon(Icons.chevron_left),
-                                  onPressed: currentPage > 1
-                                      ? () => setState(() => currentPage--)
-                                      : null,
+                                  onPressed:
+                                      // This is Pagination
+                                      currentPage > 1
+                                          ? () => setState(() => currentPage--)
+                                          : null,
                                   iconSize: 24,
                                   color: currentPage > 1
                                       ? Colors.blue
@@ -829,9 +867,11 @@ class _AttendanceState extends State<Attendance> {
                                 // Next page button
                                 IconButton(
                                   icon: Icon(Icons.chevron_right),
-                                  onPressed: currentPage < totalPages
-                                      ? () => setState(() => currentPage++)
-                                      : null,
+                                  onPressed:
+                                      // This is Pagination
+                                      currentPage < totalPages
+                                          ? () => setState(() => currentPage++)
+                                          : null,
                                   iconSize: 24,
                                   color: currentPage < totalPages
                                       ? Colors.blue

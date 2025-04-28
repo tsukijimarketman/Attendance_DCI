@@ -14,12 +14,22 @@ class _DepartmentMasterlistState extends State<DepartmentMasterlist> {
   String last_name = '';
   bool isLoading = true;
 
+  // The initState method is called when the widget is initialized. It sets the isLoading flag to false,
+// indicating that the initial loading state has been completed. This helps manage the state of the widget
+// as it is loaded into the UI.
   @override
   void initState() {
     super.initState();
     isLoading = false;
   }
 
+  // The fetchUsersGroupedByDepartmentOnly function retrieves the list of active users from the Firestore 
+// "users" collection. It queries users where the 'status' field is equal to 'active' and groups them 
+// by their respective departments. The data is then organized in a map where the keys are department names 
+// and the values are lists of user data (each user represented as a map). If a user's department is 
+// missing or undefined, it is categorized under "Unknown Department". The function returns the grouped data 
+// as a map of department names to lists of user data, which can be used for further processing or displaying 
+// in the UI.
 Future<Map<String, List<Map<String, dynamic>>>> fetchUsersGroupedByDepartmentOnly() async {
   QuerySnapshot userSnapshot = await FirebaseFirestore.instance
       .collection('users')
@@ -49,6 +59,13 @@ Widget build(BuildContext context) {
   return Padding(
     padding: const EdgeInsets.all(16.0),
     child: FutureBuilder<Map<String, List<Map<String, dynamic>>>>(
+      // This FutureBuilder listens for the result of the fetchUsersGroupedByDepartmentOnly function, 
+// which fetches and groups active users by their department. It handles different states: while waiting 
+// for the data, it shows a loading indicator. Once the data is fetched, it checks if the data exists 
+// and if it's empty. If no active users are found, a message is displayed. Upon receiving the grouped data, 
+// the FutureBuilder extracts the department entries and prepares them for further use, such as displaying 
+// the data in a UI widget. This ensures the UI reflects the latest available data, updating automatically 
+// once the fetch operation completes.
       future: fetchUsersGroupedByDepartmentOnly(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {

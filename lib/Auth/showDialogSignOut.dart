@@ -2,6 +2,11 @@ import 'package:attendance_app/Auth/log_out.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:flutter/material.dart';
 
+
+/// This function shows a confirmation dialog when the user attempts to sign out.
+/// It asks the user to confirm if they really want to log out.
+
+// Function to show a sign-out confirmation dialog
 void showSignOutDialog(BuildContext context) {
   showDialog(
     context: context,

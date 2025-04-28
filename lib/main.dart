@@ -9,34 +9,47 @@ import 'package:attendance_app/Auth/login.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
+  // Ensure that plugin services are initialized before running the app.
+  // This is necessary for plugins that require platform-specific initialization.
+  // For example, Firebase and Supabase require this to set up their services.
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase services.
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  await Supabase.initialize(
-    url: 'https://yvzrahtqpzwzawbzdeym.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2enJhaHRxcHp3emF3YnpkZXltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NTAwNDAsImV4cCI6MjA1NzQyNjA0MH0.UOxsh2Zif4Fq72MJhWfS1MAtGqg_w8w5c8DsmkaP8DI');
 
+  // Initialize Supabase services.
+  await Supabase.initialize(
+      url: 'https://yvzrahtqpzwzawbzdeym.supabase.co',
+      anonKey:
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2enJhaHRxcHp3emF3YnpkZXltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NTAwNDAsImV4cCI6MjA1NzQyNjA0MH0.UOxsh2Zif4Fq72MJhWfS1MAtGqg_w8w5c8DsmkaP8DI');
+
+  // Set Firebase authentication persistence to LOCAL.
+  // This means that the user's authentication state will be persisted even after the app is closed.
+  // This is useful for keeping users logged in across app restarts.
+  // The persistence can be set to LOCAL, SESSION, or NONE.
+  // LOCAL: The user's authentication state will be persisted even after the app is closed.
   await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
 
-  runApp(MultiProvider(
-    providers: [
-      ChangeNotifierProvider(create: (context) => EditModeProvider(),),
-      ChangeNotifierProvider(create: (_) => AddressProvider()),
-      ChangeNotifierProvider(create: (_) => SidebarProvider()),
-    ],
-    child: MyApp()));
-  _hideBar();
+  runApp(
+    //multiprovider is used to provide multiple providers to the widget tree 
+    //it is like a global variable but it is disposable to reduce memory leak.
+    MultiProvider(providers: [
+    ChangeNotifierProvider(
+      create: (context) => EditModeProvider(),
+    ),
+    ChangeNotifierProvider(create: (_) => AddressProvider()),
+    ChangeNotifierProvider(create: (_) => SidebarProvider()),
+  ], child: MyApp())
+  );
+  
 }
 
-Future _hideBar() async {
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
-}
 
 class MyApp extends StatelessWidget {
   MyApp({super.key});
@@ -55,16 +68,16 @@ class MyApp extends StatelessWidget {
   Route<dynamic> _generateRoute(RouteSettings settings) {
     Uri uri = Uri.parse(settings.name ?? "/");
 
-  /// - If the route is '/', navigates to Login page.
+    /// - If the route is '/', navigates to Login page.
     switch (uri.path) {
       case '/':
         return MaterialPageRoute(builder: (context) => const Login());
-  
-  /// - If the route is '/attendance_form', validates expiry time and opens AttendanceForm page.
+
+      /// - If the route is '/attendance_form', validates expiry time and opens AttendanceForm page.
       case '/attendance_form':
         return _handleAttendanceFormRoute(uri);
 
-  /// - For any unknown routes, navigates to NotFoundPage.
+      /// - For any unknown routes, navigates to NotFoundPage.
       default:
         return MaterialPageRoute(builder: (context) => const NotFoundPage());
     }
@@ -72,7 +85,6 @@ class MyApp extends StatelessWidget {
 
   /// **Handles the `/attendance_form` route**
   MaterialPageRoute _handleAttendanceFormRoute(Uri uri) {
-
     /// - Extracts and validates important parameters like `expiryTime` and `selectedScheduleTime`.
     int expiryTime = int.tryParse(uri.queryParameters['expiryTime'] ?? "") ?? 0;
     int currentTime = DateTime.now().millisecondsSinceEpoch;

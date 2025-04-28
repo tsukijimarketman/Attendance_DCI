@@ -1,5 +1,4 @@
 import 'package:attendance_app/Animation/loader.dart';
-import 'package:attendance_app/Auth/audit_function.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -27,12 +26,25 @@ class _AuditSUState extends State<AuditSU> {
   DateTime? _dateFrom;
   DateTime? _dateTo;
 
+  // The initState method is called when the widget is first created. It initializes the state and triggers 
+// the _fetchUserData function to fetch the currently authenticated user's data. This ensures that the user's 
+// information (such as user ID and full name) is retrieved and available as soon as the widget is built, 
+// allowing the UI to reflect the user's data promptly. The super.initState() is called to ensure proper 
+// initialization of the widget's state before the custom logic is executed.
   @override
   void initState() {
     super.initState();
     _fetchUserData();
   }
 
+  // The _fetchUserData function retrieves and processes user data based on the currently authenticated user. 
+// First, it checks if a user is logged in by accessing the current user from FirebaseAuth. If a user is authenticated, 
+// it fetches the user's data from the Firestore "users" collection by querying with the user's unique UID. 
+// If a matching user document is found, it extracts the user's full name by combining their first and last name, 
+// then updates the state with the user's ID, full name, and triggers the fetching of the user's audit logs. 
+// If no user document is found or if the user is not authenticated, appropriate error messages are shown 
+// to the user via snack bars. In case of any errors during the data retrieval process, a generic error message is displayed. 
+// This method ensures that user data is fetched and the UI is updated accordingly, while handling potential errors gracefully.
   Future<void> _fetchUserData() async {
     try {
       User? user = FirebaseAuth.instance.currentUser;
@@ -49,7 +61,6 @@ class _AuditSUState extends State<AuditSU> {
           var userDoc = userQuery.docs.first;
           String fetchedFullName =
               "${userDoc["first_name"]} ${userDoc["last_name"]}";
-          print("✅ Found User Document: ${userDoc.id}, Name: $fetchedFullName");
 
           setState(() {
             userId = uid;
@@ -57,13 +68,12 @@ class _AuditSUState extends State<AuditSU> {
             _userAuditLogs = fetchAuditLogsByUser(userId!);
           });
         } else {
-          print("⚠️ No user document found for UID: $uid");
+             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("⚠️ No user document found for UID"))); 
         }
       } else {
-        print("⚠️ No authenticated user found.");
-      }
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("⚠️ No authenticated user found."))); }
     } catch (e) {
-      print("❌ Error fetching user data: $e");
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
     }
   }
 
@@ -97,10 +107,18 @@ class _AuditSUState extends State<AuditSU> {
       // Reset to default view
       _userAuditLogs = fetchAuditLogsByUser(userId!);
     });
-    print("🧹 Cleared all filters");
   }
 
-  // New method that combines all filtering logic
+  // The fetchFilteredAuditLogs function retrieves audit logs with multiple filtering options. 
+// First, it fetches the user's role based on their user ID from the "users" collection. If the user is a "Superuser", 
+// no additional user-specific filtering is applied, but if the user is not a Superuser, the logs are filtered by their userId. 
+// The function then checks if date filters (_dateFrom and _dateTo) are provided, and applies timestamp filtering accordingly, 
+// ensuring the logs fall within the specified date range. To ensure that the date range is inclusive of the full end of the day, 
+// the 'to' date is adjusted to include the last moment of the day. 
+// After fetching the logs, the results are optionally filtered on the client side by the full name (_nameFilter), 
+// ensuring that only logs with names matching the filter are returned. The logs are then sorted by timestamp in descending order 
+// to show the most recent events first. Any errors encountered during the process are caught and an empty list is returned, 
+// allowing for graceful error handling. This method combines multiple filters for a more comprehensive log-fetching process.
   Future<List<Map<String, dynamic>>> fetchFilteredAuditLogs() async {
     try {
       // Fetch user role
@@ -111,19 +129,15 @@ class _AuditSUState extends State<AuditSU> {
           .get();
 
       if (userQuery.docs.isEmpty) {
-        print("⚠️ No user document found.");
         return [];
       }
 
       String role = userQuery.docs.first.get("roles");
-      print("🔎 User Role: $role");
 
       Query query = FirebaseFirestore.instance.collection("audit_logs");
 
       if (role == "Superuser") {
-        print("👀 Fetching ALL audit logs for Superuser...");
       } else {
-        print("🔒 Fetching logs ONLY for this user...");
         query = query.where("userId", isEqualTo: userId);
       }
 
@@ -136,7 +150,6 @@ class _AuditSUState extends State<AuditSU> {
                 isGreaterThanOrEqualTo: Timestamp.fromDate(_dateFrom!))
             .where("timestamp",
                 isLessThanOrEqualTo: Timestamp.fromDate(toDateEnd));
-        print("🔍 Filtering by date range: ${_dateFrom!} to ${toDateEnd}");
       }
 
       query = query.orderBy("timestamp", descending: true);
@@ -152,16 +165,23 @@ class _AuditSUState extends State<AuditSU> {
           String fullName = log['fullName'].toString().toLowerCase();
           return fullName.contains(_nameFilter!.toLowerCase());
         }).toList();
-        print("🔍 Filtering by name: $_nameFilter");
       }
 
       return logs;
     } catch (e) {
-      print("❌ Error fetching filtered audit logs: $e");
       return [];
     }
-  }
+  } 
 
+
+// The fetchAuditLogsByUser function retrieves audit logs for a specific user based on their unique user ID (uid). 
+// First, it queries the "users" collection to fetch the user's role, and if the user is a "Superuser", 
+// no additional filtering is applied. If the user is not a Superuser, the query is filtered by the userId 
+// to retrieve only their audit logs. If date filters (fromDate and toDate) are provided, the function further 
+// filters the logs by timestamp, ensuring only logs within the specified date range are returned. 
+// The logs are sorted by timestamp in descending order to show the most recent activities first. 
+// The function catches any errors during the data retrieval process and returns an empty list in case of failure, 
+// ensuring that the app handles potential issues gracefully.
   Future<List<Map<String, dynamic>>> fetchAuditLogsByUser(String uid,
       {DateTime? fromDate, DateTime? toDate}) async {
     try {
@@ -173,19 +193,15 @@ class _AuditSUState extends State<AuditSU> {
           .get();
 
       if (userQuery.docs.isEmpty) {
-        print("⚠️ No user document found.");
         return [];
       }
 
       String role = userQuery.docs.first.get("roles");
-      print("🔎 User Role: $role");
 
       Query query = FirebaseFirestore.instance.collection("audit_logs");
 
       if (role == "Superuser") {
-        print("👀 Fetching ALL audit logs for Superuser...");
       } else {
-        print("🔒 Fetching logs ONLY for this user...");
         query = query.where("userId", isEqualTo: uid);
       }
 
@@ -206,16 +222,34 @@ class _AuditSUState extends State<AuditSU> {
           .map((doc) => doc.data() as Map<String, dynamic>)
           .toList();
     } catch (e) {
-      print("❌ Error fetching audit logs: $e");
       return [];
     }
   }
 
+  // The 'icon' variable holds the default icon used in the UI, initially set to 'Icons.arrow_drop_down', 
+// which may represent a dropdown action. The 'isClicked' boolean tracks whether the dropdown or 
+// similar UI element has been clicked or interacted with, defaulting to 'true'. 
   IconData icon = Icons.arrow_drop_down;
   bool isClicked = true;
 
+  
+// The '_dateFormat' variable stores a DateFormat instance with the format 'yyyy-MM-dd', 
+// used to format and parse dates in a consistent way throughout the application. 
   final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
+
+  // The 'filteredResults' variable is a list of DocumentSnapshot objects that holds 
+// the filtered data retrieved from Firestore. It is initialized as an empty list, ready to 
+// store results that match the user’s criteria or filters.
   List<DocumentSnapshot> filteredResults = [];
+
+  // The _selectDate method is used to allow the user to pick a date from a date picker dialog. 
+// It takes two parameters: the context for the date picker and a boolean flag 'isDateFrom' 
+// to determine whether the selected date is for the "from" date or the "to" date. 
+// The method uses the showDatePicker function to display the date picker with a defined date range 
+// (from the year 2000 to 2100), and it initializes with the current date. If the user selects a date, 
+// it updates the corresponding date variable (_dateFrom or _dateTo) and updates the associated text controller 
+// with the selected date in the 'yyyy-MM-dd' format. The method ensures that the selected date is reflected 
+// in both the internal state and the UI.
 
   Future<void> _selectDate(BuildContext context, bool isDateFrom) async {
     DateTime? pickedDate = await showDatePicker(
@@ -239,9 +273,14 @@ class _AuditSUState extends State<AuditSU> {
     }
   }
 
+  // The _filterResults method is used to filter data based on user-provided date ranges. 
+// It first checks if both the "from" and "to" date fields are not empty. If either field is empty, 
+// the function exits early without applying any filters. When both date fields contain valid inputs, 
+// it parses the date strings into DateTime objects using the 'yyyy-MM-dd' format. The method then updates 
+// the state with the parsed date values and calls the _applyAllFilters function to apply any additional filters 
+// or actions needed based on the selected date range. This method ensures that the user can
   void _filterResults() async {
     if (_dateFromController.text.isEmpty || _dateToController.text.isEmpty) {
-      print("⚠️ Error: Select both dates before searching.");
       return;
     }
 
@@ -255,7 +294,6 @@ class _AuditSUState extends State<AuditSU> {
       _applyAllFilters();
     });
 
-    print("🔍 Filtering logs from: $fromDate to $toDate");
   }
 
   @override
@@ -399,6 +437,7 @@ class _AuditSUState extends State<AuditSU> {
                                                   .width /
                                               10.68,
                                           child: GestureDetector(
+                                            // This will triggered the searchAuditLogs
                                             onTap: searchAuditLogs,
                                             child: Container(
                                               width: MediaQuery.of(context)
@@ -460,6 +499,7 @@ class _AuditSUState extends State<AuditSU> {
                                 ),
                                 child: GestureDetector(
                                   onTap: () =>
+                                  // This will triggered the _selectDate
                                       _selectDate(context, true), // Date From
 
                                   child: AbsorbPointer(
@@ -522,6 +562,7 @@ class _AuditSUState extends State<AuditSU> {
                                 ),
                                 child: GestureDetector(
                                   onTap: () {
+                                    // This will triggered the _selectDate
                                     _selectDate(context, false);
                                   },
                                   // Date To
@@ -529,6 +570,7 @@ class _AuditSUState extends State<AuditSU> {
                                   child: AbsorbPointer(
                                     // Prevents manual input while allowing tap detection
                                     child: TextField(
+                                      // This will Triggered the _dateToCOntroller Method
                                       controller: _dateToController,
                                       readOnly: true,
                                       style: TextStyle(
@@ -577,6 +619,7 @@ class _AuditSUState extends State<AuditSU> {
                                 height: MediaQuery.of(context).size.width / 170,
                               ),
                               GestureDetector(
+                                // This is will Triggered the Filtering Result
                                 onTap: _filterResults,
                                 child: Container(
                                     width:
@@ -618,6 +661,7 @@ class _AuditSUState extends State<AuditSU> {
                               ),
                               GestureDetector(
                                 onTap:
+                                // This will Triggered the method for Clearing the filters
                                     _clearFilters, // Use the new clear method here
                                 child: Container(
                                     width:
@@ -709,7 +753,13 @@ class _AuditSUState extends State<AuditSU> {
                 ),
               ),
 
-              // Scrollable Log List
+              // The Expanded widget ensures that the FutureBuilder takes up all available space within the parent widget. 
+              // The FutureBuilder listens for the result of the _userAuditLogs future, which fetches a list of audit logs. 
+              // It handles various states: while waiting for the data, it displays a custom loading indicator; if there is 
+              // an error during data fetching, it shows an error message; and if no data is found or the list is empty, 
+              // it informs the user with a message saying "No audit logs found". Once the data is available, the FutureBuilder 
+              // displays the audit logs in a list or another appropriate widget. This setup ensures that the UI is responsive 
+              // and provides feedback during the data-fetching process, while also displaying the results when available.
               Expanded(
                 child: FutureBuilder<List<Map<String, dynamic>>>(
                   future: _userAuditLogs,

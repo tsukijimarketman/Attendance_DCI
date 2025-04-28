@@ -26,6 +26,9 @@ class _QrCodeState extends State<QrCode> {
   int remainingTime = 0;
   Timer? _timer;
 
+  // The initState method is called when the widget is first created. It initializes the state of the widget by setting the agendaController's text to the selected agenda passed via the widget's constructor.
+  // It also triggers the fetchUserData method to fetch and load the current user's data from Firebase into the state.
+  // This ensures that the necessary data is available when the widget is displayed.
   @override
   void initState() {
     super.initState();
@@ -33,12 +36,20 @@ class _QrCodeState extends State<QrCode> {
     fetchUserData();
   }
 
+  // Preventing memory Leaks
   @override
   void dispose() {
     _timer?.cancel();
     super.dispose();
   }
 
+  // This function is responsible for fetching the current user's data from Firebase Firestore.
+  // It first checks if the user is logged in by retrieving the current user from FirebaseAuth.
+  // If a user is logged in, it queries the 'users' collection in Firestore to find the document matching the user's UID.
+  // If the user data is found, the first name, last name, and department are retrieved and updated in the state.
+  // If no user document is found, a SnackBar message is displayed to inform the user.
+  // If there's an error during the data fetch, another SnackBar is shown with the error message.
+  // If no user is logged in, a SnackBar is displayed notifying that no user is logged in.
   Future<void> fetchUserData() async {
     User? user = FirebaseAuth.instance.currentUser;
 
@@ -60,13 +71,16 @@ class _QrCodeState extends State<QrCode> {
             departmentController.text = userData['department'] ?? "";
           });
         } else {
-          print("No user document found.");
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text("No user document found.")));
         }
       } catch (e) {
-        print("Error fetching user data: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error fetching user data: $e")));
       }
     } else {
-      print("No user is logged in.");
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("No user is logged in.")));
     }
   }
 
@@ -76,6 +90,12 @@ class _QrCodeState extends State<QrCode> {
     });
   }
 
+  // This function is responsible for creating an attendance form.
+  // First, it checks if the agenda text field is empty and displays a SnackBar message if it is.
+  // Then, it calculates the current timestamp and sets expiration times for both the QR code and the form.
+  // The QR URL is then generated with the provided agenda, department, first and last names, and expiry times encoded as URL parameters.
+  // After the URL is created, it logs an audit trail for the QR code generation event, noting the user's first and last names, agenda, and department.
+  // Finally, the state is updated to show the form has been created, and a countdown timer is started.
   void createForm() async {
     if (agendaController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -106,10 +126,12 @@ class _QrCodeState extends State<QrCode> {
         _startCountdown();
       });
     } catch (e) {
-      print("Error logging audit trail: $e");
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Error: $e")));
     }
   }
 
+  // This will Start the Countdown for the Expiration Date
   void _startCountdown() {
     int now = DateTime.now().millisecondsSinceEpoch;
     remainingTime = ((qrExpiryTime - now) / 1000).round();
@@ -132,6 +154,8 @@ class _QrCodeState extends State<QrCode> {
     }
   }
 
+  // This is a Show Dialog Box where it will show
+  // that the Qr Is Expired
   void _showExpiredDialog() {
     showDialog(
       context: context,
@@ -225,6 +249,7 @@ class _QrCodeState extends State<QrCode> {
 
           // Generate QR button
           ElevatedButton.icon(
+            // This will Triggered the generateQrCode where it will generate a QrCode For Attendance
             onPressed: generateQrCode,
             icon: const Icon(Icons.qr_code),
             label: const Text('Generate QR Code'),
@@ -325,6 +350,7 @@ class _QrCodeState extends State<QrCode> {
                                 MaterialStateProperty.all(Color(0xFF0e2643)),
                             elevation: MaterialStateProperty.all(0),
                           ),
+                          // This will Trigger the createForm Method
                           onPressed: createForm,
                           child: const Text(
                             "Generate QR Code",

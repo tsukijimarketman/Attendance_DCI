@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:signature/signature.dart';
 
+
+/// This is the Signature that i get on the Pub.Dev which i implemented this in the Form for the Atteendee
 class SignatureApp extends StatefulWidget {
       final SignatureController controller; // Pass controller from parent
 

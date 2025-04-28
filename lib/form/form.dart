@@ -12,6 +12,7 @@ import 'package:signature/signature.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AttendanceForm extends StatefulWidget {
+  // This is passing the data from the previous screen
   final String roles;
   final String department;
   final String agenda;
@@ -22,6 +23,8 @@ class AttendanceForm extends StatefulWidget {
   final int selectedScheduleTime;
 
   const AttendanceForm({
+    // This is passing the data from the previous screen
+    // and requiring the data to be passed
     required this.createdBy,
     required this.expiryTime,
     required this.roles,
@@ -38,6 +41,7 @@ class AttendanceForm extends StatefulWidget {
 }
 
 class _AttendanceFormState extends State<AttendanceForm> {
+  // this is all the variables that are used in the form
   final TextEditingController nameController = TextEditingController();
   final TextEditingController companyController = TextEditingController();
   final TextEditingController emailAddController = TextEditingController();
@@ -60,7 +64,15 @@ class _AttendanceFormState extends State<AttendanceForm> {
   bool isEmailValid = true;
   List<bool> contactFieldValidity = [];
 
-
+  // Initialize the controllers and other variables
+  // This function is called when the widget is created
+  // It sets up the initial state of the widget
+  // and prepares the controllers for use
+  // It also sets up the scheduled time based on the selected schedule time
+  // and checks if the QR code has expired
+  // or if the form has expired
+  // It also starts the countdown timer to track the remaining time
+  // until the form expires
   @override
   void initState() {
     super.initState();
@@ -95,17 +107,35 @@ class _AttendanceFormState extends State<AttendanceForm> {
     _startCountdown();
   }
 
+  // Start the countdown timer
+  // This function is called when the widget is initialized
+  // It calculates the remaining time until the form expires
+  // and sets up a periodic timer to update the remaining time
   void _startCountdown() {
+    // Get the current time in milliseconds since epoch
+    // Calculate the remaining time in seconds
     int now = DateTime.now().millisecondsSinceEpoch;
     remainingTime = ((widget.expiryTime - now) / 1000).round();
 
+    // Check if the remaining time is greater than 0
+    // If so, set up a periodic timer to update the remaining time
+    // If not, show the expired dialog immediately
     if (remainingTime > 0) {
       _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+        // Check if the widget is still mounted
+        // This is important to avoid calling setState on a disposed widget
+        // and to ensure that the timer is only active when the widget is visible
+        // and not in the background
         if (mounted) {
           setState(() {
             remainingTime--;
           });
 
+          // Check if the remaining time is less than or equal to 0
+          // If so, cancel the timer and show the expired dialog
+          // This is important to ensure that the dialog is shown only when the time is up
+          // and to prevent any further updates to the UI
+          // after the form has expired
           if (remainingTime <= 0) {
             _timer.cancel();
             _showExpiredDialog();
@@ -113,10 +143,18 @@ class _AttendanceFormState extends State<AttendanceForm> {
         }
       });
     } else {
+      // If the remaining time is less than or equal to 0
+      // show the expired dialog immediately
+      // This is important to ensure that the user is notified of the expiration
+      
       _showExpiredDialog();
     }
   }
 
+  // Show a dialog when the form has expired
+  // This function is called when the form expires
+  // It shows an alert dialog to the user
+  // with a message indicating that the form has expired
   void _showExpiredDialog() {
     showDialog(
       context: context,
@@ -136,6 +174,11 @@ class _AttendanceFormState extends State<AttendanceForm> {
     );
   }
 
+  // Dispose of the controllers to free up resources
+  // This function is called when the widget is removed from the widget tree
+  // It ensures that all controllers are properly disposed of
+  // to prevent memory leaks
+  // and to clean up any resources used by the controllers
   @override
   void dispose() {
     nameController.dispose();
@@ -149,26 +192,42 @@ class _AttendanceFormState extends State<AttendanceForm> {
     super.dispose();
   }
 
+  // Add a new contact field
+  // This function is called when the add icon is pressed
+  // It adds a new TextEditingController to the list of contact controllers
+  // and updates the state to reflect the change in the UI
   void addNewContactField() {
     setState(() {
-      contactControllers.add(TextEditingController()); // Add a new controller
+      contactControllers.add(TextEditingController());
     });
   }
 
+  // Remove a contact field at the specified index
+  // This function is called when the remove icon is pressed
+  // It removes the TextEditingController at the specified index
+  // and updates the state to reflect the change in the UI
   void removeContactField(int index) {
     setState(() {
       contactControllers
-          .removeAt(index); // Remove the controller at the specified index
+          .removeAt(index);
     });
   }
 
+  // Format the time in minutes and seconds
+  // Example: "5:30" for 5 minutes and 30 seconds
   String _formatTime(int seconds) {
     int minutes = seconds ~/ 60;
     int secs = seconds % 60;
     return "$minutes:${secs.toString().padLeft(2, '0')}";
   }
 
+  // Validate the form fields
   bool validateForm() {
+    // Check if the name, company, and email fields are valid
+    // Check if the contact number fields are valid
+    // Set the validity state for each field
+    // Use trim() to remove leading and trailing spaces
+    // Use isNotEmpty to check if the field is not empty
   setState(() {
     isNameValid = nameController.text.trim().isNotEmpty;
     isCompanyValid = companyController.text.trim().isNotEmpty;
@@ -183,7 +242,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
     }).toList();
   });
 
-  // Check if all are valid
+  // Check if all fields are valid
   bool allContactsValid = contactFieldValidity.any((valid) => valid);
   if (!isNameValid || !isCompanyValid || !isEmailValid || !allContactsValid) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -286,35 +345,36 @@ class _AttendanceFormState extends State<AttendanceForm> {
     // Clear the signature controller after submission
     _signatureController.clear();
   }
-  
+
+  // Upload the signature image to Supabase and return the public URL
   Future<String?> _uploadToSupabase(Uint8List imageBytes) async {
+    // Ensure the Supabase client is initialized
     try {
+      // Check if Supabase client is initialized
       final client = Supabase.instance.client;
       final String fileName =
           "signature_${DateTime.now().millisecondsSinceEpoch}.png";
-
-      print("🚀 Uploading signature: $fileName");
-
+      
+      // Upload the image to Supabase storage 
       final response = await client.storage
-          .from("signatures") // Ensure this is the correct bucket
+          .from("signatures") // This is the bucket Name
+          // Specify the file name and the image bytes
           .uploadBinary(fileName, imageBytes,
               fileOptions: const FileOptions(upsert: true));
 
-      print("📂 Upload Response: $response");
-
       // CHECK IF UPLOAD FAILED
       if (response.isEmpty) {
-        print("❌ Supabase upload failed: No file path returned.");
+        // Handle the error if the upload failed
         return null;
       }
 
+      // Get the public URL of the uploaded file
       final String publicUrl =
           client.storage.from("signatures").getPublicUrl(fileName);
-      print("✅ Upload successful: $publicUrl");
-
+      // Check if the public URL is empty
       return publicUrl;
+      // Handle the error if the public URL is empty
     } catch (e) {
-      print("❌ Error uploading to Supabase: $e");
       return null;
     }
   }
@@ -521,6 +581,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
                                 icon: Icon(Icons.add_circle_outline,
                                     color: Colors
                                         .blue), // Size and color of the icon
+                                        // This will Trigger the addNewContactField function
                                 onPressed:
                                     addNewContactField, // Add new contact when pressed
                               )
@@ -528,6 +589,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
                                 icon: Icon(Icons.remove_circle_outline,
                                     color: Colors
                                         .red), // Remove icon for subsequent fields
+                                        // This will Trigger the removeContactField function
                                 onPressed: () {
                                   removeContactField(
                                       index); // Remove specific contact field
@@ -558,6 +620,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
                           ),
                           backgroundColor: WidgetStateProperty.all(Colors.blue),
                         ),
+                        // This will Trigger the submitForm function
                         onPressed: submitForm,
                         child: Text(
                           "Submit",

@@ -13,69 +13,106 @@ class AdminAppointment extends StatefulWidget {
 }
 
 class _AdminAppointmentState extends State<AdminAppointment> {
+  // This is all the variables use in this dart file
   String userDepartment = '';
   String first_name = '';
   String last_name = '';
   bool isLoading = true;
 
+  
   @override
   void initState() {
-    super.initState();
+    super.initState();// Call the parent class's initState() method to ensure proper initialization
+  
+  // Call the fetchUserDepartment method to initiate the fetching of user department data
+  // This will likely involve an API call or database query to retrieve the department information    
     fetchUserDepartment(); // This will call updateAppointmentStatuses once completed
   }
 
-// Function to check and update appointment statuses
-  Future<void> updateAppointmentStatuses() async {
+ // Function to check and update the appointment statuses
+// This function checks all appointments in the 'appointment' collection in Firestore
+// where the 'department' field is equal to the user's department and the status is "Scheduled".
+// If the appointment's scheduled time has passed, it updates the status to "In Progress".
+Future<void> updateAppointmentStatuses() async {
     try {
-      // Get all scheduled appointments for the user's department
+      // Get all appointments from the 'appointment' collection where:
+    // 1. 'department' field is equal to the user's department.
+    // 2. 'status' field is equal to "Scheduled".
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection('appointment')
-          .where('department', isEqualTo: userDepartment)
+          .where('department', isEqualTo: userDepartment)// Filter by user department
           .where('status', isEqualTo: "Scheduled") // Only check scheduled ones
           .get();
 
-      DateTime now = DateTime.now();
+      DateTime now = DateTime.now();// Get the current date and time
 
+      // Iterate through each document (appointment) in the query snapshot
       for (var doc in querySnapshot.docs) {
         var data = doc.data() as Map<String, dynamic>;
 
+          // Check if the 'schedule' field exists and is not null
         if (data['schedule'] != null) {
+            // Parse the 'schedule' field to a DateTime object
           DateTime? appointmentDate = _parseSchedule(data['schedule']);
 
+            // If the appointment date is valid and has already passed
           if (appointmentDate != null && appointmentDate.isBefore(now)) {
-            // If the scheduled date has passed, update status to "In Progress"
+            // If the scheduled date has passed, update status to "In Progress" 
             await FirebaseFirestore.instance
                 .collection('appointment')
-                .doc(doc.id)
-                .update({'status': "In Progress"});
-            print("Updated ${data['agenda']} to In Progress");
+                .doc(doc.id) // Reference the specific document by its ID
+                .update({'status': "In Progress"}); // Update the status field
           }
         }
       }
     } catch (e) {
-      print("Error updating appointment statuses: $e");
-    }
+           ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('Error: $e')),
+  );
+}
+          
   }
 
+  // Function to parse the 'schedule' string (which is expected to be in ISO 8601 format)
+// and convert it into a local DateTime object. 
+// If the parsing fails, it will catch the error and print the issue.
   DateTime? _parseSchedule(String schedule) {
     try {
-      return DateTime.tryParse(schedule)?.toLocal(); // Convert from ISO format
+       // Attempt to parse the schedule string into a DateTime object.
+    // The 'tryParse' method returns null if the string is not a valid DateTime format.
+    return DateTime.tryParse(schedule)?.toLocal(); // Convert from ISO format
     } catch (e) {
-      print("Error parsing schedule: $e | Input: $schedule");
-      return null;
+       // Catch any errors that may occur during parsing and print the error with the input string.
+    return null;
     }
   }
 
+  // Function to format a timestamp string into a human-readable date format.
+// The timestamp is expected to be in a standard ISO 8601 format string, such as "2025-04-28T14:30:00Z".
   String formatDate(String timestamp) {
     try {
-      DateTime parsedDate = DateTime.parse(timestamp);
-      return DateFormat("MMMM d yyyy 'at' h:mm a").format(parsedDate);
+      // Try to parse the timestamp string into a DateTime object.
+    DateTime parsedDate = DateTime.parse(timestamp); 
+    // Format the DateTime object into a more user-friendly format using 'DateFormat'.
+    // This format will display the full month name, day, year, and time in a 12-hour format with AM/PM.
+    return DateFormat("MMMM d yyyy 'at' h:mm a").format(parsedDate);
     } catch (e) {
-      print("Error formatting date: $e");
+       // Catch any errors that occur during the date formatting process and log the error
       return "Invalid date";
     }
   }
 
+// The `fetchUserDepartment` function is responsible for fetching the department information and user details 
+// (such as first name and last name) from the Firestore database for the currently authenticated user. 
+// It first checks if the user is logged in by accessing the `currentUser` from FirebaseAuth. If the user is logged in, 
+// it queries the Firestore database for the user's data based on the user’s UID. 
+// If the data is found, it extracts the `department`, `first_name`, and `last_name` fields from the document and 
+// updates the local state with these values. 
+// The `isLoading` flag is also updated to `false` to indicate that the loading process is complete. 
+// After retrieving the user data, the function triggers the `updateAppointmentStatuses` method to update the statuses 
+// of appointments related to the user's department. 
+// If any error occurs during the Firestore query or if the user is not logged in, the `isLoading` flag is set to `false`, 
+// signaling the end of the loading process without further updates.
   Future<void> fetchUserDepartment() async {
     User? user = FirebaseAuth.instance.currentUser;
 

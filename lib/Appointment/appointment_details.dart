@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:typed_data';
 import 'package:attendance_app/Auth/audit_function.dart';
 import 'package:attendance_app/form/make_a_form.dart';
@@ -30,6 +29,7 @@ class AppointmentDetails extends StatefulWidget {
 }
 
 class _AppointmentDetailsState extends State<AppointmentDetails> {
+  // This is all the variables that will be used in the appointment details page
   final TextEditingController agendaController = TextEditingController();
   final TextEditingController departmentController = TextEditingController();
   final TextEditingController scheduleController = TextEditingController();
@@ -55,6 +55,8 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
   bool isEditing =
       false; // Keeps track of whether the button is in Edit or Save mode
 
+  // InitState method to fetch user department and appointment data and attendance data
+  // The initState method is called when the widget is first created
   @override
   void initState() {
     super.initState();
@@ -64,6 +66,7 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
     });
   }
 
+  // Function to parse the schedule string into a DateTime object
   String formatTimestamp(dynamic timestamp) {
     if (timestamp is Timestamp) {
       DateTime date =
@@ -75,18 +78,20 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
     }
   }
 
+  // Function to format the date string into a readable format
   String formatDate(String timestamp) {
     try {
       DateTime parsedDate = DateTime.parse(timestamp);
       return DateFormat("MMMM d yyyy 'at' h:mm a").format(parsedDate);
     } catch (e) {
-      print("Error formatting date: $e");
       return "Invalid date";
     }
   }
 
+  // Function to fetch appointment data from Firestore
   Future<void> fetchAppointmentData() async {
     try {
+      // Fetch the appointment data based on the selected agenda and user department
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection(
               'appointment') // Assuming the collection name is 'appointments'
@@ -96,10 +101,14 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
           .limit(1)
           .get();
 
+      // Check if any documents were returned
       if (querySnapshot.docs.isNotEmpty) {
+        // Get the first document
         var data = querySnapshot.docs.first.data() as Map<String, dynamic>;
 
+        // Set the state with the fetched data
         setState(() {
+          // Set the text fields with the fetched data
           agendaController.text = data['agenda'] ?? "N/A";
           descriptionAgendaController.text = data['agendaDescript'] ?? "N/A";
           departmentController.text = data['department'] ?? "N/A";
@@ -108,89 +117,121 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
 
           // Fetch guests array from Firestore
           if (data.containsKey('guest') && data['guest'] is List) {
+            // Convert the guest list to a List<Map<String, dynamic>>
             guests = List<Map<String, dynamic>>.from(data['guest']);
           }
 
+          // Fetch internal users array from Firestore
           if (data.containsKey('internal_users') &&
               data['internal_users'] is List) {
+            // Convert the internal users list to a List<Map<String, dynamic>>
             users = List<Map<String, dynamic>>.from(data['internal_users']);
           }
         });
       } else {
-        print("No appointment data found.");
+        // No documents found for the given criteria
       }
     } catch (e) {
-      print("Error fetching appointment data: $e");
+      // Handle any errors that occur during the fetch
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error fetching appointment data: $e")),
+      );
     }
   }
 
+  // Function to fetch user data from Firestore
   Future<void> fetchUserData() async {
+    // Get the current user from Firebase Auth
     User? user = FirebaseAuth.instance.currentUser;
 
+    // Check if the user is logged in
     if (user != null) {
+      // Fetch user data from Firestore based on the UID
       try {
+        // Query the Firestore collection 'users' where 'uid' matches the current user's UID
         QuerySnapshot querySnapshot = await FirebaseFirestore.instance
             .collection('users')
             .where('uid', isEqualTo: user.uid)
             .limit(1)
             .get();
 
+        // Check if any documents were returned
         if (querySnapshot.docs.isNotEmpty) {
+          // Get the first document
           var userData =
               querySnapshot.docs.first.data() as Map<String, dynamic>;
 
+          // Set the state with the fetched user data
           setState(() {
+            //  Set the state with the fetched user data
             firstName = userData['first_name'] ?? "N/A";
             lastName = userData['last_name'] ?? "N/A";
           });
         } else {
-          print("No user document found.");
+          //  No documents found for the given UID
         }
       } catch (e) {
-        print("Error fetching user data: $e");
+        // Handle any errors that occur during the fetch
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error fetching user data: $e")),
+        );
       }
     } else {
-      print("No user is logged in.");
+      // User is not logged in
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("No user is logged in.")),
+      );
     }
   }
 
+  // Function to fetch user department from Firestore
   Future<void> fetchUserDepartment() async {
+    // Get the current user from Firebase Auth
     User? user = FirebaseAuth.instance.currentUser;
 
+    // Check if the user is logged in
     if (user != null) {
+      // Fetch user data from Firestore based on the UID
       try {
+        // Query the Firestore collection 'users' where 'uid' matches the current user's UID
         QuerySnapshot querySnapshot = await FirebaseFirestore.instance
             .collection('users')
             .where('uid', isEqualTo: user.uid)
             .limit(1)
             .get();
 
+        // Check if any documents were returned
         if (querySnapshot.docs.isNotEmpty) {
+          // Get the first document
           var userData =
               querySnapshot.docs.first.data() as Map<String, dynamic>;
 
+          // Set the state with the fetched user data
           setState(() {
+            // Set the user department and full name
             userDepartment = userData['department'] ?? "";
             fullName = "${userData['first_name']} ${userData['last_name']}";
             isLoading = false;
           });
         } else {
-          print("No user document found.");
+          // No documents found for the given UID
           setState(() => isLoading = false);
         }
       } catch (e) {
-        print("Error fetching user data: $e");
+        // Handle any errors that occur during the fetch
         setState(() => isLoading = false);
       }
     } else {
-      print("No user is logged in.");
+      // User is not logged in
       setState(() => isLoading = false);
     }
   }
 
+  // Function to update the appointment status in Firestore
   Future<void> updateAppointmentStatus(String newStatus,
       {String? remark}) async {
     try {
+      // Query for the document matching the agenda and user department
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection('appointment')
           .where('agenda', isEqualTo: widget.selectedAgenda)
@@ -199,14 +240,20 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
           .limit(1)
           .get();
 
+      // Check if any documents were returned
       if (querySnapshot.docs.isNotEmpty) {
+        // Get the first document
         String docId = querySnapshot.docs.first.id;
 
+        // Prepare the data to update
         Map<String, dynamic> updateData = {
+          // Update the status field
           'status': newStatus,
         };
 
+        // Add remark and cancellation details if applicable
         if (newStatus == 'Cancelled' && remark != null) {
+          // Add remark and cancellation details
           updateData.addAll({
             'remark': remark,
             'cancelledBy': fullName,
@@ -214,30 +261,40 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
           });
         }
 
+        // Update the Firestore document
         await FirebaseFirestore.instance
             .collection('appointment')
             .doc(docId)
             .update(updateData);
-
+        
+        // Set the state with the new status
         setState(() {
           Status = newStatus;
         });
 
+        // Show a success message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Status updated to $newStatus")),
         );
 
-        print("Status updated to $newStatus");
       } else {
-        print("No appointment found to update.");
+        // No documents found for the given criteria
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("No matching appointment found.")),
+        );
       }
     } catch (e) {
-      print("Error updating status: $e");
-    }
+      // Handle any errors that occur during the update
+     ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error updating appointment status: $e")),
+      );
+     }
   }
 
+  // Function to fetch attendance data from Firestore
   Future<void> fetchAttendancetData() async {
     try {
+      // Query for the attendance data based on the selected agenda and user department
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection('attendance')
           .where('agenda', isEqualTo: widget.selectedAgenda)
@@ -245,54 +302,85 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
           .where('createdBy', isEqualTo: fullName) // Fil
           .get(); // Remove limit(1) to fetch all related records
 
+      // Check if any documents were returned
       if (querySnapshot.docs.isNotEmpty) {
+        // Get the first document
         setState(() {
+          // Set the attendance list with the fetched data
           attendanceList = querySnapshot.docs
+          // Convert the documents to a List<Map<String, dynamic>>
               .map((doc) => doc.data() as Map<String, dynamic>)
               .toList();
         });
       } else {
-        print("No attendance data found.");
+        // No documents found for the given criteria
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("No attendance records found.")),
+        );
       }
     } catch (e) {
-      print("Error fetching attendance data: $e");
+      // Handle any errors that occur during the fetch
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error fetching attendance data: $e")),
+      );
     }
   }
 
+  // Function to fetch image from URL
   Future<Uint8List?> _fetchImage(String? url) async {
+    // Check if the URL is valid
     if (url == null || url.isEmpty) return null;
     try {
+      // Fetch the image from the URL
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
+        // Image fetched successfully
         return response.bodyBytes; // Convert response to bytes
       }
     } catch (e) {
-      print("Error fetching image: $e");
+      // Handle any errors that occur during the fetch
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error fetching image: $e")),
+      );
     }
+    // Return null if the image could not be fetched
     return null;
   }
 
+  // Function to load an asset image
   Future<Uint8List> loadAssetImage(String path) async {
+    // Load the image from the asset bundle
     final ByteData data = await rootBundle.load(path);
+    // Convert the image data to Uint8List
     return data.buffer.asUint8List();
   }
 
+  // Function to generate the PDF report
   void _generatePDF() async {
+    // Create a new PDF document
     final pdf = pw.Document();
+    // Create a list to hold attendees with their signatures
     List<Map<String, dynamic>> attendeesWithSignatures = [];
 
     // **Fetch images before generating the PDF**
     for (var attendee in attendanceList) {
+      // Fetch the image bytes for each attendee's signature URL
       Uint8List? imageBytes = await _fetchImage(attendee['signature_url']);
+      // Add the attendee data along with the image bytes to the list
       attendeesWithSignatures.add({...attendee, 'signature_bytes': imageBytes});
     }
 
+    // **Load asset images for the header and footer**
     Uint8List logoBytes = await loadAssetImage('assets/bag.png');
     Uint8List logoBytess = await loadAssetImage('assets/dci.jpg');
 
+    // **Add a new page to the PDF document**
     pdf.addPage(
+      // Create a new page with landscape orientation and margins
       pw.MultiPage(
+        // Set the page format to A4 landscape
         pageFormat: PdfPageFormat.a4.landscape,
+        // Set the margins for the page
         margin: pw.EdgeInsets.all(30),
 
         // ✅ HEADER - This will appear on every page
@@ -441,6 +529,7 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
                       ),
 
                       // Attendees Data
+                      // Loop through each attendee and create a table row
                       for (var attendee in attendeesWithSignatures)
                         pw.TableRow(children: [
                           pw.Padding(
@@ -489,11 +578,15 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
       ),
     );
 
+    // Save the PDF document to a file or share it
     final pdfBytes = await pdf.save();
+    // Save the PDF to a file or share it
     await Printing.sharePdf(bytes: pdfBytes, filename: 'attendance_report.pdf');
   }
 
+  // Function to generate the CSV report
   Future<void> _generateCSV() async {
+    // Create a list to hold the CSV rows
     List<List<String>> rows = [];
 
     // CSV Header
@@ -501,17 +594,23 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
 
     // Data Rows
     for (var attendee in attendanceList) {
+      // Add each attendee's data to the rows
       rows.add([
+        // Use null-aware operators to handle missing data
         attendee['name'] ?? 'N/A',
         attendee['company'] ?? 'N/A',
         attendee['email_address'] ?? 'N/A',
         (() {
+          // Use a function to handle the contact number
           final contact = attendee['contact_num'];
           if (contact is List) {
+            // If contact is a list, join the elements with a comma
             return contact.join(', ');
           } else if (contact is String) {
+            // If contact is a string, return it directly
             return contact;
           } else {
+            // If contact is neither, return 'N/A'
             return 'N/A';
           }
         })(),
@@ -521,26 +620,34 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
     // Convert to CSV String
     String csv = const ListToCsvConverter().convert(rows);
 
+    // Check if the platform is web
     if (kIsWeb) {
       // ✅ Download CSV in Flutter Web
       final blob = html.Blob([csv], 'text/csv');
+      // Create a URL for the blob and trigger a download
       final url = html.Url.createObjectUrlFromBlob(blob);
+      // Create an anchor element and trigger a download
       final anchor = html.AnchorElement(href: url)
+      // Set the download attribute to specify the file name
         ..setAttribute("download", "attendance_report.csv")
         ..click();
+        // Revoke the object URL after download
       html.Url.revokeObjectUrl(url);
     } else {
       // ✅ Save CSV on Android/iOS/Desktop
       final directory = await getApplicationDocumentsDirectory();
+      // Create a path for the CSV file
       final path = '${directory.path}/attendance_report.csv';
-
+      // Write the CSV string to the file
       final file = File(path);
+      // Check if the file exists, if not create it
       await file.writeAsString(csv);
-
+      // Share the CSV file using the share_plus package
       await Share.shareXFiles([XFile(path)], text: 'Attendance Report CSV');
     }
   }
 
+  // Show a dialog to confirm the download format (PDF or CSV)
   void showcsvpdfdialog() {
     showDialog(
       context: context,
@@ -556,6 +663,7 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
                 TextButton(
                   child: Image.asset('assets/pdf.png', width: 50, height: 50),
                   onPressed: () {
+                    // This will trigger the PDF generation
                     _generatePDF();
 
                     Navigator.of(context).pop();
@@ -564,6 +672,7 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
                 TextButton(
                   child: Image.asset("assets/csv.png", width: 50, height: 50),
                   onPressed: () {
+                    // this will trigger the CSV generation
                     _generateCSV();
 
                     Navigator.of(context).pop();
@@ -577,7 +686,9 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
     );
   }
 
+  // This will show a dialog to confirm the cancellation of the appointment
   void _showCancelDialog(String agenda) {
+    // Create a TextEditingController for the remark input field
     TextEditingController remarkController = TextEditingController();
 
     showDialog(
@@ -604,22 +715,29 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
             ElevatedButton(
               child: Text("Dismiss"),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => 
+              // Close the dialog without any action
+              Navigator.of(context).pop(),
             ),
             ElevatedButton(
               child: Text("Confirm"),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () {
+                // Validate the remark input
                 String remark = remarkController.text.trim();
                 if (remark.isEmpty) {
+                  // Show a snackbar if the remark is empty
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text("Remark is required.")),
                   );
+                  // Don't proceed with cancellation
                   return;
                 }
 
                 Navigator.of(context).pop(); // Close dialog
                 deleteEvent(agenda); // 👈 Call delete here
+                // Call the function to update the appointment status
+                // Pass the remark to the function
                 updateAppointmentStatus('Cancelled',
                     remark: remark); // 👈 Update status
               },
@@ -630,27 +748,38 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
     );
   }
 
+  // Function to pick a date and time for scheduling
   void pickScheduleDateTime() async {
+    // Show date and time picker dialogs
     DateTime now = DateTime.now();
-
+    // Show date picker dialog
     DateTime? pickedDate = await showDatePicker(
+      // Show date picker dialog
       context: context,
       initialDate: now,
       firstDate: now,
       lastDate: DateTime(2100),
     );
 
+    // Check if the user picked a date
+    // If the user cancels the date picker, pickedDate will be null
     if (pickedDate == null) return;
 
+
+    // Show time picker dialog
     TimeOfDay? pickedTime = await showTimePicker(
+      // Show time picker dialog
       context: context,
       initialTime: TimeOfDay.now(),
     );
 
+    // Check if the user picked a time
+    // If the user cancels the time picker, pickedTime will be null
     if (pickedTime == null) return;
 
     // Combine Date and Time
     DateTime fullDateTime = DateTime(
+      // Create a new DateTime object with the picked date and time
       pickedDate.year,
       pickedDate.month,
       pickedDate.day,
@@ -658,7 +787,9 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
       pickedTime.minute,
     );
 
+    // Format the date and time for display
     setState(() {
+      // Update the selected schedule time and the text field
       selectedScheduleTime = fullDateTime;
       scheduleController.text =
           fullDateTime.toIso8601String(); // Store in ISO format
@@ -672,6 +803,9 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
         "${dateTime.hour >= 12 ? 'PM' : 'AM'}";
   }
 
+  // Function to get the month name from the month number
+  // This function takes an integer month (1-12) and returns the corresponding month name
+  // For example, if month is 1, it returns "January"
   String _monthName(int month) {
     List<String> months = [
       "",
@@ -691,16 +825,30 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
     return months[month];
   }
 
+  // Function to format the hour for display
+  // This function takes an integer hour (0-23) and returns the formatted hour (1-12)
+  // For example, if hour is 14, it returns "2"
+  // If hour is 0, it returns "12"
   String _formatHour(int hour) {
     int formattedHour = hour % 12 == 0 ? 12 : hour % 12;
     return formattedHour.toString();
   }
 
+  // Function to format the minute for display
+  // This function takes an integer minute (0-59) and returns the formatted minute (00-59)
+  // For example, if minute is 5, it returns "05"
+  // If minute is 30, it returns "30"
+  // If minute is 0, it returns "00"
   String _formatMinute(int minute) {
     return minute.toString().padLeft(2, '0');
   }
 
+
+  // The saveDataToFirestore function is responsible for saving the appointment data to Firestore
+  // It updates the appointment details and also updates the Google Calendar event  
+  // Function to Save data to Firestore
   Future<void> saveDataToFirestore() async {
+    // Check if the agenda is empty
     try {
       // Query for the document matching the agenda
       QuerySnapshot snapshot = await FirebaseFirestore.instance
@@ -709,15 +857,16 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
           .limit(1)
           .get();
 
+      // Check if any documents were returned
       if (snapshot.docs.isNotEmpty) {
-        // Get the document ID and the stored Google Calendar eventId
-        String docId = snapshot.docs.first.id;
+        // Get the first document
+      String docId = snapshot.docs.first.id;
         var appointmentData =
             snapshot.docs.first.data() as Map<String, dynamic>;
         String eventId =
             appointmentData['googleEventId']; // Retrieve the eventId
 
-        // Update the Firestore document
+        // Update the appointment data in Firestore
         await FirebaseFirestore.instance
             .collection('appointment')
             .doc(docId)
@@ -727,23 +876,28 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
           'agendaDescript': descriptionAgendaController.text,
         });
 
+        // Log the audit trail
         await logAuditTrail("Updated Appointment",
             "User $fullName updated the appointment with agenda: ${agendaController.text}");
 
+        // Show a success message
+        // Show a snackbar message to indicate success
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Form submitted successfully!")));
 
         // 🌟 Retrieve or Authenticate Google Token
         GoogleCalendarService googleCalendarService = GoogleCalendarService();
+        // Authenticate the user and get the access token
         String? accessToken = await googleCalendarService.authenticateUser();
 
+        // Check if the access token is null
         if (accessToken == null) {
+          // Show a snackbar message to indicate authentication failure
           ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("Google authentication required!")));
+              // Exit the function if authentication fails
           return;
         }
-
-        print("✅ Using Access Token: $accessToken");
 
         // Ensure to parse the updated schedule to DateTime
         DateTime startDateTime = DateTime.parse(scheduleController.text);
@@ -755,7 +909,6 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
             .whereType<String>()
             .toList();
 
-        print("Guest Emails: $guestEmails"); // Log the guest list
 
         // 🌟 Update Google Calendar Event
         await googleCalendarService.updateCalendarEvent(
@@ -767,6 +920,7 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
           guestEmails,
         );
 
+        // Show a snackbar message to indicate success
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Appointment updated successfully")),
         );
@@ -777,13 +931,17 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
         );
       }
     } catch (e) {
-      print("Error updating Firestore: $e");
+
+      // Handle any errors that occur during the update
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Failed to update appointment")),
       );
     }
   }
 
+  /// This method deletes the event from Google Calendar and Firestore
+  /// It first retrieves the eventId from Firestore, then deletes the event from Google Calendar using the GoogleCalendarService.
+  /// Finally, it deletes the appointment document from Firestore.
   Future<void> deleteEvent(String agenda) async {
     try {
       // Step 1: Get the document and the Google eventId
@@ -794,7 +952,6 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
           .get();
 
       if (snapshot.docs.isEmpty) {
-        print("❌ No matching appointment found to delete.");
         return;
       }
 
@@ -820,7 +977,6 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
         SnackBar(content: Text("Event deleted successfully!")),
       );
     } catch (e) {
-      print("❌ Error deleting event: $e");
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text("Error: $e")));
     }
@@ -1255,6 +1411,7 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
                                                         color: Colors.red,
                                                       ),
                                                       onPressed: () =>
+                                                      // This will trigger the cancelAppointment function
                                                           _showCancelDialog(widget
                                                               .selectedAgenda),
                                                     ),
@@ -1268,6 +1425,7 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
                                                         color: Colors.blue,
                                                       ),
                                                       onPressed: () =>
+                                                      // This will trigger the updateAppointmentStatus function
                                                           updateAppointmentStatus(
                                                               "Completed"))
                                             ],
@@ -1282,6 +1440,7 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
                                               onPressed: Status == "Cancelled"
                                                   ? null
                                                   : () {
+                                                    // this will trigger the showcsvpdfdialog function
                                                       showcsvpdfdialog();
                                                     }),
                                           Text("Download Attendance")
@@ -1313,6 +1472,8 @@ class _AppointmentDetailsState extends State<AppointmentDetails> {
                                                 Icons.qr_code_scanner_sharp),
                                             onPressed: (Status == "In Progress")
                                                 ? () {
+                                                  // This will trigger the QR code scanner and it will pass the agenda to the scanner
+                                                  // and the agenda will be used to scan the QR code
                                                     Navigator.push(
                                                         context,
                                                         MaterialPageRoute(

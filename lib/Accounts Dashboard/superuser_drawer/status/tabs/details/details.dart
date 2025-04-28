@@ -34,7 +34,6 @@ class _DetailPageState extends State<DetailPage> {
       return DateFormat('yyyy-MM-dd, h:mm a')
           .format(dateTime); // Format as "2024-04-26, 2:00 AM"
     } catch (e) {
-      print("Error formatting date: $e");
       return scheduleString; // Return the original string if parsing fails
     }
   }
@@ -51,9 +50,11 @@ class _DetailPageState extends State<DetailPage> {
     fetchAppointmentData();
   }
 
+  // Fetches appointment data by agenda from Firestore. Updates state with the appointment details 
+// such as title, description, department, schedule, and status. Also populates guest and user lists.
+// If no data is found or an error occurs, it sets `isLoading` to false.
   Future<void> fetchAppointmentData() async {
     try {
-      print("Selected agenda: ${widget.selectedAgenda}");
 
       // First query - just find by agenda
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
@@ -84,27 +85,27 @@ class _DetailPageState extends State<DetailPage> {
           isLoading = false;
         });
       } else {
-        print("No appointment data found for agenda: ${widget.selectedAgenda}");
         setState(() {
           isLoading = false;
         });
       }
     } catch (e) {
-      print("Error fetching appointment data: $e");
       setState(() {
         isLoading = false;
       });
     }
   }
 
+
+  // `didUpdateWidget` is called when the parent widget rebuilds. It checks if the `selectedAgenda` has changed,
+// and if so, it resets the state (e.g., setting values to "N/A" and clearing lists) and triggers a new data fetch 
+// by calling `fetchAppointmentData()` to update the widget with the latest data.
   @override
   void didUpdateWidget(DetailPage oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     // Check if the selectedAgenda prop has changed
     if (widget.selectedAgenda != oldWidget.selectedAgenda) {
-      print(
-          "Agenda changed from ${oldWidget.selectedAgenda} to ${widget.selectedAgenda}");
       // Reset state and fetch new data
       setState(() {
         isLoading = true;

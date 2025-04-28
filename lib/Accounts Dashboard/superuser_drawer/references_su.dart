@@ -59,6 +59,8 @@ class _ReferencesState extends State<References> {
                               style: TextStyle(
                                   fontSize: 18, fontWeight: FontWeight.w600),
                             ),
+                            /// This is the add Category Icon Button where you can use this if you want to add new Category on the system
+                            /// Just UNCOMMENT this code and the MEthod and you will be having a function for adding a Cateogry
                             // TextButton(
                             //   style: ButtonStyle(
                             //     backgroundColor:
@@ -101,6 +103,13 @@ class _ReferencesState extends State<References> {
                       ),
                       Expanded(
                         child: StreamBuilder(
+                          // This StreamBuilder listens for real-time updates from Firestore for the "categories" collection. 
+                          // It handles different states such as showing a loading indicator while waiting for data or displaying 
+                          // a message when no categories are available. Once data is available, the list of categories is filtered 
+                          // based on the search query provided by the user. If no matching categories are found, a message is shown 
+                          // indicating this. The StreamBuilder ensures the UI is automatically updated with the latest data, 
+                          // creating a dynamic and responsive user experience. It efficiently handles and displays categories, 
+                          // updating the list based on the search query and presenting the results in a ListView.
                           stream:
                               _firestore.collection("categories").snapshots(),
                           builder:
@@ -142,6 +151,7 @@ class _ReferencesState extends State<References> {
                                       selectedCategoryName = category["name"];
                                     });
                                   },
+                                  // this is the Icon For Deleting a Category you can UNCOMMENT this to bring the function back
                                   // trailing: IconButton(
                                   //   icon: Icon(Icons.delete, color: Colors.red),
                                   //   onPressed: () =>
@@ -221,6 +231,14 @@ class _ReferencesState extends State<References> {
                       ),
                       Expanded(
                         child: StreamBuilder(
+                          // This StreamBuilder listens for real-time updates from Firestore for the "references" collection 
+                          // under the selected category. It filters out documents where 'isDeleted' is true. When data is 
+                          // available, it checks for any search query and filters the list of references based on the 'name' field. 
+                          // If no matching data is found, a message is displayed to inform the user. The StreamBuilder ensures 
+                          // that the UI is updated automatically when data changes, providing a dynamic experience for the user. 
+                          // It handles different states, such as showing a loading indicator while waiting for data, displaying 
+                          // a message when there is no data, and rendering a list of filtered results when data is available. 
+                          // Additionally, the code checks whether each reference is selected based on the current selection.
                           stream: selectedCategoryId != null
                               ? _firestore
                                   .collection("categories")
@@ -286,6 +304,7 @@ class _ReferencesState extends State<References> {
                                               icon: Icon(Icons.edit,
                                                   color: Colors.blue),
                                               onPressed: () {
+                                                // Thi will show the Dialog Box for Updating the Data in the Categories
                                                 _showEditDialog(
                                                     data.id, data["name"]);
                                               },
@@ -294,6 +313,7 @@ class _ReferencesState extends State<References> {
                                               icon: Icon(Icons.delete,
                                                   color: Colors.red),
                                               onPressed: () =>
+                                                  // This will show the Dialog Box for Deleting a Data in the Categories
                                                   _showdialogDeleteData(data.id),
                                             ),
                                           ],
@@ -316,6 +336,7 @@ class _ReferencesState extends State<References> {
     );
   }
 
+  // This is a show dialog box for the Editing the Data for the Categories
   void _showEditDialog(String dataId, String currentName) {
     _editDataController.text = currentName;
 
@@ -336,7 +357,9 @@ class _ReferencesState extends State<References> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 ElevatedButton(
-                  onPressed: () => Navigator.pop(context), 
+                  onPressed: () => 
+                  // This will close the Show Dialog Box
+                  Navigator.pop(context), 
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                     shape: RoundedRectangleBorder(
@@ -346,7 +369,9 @@ class _ReferencesState extends State<References> {
                   child: Text('Cancel', style: TextStyle(color: Colors.white),)),
                 ElevatedButton(
                   onPressed: (){
+                    // This will triggered the _updateData Method
                 _updateData(dataId, _editDataController.text);
+                // This will Close the Show Dialog Box
                 Navigator.pop(context);},
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
@@ -364,6 +389,13 @@ class _ReferencesState extends State<References> {
     );
   }
 
+  // This function handles the updating of data for a specific reference under the selected category. 
+// It ensures that a category is selected, a valid data ID is provided, and the new name is not empty 
+// before proceeding. The function then updates the reference document in Firestore with the new name. 
+// After the update, an audit trail is logged to track the change. The selected data ID is cleared to 
+// indicate the deselection of the updated data. A success notification is shown to the user upon 
+// successful update, and an error notification is displayed if any issues occur during the process. 
+// This function ensures data consistency while providing feedback to the user.
   Future<void> _updateData(String dataId, String newName) async {
     if (selectedCategoryId == null || dataId.isEmpty || newName.trim().isEmpty)
       return;
@@ -413,13 +445,14 @@ class _ReferencesState extends State<References> {
       }
   }
 
-  // Function to show Add Data dialog
-  void _showDialogAddData(BuildContext context) {
+    // This is a Show Dialog box for adding data on the categories
+    void _showDialogAddData(BuildContext context) {
+      // This will check if the selectedCategoryId is null then it will terminate 
+      // but if the selectedCategoryId is not null it will proceed to next step
     if (selectedCategoryId == null) {
-      print("No category selected.");
       return;
     }
-
+      // This will clear the name Text field
     _nameController.clear();
     showDialog(
       context: context,
@@ -442,7 +475,9 @@ class _ReferencesState extends State<References> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 ElevatedButton(
-                  onPressed: () => Navigator.pop(context), 
+                  onPressed: () =>
+                   // This will close the Show Dialog Box
+                   Navigator.pop(context), 
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                     shape: RoundedRectangleBorder(
@@ -452,7 +487,9 @@ class _ReferencesState extends State<References> {
                   child: Text('Cancel', style: TextStyle(color: Colors.white),)),
                 ElevatedButton(
                   onPressed: (){
+                    //This will triggered the _addData Method
                 _addData();
+                // This will close the ShowDialogBox
                 Navigator.pop(context);},
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
@@ -470,7 +507,13 @@ class _ReferencesState extends State<References> {
     );
   }
 
-  // Function to add new data under the selected category
+  // This function is responsible for adding new data under the selected category in Firestore. 
+// It first checks if a category is selected. If a category is selected, it creates a new document 
+// in the "references" sub-collection under the chosen category with the name provided in the input 
+// and a timestamp. After adding the new reference, an audit trail is logged to keep track of the action. 
+// A success notification is displayed to the user if the operation is successful. In case of an error, 
+// an error notification is shown with the appropriate message. This function performs both data 
+// creation and user feedback handling to ensure a smooth experience.
   Future<void> _addData() async {
     if (selectedCategoryId == null) return;
 
@@ -523,6 +566,7 @@ class _ReferencesState extends State<References> {
     }
   }
 
+  // This is a show Dialog box for deleting a data of the categories
   void _showdialogDeleteData(String id){
     showDialog(
       context: context, 
@@ -535,7 +579,9 @@ class _ReferencesState extends State<References> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 ElevatedButton(
-                  onPressed: () => Navigator.pop(context), 
+                  onPressed: () =>
+                  // This will close the Show Dialog Box for deleting the data of the categories
+                   Navigator.pop(context), 
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                     shape: RoundedRectangleBorder(
@@ -545,7 +591,9 @@ class _ReferencesState extends State<References> {
                   child: Text('Cancel', style: TextStyle(color: Colors.white),)),
                 ElevatedButton(
                   onPressed: (){
+                  // This will triggered the _deleteData method 
                 _deleteData(_selectedDataId!);
+                // This will close the Show Dialog Box of the Delete for the data of the Categories
                 Navigator.pop(context);},
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
@@ -563,7 +611,11 @@ class _ReferencesState extends State<References> {
     );
   }
 
-  // Function to delete a data entry
+  // This Method is for Deleting the Data of the Category
+  // 1. it will check if the selectedCategoryId is == null then it will terminate but if the selectedCategoryId is not null it will
+  // check the collection of categories inside of that there is the .doc the name would be the selectedCategoryId inside of that there
+  // is a sub-collection name references with the doc of if it will update the isDeleted fieldname into true it will not idrectly delete
+  // in the firestore it is just deleted in the frontend after that it will show a toastification if the process is success or failed
   Future<void> _deleteData(String id) async {
     if (selectedCategoryId == null) return;
 
@@ -614,6 +666,8 @@ class _ReferencesState extends State<References> {
     
   }
 
+
+  // This is a Show Dialog Box for Adding a Category this will Trigger the method for Adding a Category
   // Function to show Add Category dialog
   void _showDialogAddCategory(BuildContext context) {
     _nameController.clear();
@@ -628,12 +682,16 @@ class _ReferencesState extends State<References> {
           ),
           actions: <Widget>[
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => 
+              // This will close the show Dialog Box
+              Navigator.pop(context),
               child: Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
+                // THis will Triggered the _addCategory
                 _addCategory();
+                // This will close the ShowDialog box
                 Navigator.pop(context);
               },
               child: Text('Save'),
@@ -644,6 +702,7 @@ class _ReferencesState extends State<References> {
     );
   }
 
+  // This will not show in the ui But if you need to add new Category you can use this function for Adding new Category in the references
   // Function to add a new category
   Future<void> _addCategory() async {
     try {
@@ -652,16 +711,18 @@ class _ReferencesState extends State<References> {
         "timestamp": FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      print("Error adding category: $e");
-    }
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text ("Error: $e")));
+        }
   }
 
   // Function to delete a category
+  // This will not show in the ui but if you need to Delete a Category in the reference you can just use this method
+  // To Delete Categories
   Future<void> _deleteCategory(String id) async {
     try {
       await _firestore.collection("categories").doc(id).delete();
     } catch (e) {
-      print("Error deleting category: $e");
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
     }
   }
 }
