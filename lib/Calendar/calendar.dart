@@ -6,44 +6,46 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async'; // Needed for Completer
 import 'dart:html' as html; // Only for web (ensure this runs only on web)
 
+/// This Dart file contains a service class for Google Calendar operations
+/// such as creating, updating, and deleting events. It also handles OAuth 2.0 authentication
+/// to obtain access tokens for API requests. The class is designed to work on both mobile and web platforms.
+/// It uses Flutter Secure Storage for mobile and SharedPreferences for web to store access tokens.
 
+// Define a service class for handling Google Calendar operations
 class GoogleCalendarService {
-  final String clientId = "794795546739-gerc0clp04h1qbg5gfphjmsjcvgq6jga.apps.googleusercontent.com";
+  // OAuth 2.0 credentials
+  final String clientId =
+      "794795546739-gerc0clp04h1qbg5gfphjmsjcvgq6jga.apps.googleusercontent.com";
   final String clientSecret = "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";
   final String redirectUri = "https://attendance-dci.web.app";
   final String scopes = "https://www.googleapis.com/auth/calendar.events";
 
+  // Secure storage instance for mobile (Android/iOS)
   final _secureStorage = FlutterSecureStorage(); // For mobile
-  // You can also use SharedPreferences for web if needed
-  
 
-   // For web, we can use SharedPreferences.
-  
-  // Save access token for web (using SharedPreferences)
+  // Save access token for Web platform using SharedPreferences
   Future<void> saveAccessToken(String accessToken) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString("access_token", accessToken);  // Save token in SharedPreferences
-    print("✅ Saved Access Token: $accessToken");
+    final prefs =
+        await SharedPreferences.getInstance(); // Initialize SharedPreferences
+    await prefs.setString(
+        "access_token", accessToken); // Save token as a string
   }
 
-  // Retrieve access token from SharedPreferences
+  // Retrieve stored access token from SharedPreferences
   Future<String?> getStoredAccessToken() async {
     final prefs = await SharedPreferences.getInstance();
-    String? token = prefs.getString("access_token");
+    String? token = prefs.getString("access_token"); // Try fetching token
 
     if (token == null) {
-      print("🔄 No token found, please authenticate first.");
       return null;
     }
-
-    print("🔄 Retrieved Access Token from SharedPreferences: $token");
     return token;
   }
 
-  // Authenticate the user and get the access token
- Future<String?> authenticateUser() async {
-    final authUrl =
-        "https://accounts.google.com/o/oauth2/auth"
+  // Authenticate the user via Google OAuth and obtain access token
+  Future<String?> authenticateUser() async {
+    // Build the Google OAuth URL
+    final authUrl = "https://accounts.google.com/o/oauth2/auth"
         "?client_id=$clientId"
         "&redirect_uri=$redirectUri"
         "&response_type=code"
@@ -52,165 +54,163 @@ class GoogleCalendarService {
         "&prompt=consent";
 
     try {
-      print("🌍 Opening Google Sign-In...");
-
       if (kIsWeb) {
+        // Open a new window for Google Sign-In (only on web)
         final authWindow = html.window.open(authUrl, "_blank");
 
+        // Create a Completer to wait for OAuth result
         Completer<String?> completer = Completer<String?>();
 
+        // Listen to message from popup
         html.window.onMessage.listen((event) async {
           if (event.data != null && event.data['authCode'] != null) {
-            String authCode = event.data['authCode'];
-            print("✅ Received Auth Code: $authCode");
+            String authCode =
+                event.data['authCode']; // Received authorization code
 
+            // Exchange auth code for access token
             String? token = await getAccessToken(authCode);
             if (token != null) {
-              await saveAccessToken(token);
-              print("✅ Access Token Saved!");
-              completer.complete(token);
+              await saveAccessToken(token); // Save token
+              completer.complete(token); // Return token
             } else {
-              completer.complete(null);
+              completer.complete(null); // Return null if failed
             }
           }
         });
 
-        return completer.future;
+        return completer.future; // Wait until token is received
       } else {
-        print("❌ Google authentication is only available on the web.");
         return null;
       }
     } catch (e) {
-      print("❌ Authentication failed: $e");
       return null;
     }
   }
 
-  // Exchange auth code for access token
+  // Exchange authorization code for access token
   Future<String?> getAccessToken(String code) async {
-  final response = await http.post(
-    Uri.parse("https://oauth2.googleapis.com/token"),
-    body: {
-      "client_id": clientId,
-      "client_secret": clientSecret,
-      "code": code,
-      "redirect_uri": redirectUri,
-      "grant_type": "authorization_code",
-    },
-  );
+    final response = await http.post(
+      Uri.parse("https://oauth2.googleapis.com/token"), // Token endpoint
+      body: {
+        "client_id": clientId,
+        "client_secret": clientSecret,
+        "code": code,
+        "redirect_uri": redirectUri,
+        "grant_type": "authorization_code",
+      },
+    );
 
-  if (response.statusCode == 200) {
-    final data = json.decode(response.body);
-    String accessToken = data['access_token'];
-    await saveAccessToken(accessToken); // Save token
-    print("✅ Access token saved: $accessToken");
-    return accessToken;
-  } else {
-    print("❌ Failed to get access token: ${response.body}");
-    return null;
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body); // Decode JSON response
+      String accessToken = data['access_token']; // Extract access token
+      await saveAccessToken(accessToken); // Save token locally
+      return accessToken;
+    } else {
+      return null;
+    }
   }
-}
 
-Future<void> updateCalendarEvent(
-    String accessToken,
-    String eventId,
-    String title,
-    DateTime start,
-    DateTime end,
-    List<String> attendees) async {
+  // Update an existing event in Google Calendar
+  Future<void> updateCalendarEvent(
+      String accessToken,
+      String eventId,
+      String title,
+      DateTime start,
+      DateTime end,
+      List<String> attendees) async {
+    // Build the URL for updating a specific event
+    final url = Uri.parse(
+        "https://www.googleapis.com/calendar/v3/calendars/primary/events/$eventId");
 
-  final url = Uri.parse("https://www.googleapis.com/calendar/v3/calendars/primary/events/$eventId");
+    // Build event body
+    final event = {
+      "summary": title,
+      "start": {
+        "dateTime": start.toUtc().toIso8601String(),
+        "timeZone": "Asia/Manila",
+      },
+      "end": {
+        "dateTime": end.toUtc().toIso8601String(),
+        "timeZone": "Asia/Manila",
+      },
+      "attendees": attendees.map((email) => {"email": email}).toList(),
+    };
 
-  final event = {
-    "summary": title,
-    "start": {
-      "dateTime": start.toUtc().toIso8601String(),
-      "timeZone": "Asia/Manila",
-    },
-    "end": {
-      "dateTime": end.toUtc().toIso8601String(),
-      "timeZone": "Asia/Manila",
-    },
-    "attendees": attendees.map((email) => {"email": email}).toList(),
-  };
+    // Send PUT request to update event#
+    final response = await http.put(
+      url,
+      headers: {
+        "Authorization": "Bearer $accessToken", // Add Bearer token
+        "Content-Type": "application/json",
+      },
+      body: json.encode(event), // Encode event data
+    );
 
-  final response = await http.put(
-    url,
-    headers: {
-      "Authorization": "Bearer $accessToken",
-      "Content-Type": "application/json",
-    },
-    body: json.encode(event),
-  );
-
-  if (response.statusCode == 200) {
-    print("✅ Event Updated Successfully!");
-  } else {
-    print("❌ Failed to update event: ${response.body}");
+    if (response.statusCode == 200) {
+      print("✅ Event Updated Successfully!");
+    } else {
+      print("❌ Failed to update event");
+    }
   }
-}
-
 
   // Delete existing Google Calendar event
   Future<void> deleteCalendarEvent(String accessToken, String eventId) async {
-    final url = Uri.parse("https://www.googleapis.com/calendar/v3/calendars/primary/events/$eventId");
+    final url = Uri.parse(
+        "https://www.googleapis.com/calendar/v3/calendars/primary/events/$eventId");
 
+    // Send DELETE request
     final response = await http.delete(
       url,
       headers: {
-        "Authorization": "Bearer $accessToken",
+        "Authorization": "Bearer $accessToken", // Add Bearer token
       },
     );
 
     if (response.statusCode == 204) {
+      // 204 means successful delete
       print("✅ Event Deleted Successfully!");
     } else {
-      print("❌ Failed to delete event: ${response.body}");
+      print("❌ Failed to delete event");
     }
   }
 
+  // Create a new event in Google Calendar
+  Future<String?> createCalendarEvent(String accessToken, String title,
+      DateTime start, DateTime end, List<String> attendees) async {
+    // Build URL for creating new event
+    final url = Uri.parse(
+        "https://www.googleapis.com/calendar/v3/calendars/primary/events");
 
-  // Create Google Calendar event
-  Future<String?> createCalendarEvent(
-  String accessToken, 
-  String title, 
-  DateTime start, 
-  DateTime end, 
-  List<String> attendees
-) async {
-  final url = Uri.parse("https://www.googleapis.com/calendar/v3/calendars/primary/events");
+    // Build event body
+    final event = {
+      "summary": title,
+      "start": {
+        "dateTime": start.toUtc().toIso8601String(),
+        "timeZone": "Asia/Manila",
+      },
+      "end": {
+        "dateTime": end.toUtc().toIso8601String(),
+        "timeZone": "Asia/Manila",
+      },
+      "attendees": attendees.map((email) => {"email": email}).toList(),
+    };
 
-  final event = {
-    "summary": title,
-    "start": {
-      "dateTime": start.toUtc().toIso8601String(),
-      "timeZone": "Asia/Manila",
-    },
-    "end": {
-      "dateTime": end.toUtc().toIso8601String(),
-      "timeZone": "Asia/Manila",
-    },
-    "attendees": attendees.map((email) => {"email": email}).toList(),
-  };
+    // Send POST request to create event
+    final response = await http.post(
+      url,
+      headers: {
+        "Authorization": "Bearer $accessToken", // Add Bearer token
+        "Content-Type": "application/json",
+      },
+      body: json.encode(event), // Encode event data
+    );
 
-  final response = await http.post(
-    url,
-    headers: {
-      "Authorization": "Bearer $accessToken",
-      "Content-Type": "application/json",
-    },
-    body: json.encode(event),
-  );
-
-  if (response.statusCode == 200 || response.statusCode == 201) {
-    final data = json.decode(response.body);
-    String eventId = data['id'];  // Extract the event ID from the response
-    print("✅ Event Created Successfully with ID: $eventId");
-    return eventId;  // Return the event ID
-  } else {
-    print("❌ Failed to create event: ${response.body}");
-    return null;  // Return null if creation fails
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final data = json.decode(response.body); // Decode response
+      String eventId = data['id']; // Extract the event ID from the response
+      return eventId; // Return the event ID
+    } else {
+      return null; // Return null if creation fails
+    }
   }
-}
-
 }

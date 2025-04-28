@@ -60,7 +60,7 @@ class _AppointmentofUsersState extends State<AppointmentofUsers> {
       DateTime parsedDate = DateTime.parse(timestamp);
       return DateFormat("MMMM d yyyy 'at' h:mm a").format(parsedDate);
     } catch (e) {
-      print("Error formatting date: $e");
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error formatting date: $e")));
       return "Invalid date";
     }
   }
@@ -96,10 +96,10 @@ class _AppointmentofUsersState extends State<AppointmentofUsers> {
           }
         });
       } else {
-        print("No appointment data found.");
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("No appointment data found.")));
       }
     } catch (e) {
-      print("Error fetching appointment data: $e");
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error fetching appointment data: $e")));
     }
   }
 
@@ -123,15 +123,15 @@ class _AppointmentofUsersState extends State<AppointmentofUsers> {
             isLoading = false;
           });
         } else {
-          print("No user document found.");
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("No user document found.")));
           setState(() => isLoading = false);
         }
       } catch (e) {
-        print("Error fetching user data: $e");
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error fetching user data: $e")));
         setState(() => isLoading = false);
       }
     } else {
-      print("No user is logged in.");
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("No user is logged in.")));
       setState(() => isLoading = false);
     }
   }
@@ -151,10 +151,10 @@ class _AppointmentofUsersState extends State<AppointmentofUsers> {
               .toList();
         });
       } else {
-        print("No attendance data found.");
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("No attendance data found.")));
       }
     } catch (e) {
-      print("Error fetching attendance data: $e");
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error fetching attendance data: $e")));
     }
   }
 

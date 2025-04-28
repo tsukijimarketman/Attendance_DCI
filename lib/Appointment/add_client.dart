@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:toastification/toastification.dart';
 
+// This is the AddClient widget that allows users to add, update, and delete client information.
+// It uses Firebase Firestore to store client data and provides a user interface for managing clients.
 class AddClient extends StatefulWidget {
   const AddClient({super.key});
 
@@ -18,12 +20,14 @@ class AddClient extends StatefulWidget {
 class _AddClientState extends State<AddClient> {
   @override
   Widget build(BuildContext context) {
+    // This is all the Variables and controllers needed for the widget.
     final FirebaseFirestore _firestore = FirebaseFirestore.instance;
     final TextEditingController fullName = TextEditingController();
     final TextEditingController contactNum = TextEditingController();
     final TextEditingController emailAdd = TextEditingController();
     final TextEditingController companyName = TextEditingController();
 
+    // This is for clearing the fields after adding, updating a client.
     void _clearFields() {
       fullName.clear();
       contactNum.clear();
@@ -31,11 +35,14 @@ class _AddClientState extends State<AddClient> {
       companyName.clear();
     }
 
+    // This is the function for adding a client to the database.
     void _addGuest() async {
+      // Check if any of the fields are empty and show a toast message if they are.
       if (fullName.text.trim().isEmpty ||
           contactNum.text.trim().isEmpty ||
           emailAdd.text.trim().isEmpty ||
           companyName.text.trim().isEmpty) {
+        // Show a toast message if any field is empty
         toastification.show(
           context: context,
           alignment: Alignment.topRight,
@@ -47,10 +54,96 @@ class _AddClientState extends State<AddClient> {
           autoCloseDuration: const Duration(seconds: 3),
           animationDuration: const Duration(milliseconds: 300),
         );
+        // Return early if any field is empty
         return;
       }
 
+      // Check if the contact number is less than 11 digits and show a toast message if it is.
+      // This is a simple validation for the contact number.
       if (contactNum.text.length < 11) {
+        // Show a toast message if the contact number is invalid
+        toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: Icon(Icons.error, color: Colors.red),
+          title: Text('Invalid Contact Number'),
+          description: Text('Contact number must be 11 digits.'),
+          type: ToastificationType.error,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
+        );
+        // Return early if the contact number is invalid
+        return;
+      }
+
+      // Regular expression for validating email format
+      // This regex checks if the email address is in a valid format.
+      final emailRegex = RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
+
+      // Check if the email address is valid and show a toast message if it is not.
+      if (!emailRegex.hasMatch(emailAdd.text.trim())) {
+        toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: Icon(Icons.error, color: Colors.red),
+          title: Text('Invalid Email'),
+          description: Text('Please enter a valid email address.'),
+          type: ToastificationType.error,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
+        );
+        // Return early if the email address is invalid
+        return;
+      }
+
+      // Add the client information to the Firestore database.
+      await _firestore.collection('clients').add({
+        'fullName': fullName.text,
+        'contactNum': contactNum.text,
+        'emailAdd': emailAdd.text,
+        'companyName': companyName.text,
+        'isDeleted': false,
+      });
+
+      // Log the action in the audit trail.
+      await logAuditTrail(
+        "Added Guest",
+        "User added guest ${fullName.text} (Email: ${emailAdd.text})",
+      );
+      // Clear the input fields after adding the client.
+      _clearFields();
+
+      // Show a success toast message after adding the client.
+      toastification.show(
+        context: context,
+        alignment: Alignment.topRight,
+        icon: Icon(Icons.check_circle_outline, color: Colors.green),
+        title: Text('Created Successfully'),
+        description: Text('Client created successfully'),
+        type: ToastificationType.info,
+        style: ToastificationStyle.flatColored,
+        autoCloseDuration: const Duration(seconds: 3),
+        animationDuration: const Duration(milliseconds: 300),
+      );
+      // Return early after showing the success message
+      return;
+    }
+
+    // This is the function for updating a client in the database.
+    // It takes the document ID and the new values for the client information.
+    void _updateGuest(String docId, String fullName, String contactNum,
+        String emailAdd, String companyName) async {
+      //
+      final trimmedName = fullName.trim();
+      final trimmedContact = contactNum.trim();
+      final trimmedEmail = emailAdd.trim();
+      final trimmedCompany = companyName.trim();
+
+      // OPTIONAL: Only validate fields that have values
+      // Check if any of the fields are empty and show a toast message if they are.
+      if (trimmedContact.isNotEmpty && trimmedContact.length < 11) {
         toastification.show(
           context: context,
           alignment: Alignment.topRight,
@@ -65,9 +158,11 @@ class _AddClientState extends State<AddClient> {
         return;
       }
 
+      // Regular expression for validating email format
+      // This regex checks if the email address is in a valid format.
       final emailRegex = RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
-
-      if (!emailRegex.hasMatch(emailAdd.text.trim())) {
+      if (trimmedEmail.isNotEmpty && !emailRegex.hasMatch(trimmedEmail)) {
+        // Show a toast message if the email address is invalid
         toastification.show(
           context: context,
           alignment: Alignment.topRight,
@@ -79,125 +174,68 @@ class _AddClientState extends State<AddClient> {
           autoCloseDuration: const Duration(seconds: 3),
           animationDuration: const Duration(milliseconds: 300),
         );
+        // Return early if the email address is invalid
         return;
       }
 
-      await _firestore.collection('clients').add({
-        'fullName': fullName.text,
-        'contactNum': contactNum.text,
-        'emailAdd': emailAdd.text,
-        'companyName': companyName.text,
-        'isDeleted': false,
+      /// Update the client information in the Firestore database.
+      /// The document ID is used to identify the specific client to update.
+      await _firestore.collection('clients').doc(docId).update({
+        'fullName': trimmedName,
+        'contactNum': trimmedContact,
+        'emailAdd': trimmedEmail,
+        'companyName': trimmedCompany,
       });
 
-      await logAuditTrail(
-        "Added Guest",
-        "User added guest ${fullName.text} (Email: ${emailAdd.text})",
-      );
+      // Log the action in the audit trail.
+      /// This logs the action of updating a guest with the new values.
+      await logAuditTrail("Updated Guest",
+          "User updated guest $trimmedName (Email: $trimmedEmail)");
+      // Clear the input fields after updating the client.
       _clearFields();
-
+      // Show a success toast message after updating the client.
       toastification.show(
-          context: context,
-          alignment: Alignment.topRight,
-          icon: Icon(Icons.check_circle_outline, color: Colors.green),
-          title: Text('Created Successfully'),
-          description: Text('Client created successfully'),
-          type: ToastificationType.info,
-          style: ToastificationStyle.flatColored,
-          autoCloseDuration: const Duration(seconds: 3),
-          animationDuration: const Duration(milliseconds: 300),
-        );
-        return;
-      
-    
+        context: context,
+        alignment: Alignment.topRight,
+        icon: Icon(Icons.check_circle_outline, color: Colors.green),
+        title: Text('Updated Successfully'),
+        description: Text('Client updated successfully'),
+        type: ToastificationType.info,
+        style: ToastificationStyle.flatColored,
+        autoCloseDuration: const Duration(seconds: 3),
+        animationDuration: const Duration(milliseconds: 300),
+      );
     }
 
-    void _updateGuest(String docId, String fullName, String contactNum, String emailAdd, String companyName) async {
-  final trimmedName = fullName.trim();
-  final trimmedContact = contactNum.trim();
-  final trimmedEmail = emailAdd.trim();
-  final trimmedCompany = companyName.trim();
-
-  // OPTIONAL: Only validate fields that have values
-  if (trimmedContact.isNotEmpty && trimmedContact.length < 11) {
-    toastification.show(
-      context: context,
-      alignment: Alignment.topRight,
-      icon: Icon(Icons.error, color: Colors.red),
-      title: Text('Invalid Contact Number'),
-      description: Text('Contact number must be 11 digits.'),
-      type: ToastificationType.error,
-      style: ToastificationStyle.flatColored,
-      autoCloseDuration: const Duration(seconds: 3),
-      animationDuration: const Duration(milliseconds: 300),
-    );
-    return;
-  }
-
-  final emailRegex = RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
-  if (trimmedEmail.isNotEmpty && !emailRegex.hasMatch(trimmedEmail)) {
-    toastification.show(
-      context: context,
-      alignment: Alignment.topRight,
-      icon: Icon(Icons.error, color: Colors.red),
-      title: Text('Invalid Email'),
-      description: Text('Please enter a valid email address.'),
-      type: ToastificationType.error,
-      style: ToastificationStyle.flatColored,
-      autoCloseDuration: const Duration(seconds: 3),
-      animationDuration: const Duration(milliseconds: 300),
-    );
-    return;
-  }
-
-  await _firestore.collection('clients').doc(docId).update({
-    'fullName': trimmedName,
-    'contactNum': trimmedContact,
-    'emailAdd': trimmedEmail,
-    'companyName': trimmedCompany,
-  });
-
-  await logAuditTrail("Updated Guest", "User updated guest $trimmedName (Email: $trimmedEmail)");
-  _clearFields();
-
-  toastification.show(
-    context: context,
-    alignment: Alignment.topRight,
-    icon: Icon(Icons.check_circle_outline, color: Colors.green),
-    title: Text('Updated Successfully'),
-    description: Text('Client updated successfully'),
-    type: ToastificationType.info,
-    style: ToastificationStyle.flatColored,
-    autoCloseDuration: const Duration(seconds: 3),
-    animationDuration: const Duration(milliseconds: 300),
-  );
-}
-
-
+    // This is the function for deleting a client from the database.
+    // It takes the document ID and the client information to be deleted.
     void _deleteGuest(String docId, String guestName, String guestEmail) async {
       await _firestore.collection('clients').doc(docId).update({
+        // Mark the client as deleted instead of actually deleting it
         'isDeleted': true,
       });
 
+      // Log the action in the audit trail.
+      /// This logs the action of deleting a guest with the name and email.
       await logAuditTrail("Deleted Guest",
           "User deleted guest $guestName (Email: $guestEmail)");
-
+      // Show a success toast message after deleting the client.
       toastification.show(
-          context: context,
-          alignment: Alignment.topRight,
-          icon: Icon(Icons.check_circle_outline, color: Colors.green),
-          title: Text('Deleted Successfully'),
-          description: Text('Data deleted successfully'),
-          type: ToastificationType.info,
-          style: ToastificationStyle.flatColored,
-          autoCloseDuration: const Duration(seconds: 3),
-          animationDuration: const Duration(milliseconds: 300),
-        );
-        return;
-      
-    
+        context: context,
+        alignment: Alignment.topRight,
+        icon: Icon(Icons.check_circle_outline, color: Colors.green),
+        title: Text('Deleted Successfully'),
+        description: Text('Data deleted successfully'),
+        type: ToastificationType.info,
+        style: ToastificationStyle.flatColored,
+        autoCloseDuration: const Duration(seconds: 3),
+        animationDuration: const Duration(milliseconds: 300),
+      );
+      // Return early after showing the success message
+      return;
     }
 
+    // This is the function for showing a dialog to confirm the deletion of a client.
     void _showdialogDelete(String docId, String guestName, String guestEmail) {
       showDialog(
         context: context,
@@ -211,6 +249,7 @@ class _AddClientState extends State<AddClient> {
                 children: [
                   ElevatedButton(
                     onPressed: () {
+                      // Close the dialog without doing anything
                       Navigator.pop(context);
                     },
                     style: ElevatedButton.styleFrom(
@@ -231,6 +270,7 @@ class _AddClientState extends State<AddClient> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
+                    // This button will call the _deleteGuest function to delete the client
                     onPressed: () {
                       _deleteGuest(docId, guestName, guestEmail);
                       Navigator.pop(context);
@@ -248,6 +288,7 @@ class _AddClientState extends State<AddClient> {
       );
     }
 
+    // This is the function for showing a dialog to update the client information.
     void _showdialogUpdate(String docId, Map<String, dynamic> data) {
       TextEditingController updateFullName =
           TextEditingController(text: data['fullName'] ?? '');
@@ -295,10 +336,10 @@ class _AddClientState extends State<AddClient> {
                       suffix: null,
                       readOnly: false,
                       obscureText: false,
-                       inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(11),
-                ],
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(11),
+                      ],
                     ),
                   ),
                   SizedBox(height: 8),
@@ -343,6 +384,7 @@ class _AddClientState extends State<AddClient> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     ElevatedButton(
+                      // This button will close the dialog without doing anything
                       onPressed: () {
                         Navigator.pop(context);
                       },
@@ -358,6 +400,7 @@ class _AddClientState extends State<AddClient> {
                       ),
                     ),
                     ElevatedButton(
+                      // This button will call the _updateGuest function to update the client
                       onPressed: () {
                         _updateGuest(
                             docId,
@@ -385,6 +428,7 @@ class _AddClientState extends State<AddClient> {
           });
     }
 
+    // This is the function for showing a dialog to confirm adding a client.
     void _showdialogAddGuest() {
       showDialog(
           context: context,
@@ -398,6 +442,7 @@ class _AddClientState extends State<AddClient> {
                   children: [
                     ElevatedButton(
                       onPressed: () {
+                        // Close the dialog without doing anything
                         Navigator.pop(context);
                       },
                       style: ElevatedButton.styleFrom(
@@ -413,6 +458,7 @@ class _AddClientState extends State<AddClient> {
                     ),
                     ElevatedButton(
                       onPressed: () {
+                        // Call the _addGuest function to add the client
                         _addGuest();
                         Navigator.pop(context);
                       },
@@ -481,9 +527,9 @@ class _AddClientState extends State<AddClient> {
                   readOnly: false,
                   obscureText: false,
                   inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(11),
-                ],
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(11),
+                  ],
                 ),
               ),
               SizedBox(height: 8),
@@ -523,6 +569,7 @@ class _AddClientState extends State<AddClient> {
                 height: 50,
                 width: 400,
                 child: ElevatedButton(
+                  // This button will call the _showdialogAddGuest function to show the confirmation dialog
                   onPressed: () => _showdialogAddGuest(),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color.fromARGB(255, 11, 55, 99),
@@ -550,30 +597,40 @@ class _AddClientState extends State<AddClient> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
+                // This is the StreamBuilder that listens to the Firestore collection 'clients'
                 child: StreamBuilder<QuerySnapshot>(
+                  // This stream listens to the 'clients' collection and filters out deleted clients
                   stream: _firestore
                       .collection('clients')
                       .where('isDeleted', isEqualTo: false)
                       .snapshots(),
                   builder: (context, snapshot) {
+                    // Check the connection state of the snapshot
                     if (snapshot.connectionState == ConnectionState.waiting) {
+                      // Show a loading indicator while waiting for data
                       return Center(child: CircularProgressIndicator());
                     }
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      // Show a message if there are no clients in the collection
                       return Center(child: Text("No guests added yet"));
                     }
+                    // Map through the documents in the snapshot and create a list of cards for each client
                     return ListView(
                       shrinkWrap: true,
                       physics: BouncingScrollPhysics(),
                       children: snapshot.data!.docs.map((doc) {
+                        // Get the data from the document
+                        // This is the data for each client
                         var data = doc.data() as Map<String, dynamic>;
                         return Card(
                           margin: EdgeInsets.all(8),
                           child: ListTile(
+                            // This is the title of the card, showing the client's full name
                             title: Text(data['fullName'] ?? 'No Name'),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                // This is the subtitle of the card, showing the client's contact number, email address, and company name
                                 Text("Contact: ${data['contactNum'] ?? 'N/A'}"),
                                 Text("Email: ${data['emailAdd'] ?? 'N/A'}"),
                                 Text(
@@ -586,12 +643,16 @@ class _AddClientState extends State<AddClient> {
                                 IconButton(
                                   icon: Icon(Icons.edit, color: Colors.blue),
                                   onPressed: () =>
+                                      // This button will call the _showdialogUpdate function to show the update dialog
                                       _showdialogUpdate(doc.id, data),
                                 ),
                                 IconButton(
                                   icon: Icon(Icons.delete, color: Colors.red),
                                   onPressed: () => _showdialogDelete(
-                                      doc.id, doc['fullName'], doc['emailAdd']),
+                                      // This button will call the _showdialogDelete function to show the delete confirmation dialog
+                                      doc.id,
+                                      doc['fullName'],
+                                      doc['emailAdd']),
                                 ),
                               ],
                             ),

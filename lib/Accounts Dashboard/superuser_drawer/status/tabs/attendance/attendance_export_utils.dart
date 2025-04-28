@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'dart:typed_data';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -14,7 +14,13 @@ import 'package:universal_html/html.dart' as html;
 import 'package:share_plus/share_plus.dart';
 
 class AttendanceExportUtils {
-  // Helper method to fetch images from URLs
+  // The `fetchImage` method is a static asynchronous function designed to fetch an image from a provided URL.
+// It takes a nullable string `url` as an argument, which represents the location of the image to be fetched.
+// The method first checks if the URL is null or empty and returns null immediately if so, avoiding unnecessary network requests.
+// If the URL is valid, it uses the `http.get` method to make an HTTP request to the URL.
+// If the response has a successful status code (200), the function converts the response's body into a byte array (Uint8List), which is suitable for image processing or display.
+// In case of any exceptions or failed network requests, the method catches the error and returns null.
+// Finally, if the image is not successfully fetched or if the URL is invalid, the function will return null.
   static Future<Uint8List?> fetchImage(String? url) async {
     if (url == null || url.isEmpty) return null;
     try {
@@ -23,12 +29,16 @@ class AttendanceExportUtils {
         return response.bodyBytes; // Convert response to bytes
       }
     } catch (e) {
-      print("Error fetching image: $e");
+      return null;
     }
     return null;
   }
 
-  // Helper method to load images from assets
+  // The `loadAssetImage` method is a static asynchronous helper function used to load image data from the app's assets.
+// It takes a string `path` as an argument, which represents the location of the image within the app's assets directory.
+// The method uses `rootBundle.load(path)` to load the image file as raw byte data from the asset bundle.
+// The loaded byte data is then converted into a `Uint8List`, which is a suitable format for handling image data in Flutter.
+// This function is useful for loading images stored within the app's assets, allowing the image to be processed or displayed within the app.
   static Future<Uint8List> loadAssetImage(String path) async {
     final ByteData data = await rootBundle.load(path);
     return data.buffer.asUint8List();
@@ -49,12 +59,18 @@ class AttendanceExportUtils {
       DateTime parsedDate = DateTime.parse(timestamp);
       return DateFormat("MMMM d yyyy 'at' h:mm a").format(parsedDate);
     } catch (e) {
-      print("Error formatting date: $e");
       return "Invalid date";
     }
   }
 
-  // Generate and share PDF
+  // The `generatePDF` method is a static asynchronous function designed to generate a PDF document containing an attendance sheet.
+// It accepts three parameters: `attendanceList`, which is a list of maps containing data for each attendee, `agenda` for the event's agenda,
+// and `schedule` for the date and time of the event. The method starts by creating a new PDF document using the `pw.Document()` class from
+// the `pdf` package. It then retrieves each attendee's signature image as bytes using the `fetchImage` function and appends these to the
+// original attendee data. The method also loads two logo images from the app's assets using `loadAssetImage` and prepares them for inclusion
+// in the document header. The document's structure is organized with a header (including logos and event details), a footer (with contact
+// and document information), and the main content which is a table listing the attendees' details (name, company, email, contact number, and signature).
+// The PDF is saved and shared using the `Printing` package to allow the user to download or share the generated document.
   static Future<void> generatePDF({
     required List<Map<String, dynamic>> attendanceList,
     required String agenda,
@@ -103,7 +119,8 @@ class AttendanceExportUtils {
                 alignment: pw.Alignment.center,
                 child: pw.Text(
                   'Attendance Sheet',
-                  style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+                  style: pw.TextStyle(
+                      fontSize: 20, fontWeight: pw.FontWeight.bold),
                 ),
               ),
               pw.SizedBox(height: 10),
@@ -145,7 +162,8 @@ class AttendanceExportUtils {
                   )),
               pw.Text(
                 "DBP Data Center, Inc.",
-                style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                style:
+                    pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
               ),
               pw.Divider(
                 thickness: 1,
@@ -194,23 +212,28 @@ class AttendanceExportUtils {
                           pw.Padding(
                               padding: pw.EdgeInsets.all(5),
                               child: pw.Text('Name',
-                                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                                  style: pw.TextStyle(
+                                      fontWeight: pw.FontWeight.bold))),
                           pw.Padding(
                               padding: pw.EdgeInsets.all(5),
                               child: pw.Text('Company',
-                                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                                  style: pw.TextStyle(
+                                      fontWeight: pw.FontWeight.bold))),
                           pw.Padding(
                               padding: pw.EdgeInsets.all(5),
                               child: pw.Text('Email Address',
-                                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                                  style: pw.TextStyle(
+                                      fontWeight: pw.FontWeight.bold))),
                           pw.Padding(
                               padding: pw.EdgeInsets.all(5),
                               child: pw.Text('Contact No.',
-                                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                                  style: pw.TextStyle(
+                                      fontWeight: pw.FontWeight.bold))),
                           pw.Padding(
                               padding: pw.EdgeInsets.all(5),
                               child: pw.Text('Signature',
-                                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                                  style: pw.TextStyle(
+                                      fontWeight: pw.FontWeight.bold))),
                         ],
                       ),
 
@@ -225,7 +248,8 @@ class AttendanceExportUtils {
                               child: pw.Text(attendee['company'] ?? 'N/A')),
                           pw.Padding(
                               padding: pw.EdgeInsets.all(5),
-                              child: pw.Text(attendee['email_address'] ?? 'N/A')),
+                              child:
+                                  pw.Text(attendee['email_address'] ?? 'N/A')),
                           pw.Padding(
                             padding: pw.EdgeInsets.all(5),
                             child: pw.Text(
@@ -247,7 +271,8 @@ class AttendanceExportUtils {
                               alignment: pw.Alignment.center,
                               child: attendee['signature_bytes'] != null
                                   ? pw.Image(
-                                      pw.MemoryImage(attendee['signature_bytes']!),
+                                      pw.MemoryImage(
+                                          attendee['signature_bytes']!),
                                       width: 60,
                                       height: 25)
                                   : pw.Text("No Signature"),
@@ -265,8 +290,15 @@ class AttendanceExportUtils {
     await Printing.sharePdf(bytes: pdfBytes, filename: 'attendance_report.pdf');
   }
 
-  // Generate and share CSV
-  static Future<void> generateCSV(List<Map<String, dynamic>> attendanceList) async {
+  // The `generateCSV` method is a static asynchronous function that generates a CSV file containing an attendance report from the provided `attendanceList`.
+// The method starts by initializing a list of rows, where each row represents a line in the CSV file. The first row is the header containing the column names
+// ('Name', 'Company', 'Email Address', 'Contact No.'). For each attendee in the `attendanceList`, the method creates a new row that includes the attendee's
+// details such as name, company, email address, and contact number. If the contact number is a list, it is joined by commas; if it's a string, it is used directly;
+// otherwise, it defaults to 'N/A'. The entire list of rows is then converted into a CSV string using the `ListToCsvConverter` from the `csv` package.
+// Depending on the platform, the method handles the CSV file differently: on Flutter Web, it creates a downloadable Blob and triggers a download; on mobile (Android/iOS)
+// and desktop, it saves the CSV file to the device's documents directory and allows the user to share the file via the `Share` package.
+  static Future<void> generateCSV(
+      List<Map<String, dynamic>> attendanceList) async {
     List<List<String>> rows = [];
 
     // CSV Header

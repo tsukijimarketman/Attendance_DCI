@@ -7,27 +7,19 @@ import 'package:attendance_app/Appointment/add_client.dart';
 import 'package:attendance_app/Appointment/schedule_appointment.dart';
 import 'package:attendance_app/analytical_report/reports.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:typed_data';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/auditSU.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/notification_su.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/settings_su.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/sidebar_provider.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/sidebarx_usage.dart';
-import 'package:attendance_app/Animation/Animation.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/references_su.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/usermanagement_su.dart';
-import 'package:attendance_app/Auth/login.dart';
 import 'package:attendance_app/Auth/showDialogSignOut.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:sidebarx/sidebarx.dart';
 import 'package:toastification/toastification.dart';
 
 class SuperUserDashboard extends StatefulWidget {
@@ -40,38 +32,66 @@ class SuperUserDashboard extends StatefulWidget {
 class _SuperUserDashboardState extends State<SuperUserDashboard> {
   // Start with Dashboard
 
+  // Color variables are initialized for various UI elements. These colors will likely be dynamically updated based on
+// user interaction or some condition in the app. Currently, they are all set to grey, indicating neutral or inactive states.
   Color color1 = Colors.grey;
   Color color2 = Colors.grey;
   Color color3 = Colors.grey;
   Color color4 = Colors.grey;
 
+// Icon for settings is initialized as the settings icon from the material design icons library.
   IconData iconSettings = Icons.settings;
 
+  // Boolean variable to check if a profile completion toast has been shown already. This avoids multiple toasts being shown.
   bool _hasShownProfileToast = false;
 
+  // The initState() method is called when the widget is inserted into the widget tree. It performs several initialization tasks:
+// - It subscribes to user data updates using _subscribeToUserData()
+// - It fetches the user's profile image asynchronously using _fetchProfileImage()
+// - It checks if the user's profile is complete by calling _checkProfileCompletion() after the widget has been laid out
   @override
   void initState() {
     super.initState();
-    _subscribeToUserData();
-    _fetchProfileImage();
+    _subscribeToUserData(); // Starts listening for user data from Firestore
+    _fetchProfileImage(); // Fetches the user's profile image
 
+    // Executes the profile completion check after the widget has been rendered
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkProfileCompletion();
+      _checkProfileCompletion(); // Checks if the user profile is complete after the first frame is rendered
     });
   }
 
+  // This variable tracks whether a specific section of the UI (likely headers) has been clicked.
+// It is used to toggle the view of options or further details on the dashboard.
   bool isHeadersClicked = false;
+
+  // This variable stores the selected option for some kind of user interaction on the dashboard. It tracks which option is active.
   String selectedOption = "";
 
+  // Firebase authentication and Firestore instances are initialized to interact with Firebase services.
+// These are used for authentication (user login, etc.) and to fetch/update user data from Firestore.
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // _userSubscription is a subscription to real-time updates from Firestore for the user's data.
+// The StreamSubscription will handle updates for any changes in user data while the user is active.
   StreamSubscription<QuerySnapshot>? _userSubscription;
 
+  // These variables are used to store the current user's details, including their first name, last name, role, and loading state.
+// The initial values are set to "Loading..." or default values, which will be updated once the user data is retrieved.
   String firstName = "Loading...";
   String lastName = "";
   String role = "Fetching...";
+
+  // The isLoading flag is set to true initially to indicate that user data is being fetched, and UI elements can show loading indicators.
   bool isLoading = true;
 
+  // This method subscribes to real-time updates for the current user's data from the Firestore database.
+// It checks if the user is authenticated by retrieving their UID from FirebaseAuth. If the user is logged in,
+// it proceeds to listen for changes in the "users" collection where the UID matches the current user's UID.
+// The method listens for snapshot changes and updates the local state with the user's first name, last name,
+// and role. If data is available, it sets the appropriate values; otherwise, it defaults to "No Data" or "N/A"
+// for missing values. The loading state is also managed by setting `isLoading` to false once the data is fetched.
   void _subscribeToUserData() {
     final String? currentUserUid = _auth.currentUser?.uid;
     if (currentUserUid == null) return;
@@ -103,6 +123,8 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
 
   @override
   void dispose() {
+    // Cancel the active user subscription to stop receiving updates when the widget is disposed
+
     _userSubscription?.cancel(); // Cancel subscription to prevent memory leaks
     super.dispose();
   }
@@ -111,6 +133,13 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
   File? _image;
   String? _imageUrl;
 
+  // This function fetches the profile image for the currently authenticated user
+// from the Supabase storage service. It first checks if the user is authenticated
+// and then attempts to retrieve the user's profile image file from the storage bucket
+// based on their UID. If the image file exists, it constructs a public URL to access
+// the image and ensures it is properly formatted with a timestamp to prevent caching
+// issues. The image URL is then set in the state to be displayed. If no image is found,
+// the user is notified through a SnackBar.
   Future<void> _fetchProfileImage() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -143,140 +172,142 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
       setState(() {
         _imageUrl = imageUrl;
       });
-
-      print("✅ Fixed Profile Image URL: $_imageUrl");
     } else {
-      print("❌ No profile image found for user: ${user.uid}");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No Profile Image Found')),
+      );
     }
   }
 
+  // Function to check if the user's profile is complete by validating required fields in Firestore
+  void _checkProfileCompletion() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      // If there is no user, exit the function
 
-void _checkProfileCompletion() async {
-  final user = _auth.currentUser;
-  if (user == null) {
-    print("❌ No current user found");
-    return;
-  }
-
-  try {
-    print("🔍 Checking profile for UID: ${user.uid}");
-    print("👤 Email: ${user.email}");
-    
-    // First approach: Try to find by direct document ID
-    var doc = await _firestore.collection("users").doc(user.uid).get();
-    print("📄 Direct lookup result: ${doc.exists ? 'Found' : 'Not found'}");
-    
-    // Second approach: Query by uid field
-    if (!doc.exists) {
-      print("⚠️ Document not found by direct ID, trying query by uid field");
-      final querySnapshot = await _firestore
-          .collection("users")
-          .where("uid", isEqualTo: user.uid)
-          .limit(1)
-          .get();
-          
-      print("🔎 Query results: ${querySnapshot.docs.length} documents found");
-      
-      if (querySnapshot.docs.isNotEmpty) {
-        doc = querySnapshot.docs.first;
-        print("✅ Found document via query with ID: ${doc.id}");
-      }
-    }
-
-    if (!doc.exists) {
-      print("❌ User document doesn't exist anywhere");
-      _showProfileCompletionToast();
       return;
     }
 
-    // Document exists, now check fields
     try {
-      final userData = doc.data() as Map<String, dynamic>;
-      print("📝 Document data retrieved: ${userData.keys.toList()}");
-      
-      // List of required fields
-      final requiredFields = [
-        'birthdate',
-        'sex',
-        'civil_status',
-        'place_of_birth',
-        'mobile_number',
-        'first_name',
-        'last_name',
-        'citizenship',
-        'dual_citizen',
-      ];
+      // First approach: Try fetching the user's document directly by their UID
+      var doc = await _firestore.collection("users").doc(user.uid).get();
 
-      bool isProfileComplete = true;
-      List<String> missingFields = [];
+      // Second approach: If the document doesn't exist, try querying by UID field
+      if (!doc.exists) {
+        final querySnapshot = await _firestore
+            .collection("users")
+            .where("uid", isEqualTo: user.uid)
+            .limit(1)
+            .get();
 
-      // Check each required field
-      for (String field in requiredFields) {
-        final hasField = userData.containsKey(field);
-        final fieldValue = userData[field];
-        final isEmpty = fieldValue == null || 
-                      (fieldValue is String && fieldValue.isEmpty);
-        
-        print("🔍 Field '$field': exists=$hasField, value='$fieldValue', isEmpty=$isEmpty");
-        
-        if (!hasField || isEmpty) {
-          isProfileComplete = false;
-          missingFields.add(field);
+        // If a matching user is found in the query results, set the document to that user
+        if (querySnapshot.docs.isNotEmpty) {
+          doc = querySnapshot.docs.first;
         }
       }
 
-      // Final result
-      print("📋 Profile check - Complete: $isProfileComplete");
-      if (!isProfileComplete) {
-        print("❌ Missing fields: $missingFields");
+      // If the user document doesn't exist, show a toast notification and return
+      if (!doc.exists) {
         _showProfileCompletionToast();
-      } else {
-        print("✅ All required fields present");
-        
-        // Save preference to avoid future checks if profile is complete
-        try {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setBool('isProfileCompleted_${user.uid}', true);
-          print("💾 Saved preference for completed profile");
-        } catch (e) {
-          print("⚠️ Failed to save preference: $e");
+        return;
+      }
+
+      // Document exists, proceed to check if the profile fields are complete
+      try {
+        final userData = doc.data() as Map<String, dynamic>;
+
+        // List of required fields that must be present and non-empty in the user's profile
+        final requiredFields = [
+          'birthdate',
+          'sex',
+          'civil_status',
+          'place_of_birth',
+          'mobile_number',
+          'first_name',
+          'last_name',
+          'citizenship',
+          'dual_citizen',
+        ];
+
+        // Flag to track if the profile is complete
+        bool isProfileComplete = true;
+
+        // List to store any missing fields
+        List<String> missingFields = [];
+
+        // Check each required field to see if it exists and isn't empty
+        for (String field in requiredFields) {
+          final hasField = userData.containsKey(field);
+          final fieldValue = userData[field];
+          final isEmpty = fieldValue == null ||
+              (fieldValue is String && fieldValue.isEmpty);
+
+          // If the field is missing or empty, mark the profile as incomplete
+
+          if (!hasField || isEmpty) {
+            isProfileComplete = false;
+            missingFields.add(field); // Add the missing field to the list
+          }
         }
+
+        // If the profile is incomplete, show the toast to notify the user
+        if (!isProfileComplete) {
+          _showProfileCompletionToast();
+        } else {
+          // If the profile is complete, save a preference to avoid checking it again
+
+          // Save preference to avoid future checks if profile is complete
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool('isProfileCompleted_${user.uid}',
+                true); // Save the profile completion status
+          } catch (e) {
+            // Show a Snackbar if there was an error saving the preference
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error: $e')),
+            );
+          }
+        }
+      } catch (e) {
+        // If there was an error checking the user data, show the toast notification
+
+        _showProfileCompletionToast();
       }
     } catch (e) {
-      print("❌ Error processing document data: $e");
+      // If there was an error fetching user data, show the toast notification
       _showProfileCompletionToast();
     }
-  } catch (e) {
-    print("❌ Error checking profile completion: $e");
-    _showProfileCompletionToast();
   }
-}
 
 // Simplify the toast method
-void _showProfileCompletionToast() {
-  // Delay showing toast slightly to ensure UI is ready
-  Future.delayed(Duration(milliseconds: 800), () {
-    toastification.show(
-      context: context,
-      alignment: Alignment.topRight,
-      icon: Icon(Icons.info_outline, color: Colors.black87),
-      title: Text('Profile Incomplete', style: TextStyle(fontFamily: "B", 
-          fontSize: MediaQuery.of(context).size.width / 80)),
-      description: Text(
-        "Please go to Settings to complete your profile information",
-        style: TextStyle(
-          color: Colors.black87,
-          fontSize: MediaQuery.of(context).size.width / 90,
-          fontFamily: "M",
+// This will shpw a Toast if the User Have something in his profile that is not completed
+  void _showProfileCompletionToast() {
+    // Delay showing toast slightly to ensure UI is ready
+    Future.delayed(Duration(milliseconds: 800), () {
+      toastification.show(
+        context: context,
+        alignment: Alignment.topRight,
+        icon: Icon(Icons.info_outline, color: Colors.black87),
+        title: Text('Profile Incomplete',
+            style: TextStyle(
+                fontFamily: "B",
+                fontSize: MediaQuery.of(context).size.width / 80)),
+        description: Text(
+          "Please go to Settings to complete your profile information",
+          style: TextStyle(
+            color: Colors.black87,
+            fontSize: MediaQuery.of(context).size.width / 90,
+            fontFamily: "M",
+          ),
         ),
-      ),
-      type: ToastificationType.warning,
-      style: ToastificationStyle.flatColored, // Light yellow color
-      autoCloseDuration: const Duration(seconds: 6),
-      animationDuration: const Duration(milliseconds: 300),
-    );
-  });
-}
+        type: ToastificationType.warning,
+        style: ToastificationStyle.flatColored, // Light yellow color
+        autoCloseDuration: const Duration(seconds: 6),
+        animationDuration: const Duration(milliseconds: 300),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

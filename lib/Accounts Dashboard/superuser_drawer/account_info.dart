@@ -1,9 +1,7 @@
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/su_address_provider.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 class AccountInfo extends StatefulWidget {
   const AccountInfo({super.key});
@@ -25,7 +23,14 @@ class _AccountInfoState extends State<AccountInfo> {
     r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$',
   );
 
-  Future<void> _changePassword() async {
+    //It first checks if the old password, new password, and confirm password fields are filled. If any of these fields are empty, it sets an error message. 
+// The method then validates the new password using a regular expression to ensure that it meets certain criteria: at least 8 characters long, containing one uppercase letter, 
+// one lowercase letter, one number, and one special character. If the new password doesn't match the criteria, an error message is displayed.
+// Additionally, the function checks if the new password matches the confirm password field; if they do not match, an error message is displayed.
+// If the user has filled all fields correctly, the method proceeds by attempting to reauthenticate the user with the old password using Firebase Authentication. 
+// Upon successful reauthentication, the password is updated to the new one. If reauthentication or password update fails, an appropriate error message is shown.
+// If the password is successfully updated, the method hides any error messages, disables the change password view, and shows a success message using a SnackBar.
+    Future<void> _changePassword() async {
     String oldPassword = oldPasswordController.text.trim();
     String newPassword = newPasswordController.text.trim();
     String confirmPassword = confirmPasswordController.text.trim();
@@ -116,6 +121,14 @@ class _AccountInfoState extends State<AccountInfo> {
                         color: Colors.black,
                         fontFamily: "R")),
                 SizedBox(height: MediaQuery.of(context).size.width / 170),
+                // This StreamBuilder listens to real-time updates from the "users" collection in Firestore. 
+// It filters the documents by the current user's UID, retrieved from Firebase Authentication, 
+// and limits the query to a single document (since the UID is unique for each user).
+// Whenever there are changes to the "users" collection that match the current user's UID, 
+// the StreamBuilder rebuilds the UI with the updated data.
+// If the snapshot contains data, the first document is fetched from the snapshot, 
+// and the user's email is extracted from the document data. If the email field is not present, 
+// it defaults to "N/A". The `email` variable is then available for use in the UI or other logic.
                 StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
                       .collection("users")

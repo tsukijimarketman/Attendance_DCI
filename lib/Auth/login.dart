@@ -1,9 +1,4 @@
 import 'dart:ui';
-
-import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_dashboard.dart';
-import 'package:attendance_app/Accounts%20Dashboard/head_drawer/department_head_dashboard.dart';
-import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_dashoard.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/super_user_dashboard.dart';
 import 'package:attendance_app/Animation/text_reveal.dart';
 import 'package:attendance_app/Auth/Persistent.dart';
 import 'package:attendance_app/Auth/audit_function.dart';
@@ -26,6 +21,7 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> with TickerProviderStateMixin {
+  // this is all the variables that are used in the login page
   bool isLoading = false;
   bool isLogin = true;
   Color color1 = Colors.white;
@@ -34,20 +30,25 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
   Icon icon = Icon(Icons.lock);
   bool isChecked = false;
 
-  // Add a text editing controller for the password
+  // This is the controller for the password field
+  // This is the controller for the email field
+  // This is the controller for the first name field
+  // This is the controller for the last name field
   TextEditingController passwordController = TextEditingController();
   TextEditingController emailController = TextEditingController();
   TextEditingController firstNameController = TextEditingController();
   TextEditingController lastNameController = TextEditingController();
   String passwordError = ""; // To hold the error message for password
 
+  // This is the function that will clear the text fields after the user has Sign In
   void _clearFields() {
-      firstNameController.clear();
-      lastNameController.clear();
-      emailController.clear();
-      passwordController.clear();
-    }
+    firstNameController.clear();
+    lastNameController.clear();
+    emailController.clear();
+    passwordController.clear();
+  }
 
+  // this is for animations
   late AnimationController controllerLogo;
   late Animation<double> _textRevealcontrollerLogo;
   late Animation<double> _textOpacitycontrollerLogo;
@@ -58,6 +59,7 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
   late Animation<double> _textRevealcontrollerSignin;
   late Animation<double> _textOpacitycontrollerSignin;
 
+  // this is all for the animation of the text field
   @override
   void initState() {
     controllerLogo = AnimationController(
@@ -107,7 +109,7 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
     Future.delayed(Duration(milliseconds: 1600), () {
       controllerHeading.forward();
     });
-    Future.delayed(Duration(milliseconds: 1700),(){
+    Future.delayed(Duration(milliseconds: 1700), () {
       controllerSignin.forward();
     });
   }
@@ -120,19 +122,21 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
     return regex.hasMatch(password);
   }
 
+  // This is the function that will show the loading animation when the user clicks on the button
   void showLoading() {
-     if (!mounted) return;
+    if (!mounted) return;
     setState(() {
       isLoading = true;
     });
   }
 
+  // This is the function that will hide the loading animation when the user clicks on the button
   void hideLoading() {
-  if (!mounted) return;
-  setState(() {
-    isLoading = false;
-  });
-}
+    if (!mounted) return;
+    setState(() {
+      isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -337,6 +341,7 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
                 });
               },
               child: GestureDetector(
+                // this will trigger the HandleSignIn function when the user clicks on the button
                 onTap: handleSignIn,
                 child: Container(
                   width: MediaQuery.of(context).size.width / 3.5,
@@ -395,47 +400,60 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
     );
   }
 
- Future<void> handleSignIn() async {
-  String email = emailController.text.trim();
-  String password = passwordController.text.trim();
-  showLoading();
+  // This is the function that will handle the sign in process
+  // It will check if the email and password are correct and if they are registered to the google firebase auth,
+  // it will navigate to the home page
+  Future<void> handleSignIn() async {
+    String email = emailController.text.trim();
+    String password = passwordController.text.trim();
+    showLoading();
 
-  try {
-    UserCredential userCredential = await FirebaseAuth.instance
-        .signInWithEmailAndPassword(email: email, password: password);
+    try {
+      // Check if email and password are not empty
+      UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
 
-    if (userCredential.user != null) {
-      print("User logged in: ${userCredential.user!.email}");
-      await logAuditTrail("User Logged In", "User with email $email logged in.");
+      // Check if the user is not null after login
+      if (userCredential.user != null) {
+        // Log the user in and navigate to the home page
+        await logAuditTrail(
+            "User Logged In", "User with email $email logged in.");
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => AuthPersistent()),
-      );
-    } else {
-      throw FirebaseAuthException(
-        code: "null-user",
-        message: "User is null after login.",
-      );
-    }
-  } on FirebaseAuthException catch (e) {
-    hideLoading();
-    setState(() {
-      if (e.code == 'user-not-found') {
-        passwordError = "No user found with this email.";
-      } else if (e.code == 'wrong-password') {
-        passwordError = "Incorrect password.";
+        // it will Authenticate the user and make it persistent
+        // and navigate to the designated ui for every roles
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => AuthPersistent()),
+        );
       } else {
-        passwordError = "Authentication failed: ${e.message}";
+        // If user is null, show an error message
+        throw FirebaseAuthException(
+          code: "null-user",
+          message: "User is null after login.",
+        );
       }
-    });
-  } catch (e) {
-    hideLoading();
-    setState(() {
-      passwordError = "An unexpected error occurred: ${e.toString()}";
-    });
+      // Handle specific Firebase authentication errors
+    } on FirebaseAuthException catch (e) {
+      // Hide loading animation
+      hideLoading();
+      // Set the password error message based on the error code
+      setState(() {
+        if (e.code == 'user-not-found') {
+          passwordError = "No user found with this email.";
+        } else if (e.code == 'wrong-password') {
+          passwordError = "Incorrect password.";
+        } else {
+          passwordError = "Authentication failed: ${e.message}";
+        }
+      });
+    } catch (e) {
+      hideLoading();
+      // Handle any other unexpected errors
+      setState(() {
+        passwordError = "An unexpected error occurred: ${e.toString()}";
+      });
+    }
   }
-}
 
   Widget Register() {
     return Container(
@@ -557,6 +575,7 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
               });
             },
             child: GestureDetector(
+              // this will trigger the _validator function when the user clicks on the button
               onTap: () async {
                 String password = passwordController.text;
                 setState(() {
@@ -637,50 +656,65 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
     );
   }
 
+  // This is the function that will validate the email and password fields
   void _validator() {
+    // Check if the email and password fields are empty
     if (emailController.text.isEmpty || passwordController.text.isEmpty) {
+      // Show a dialog if any field is empty
       _showDialog('Empty Fields', 'Please fill in all fields.');
       return;
     }
+    // Check if the password meets the validation criteria and it will procced to the next step the _storePendingUser function
     _storePendingUser();
   }
 
+  // This is the function that will store the user in the database
   Future<void> _storePendingUser() async {
-  try {
-    String email = emailController.text.trim();
+    try {
+      String email = emailController.text.trim();
 
-    // **Step 1: Check if email already exists in Firestore**
-    QuerySnapshot existingUser = await FirebaseFirestore.instance
-        .collection('users')
-        .where('email', isEqualTo: email)
-        .get();
+      // **Step 1: Check if email already exists in Firestore**
+      QuerySnapshot existingUser = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: email)
+          .get();
 
-    if (existingUser.docs.isNotEmpty) {
-      // **Email already exists, show error**
-      _showDialog('Email Already in Use', 'Pick another email address.');
+      // Check if the email already exists in the database
+      // If it does, show an error message and return
+      if (existingUser.docs.isNotEmpty) {
+        // **Email already exists, show error**
+        _showDialog('Email Already in Use', 'Pick another email address.');
+        _clearFields();
+        return;
+      }
+
+      // **Step 2: Encrypt password and store the new user**
+      String encryptedPassword =
+          EncryptionHelper.encryptPassword(passwordController.text.trim());
+      // Store the new user in Firestore with status 'pending'
+      // and isDeleted set to false
+      // and the password is encrypted using the EncryptionHelper class
+      // and the status is set to pending
+      await FirebaseFirestore.instance.collection('users').add({
+        'first_name': firstNameController.text.trim(),
+        'last_name': lastNameController.text.trim(),
+        'email': email,
+        'password': encryptedPassword,
+        'status': 'pending',
+        'isDeleted': false,
+      });
+
+      // **Step 3: Show success message and clear fields**
+      _showDialog('Pending Approval',
+          'Your account request has been sent for approval.');
       _clearFields();
-      return;
+    } catch (error) {
+      // **Step 4: Handle errors gracefully**
+      _showDialog('Error', error.toString());
     }
-
-    // **Step 2: Encrypt password and store the new user**
-    String encryptedPassword = EncryptionHelper.encryptPassword(passwordController.text.trim());
-
-    await FirebaseFirestore.instance.collection('users').add({
-      'first_name': firstNameController.text.trim(),
-      'last_name': lastNameController.text.trim(),
-      'email': email,
-      'password': encryptedPassword,
-      'status': 'pending',
-      'isDeleted': false,
-        });
-
-    _showDialog('Pending Approval', 'Your account request has been sent for approval.');
-    _clearFields();
-  } catch (error) {
-    _showDialog('Error', error.toString());
   }
-}
 
+  // This is will show the dialog
   void _showDialog(String title, String message) {
     showCupertinoDialog(
       context: context,

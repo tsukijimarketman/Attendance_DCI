@@ -264,6 +264,18 @@ class _GuestState extends State<Guest> {
                 padding: EdgeInsets.symmetric(horizontal: screenWidth / 90),
                 child: widget.selectedAgenda.isEmpty
                     ? Center(child: Text("No appointment selected"))
+                    // This StreamBuilder listens for real-time updates from the 'appointment' collection in Firestore,
+// specifically filtering appointments by the selected agenda (from `widget.selectedAgenda`) and the 
+// selected status type (`widget.statusType`).
+// If the connection is still waiting for data, a custom loading indicator (`CustomLoader`) is shown.
+// If no data is available or if the appointment document list is empty, a message is displayed indicating 
+// that no appointment with the selected agenda was found.
+// When appointment data is available, the code extracts the first document and maps the appointment data 
+// into a `Map<String, dynamic>`. It then checks if the 'guest' field exists and whether it is a list. If 
+// the field exists and the `allGuests` list is empty, it proceeds to extract the list of guests and 
+// assigns it to the `allGuests` variable, where each guest is mapped to a Map<String, dynamic> for easy processing.
+// After that, the `filterGuests()` function is called to apply any initial filtering on the list of guests (not shown).
+// If no guests are found for the appointment, a message is displayed stating that no guests are available.
                     : StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance
                             .collection('appointment')
@@ -464,7 +476,9 @@ class _GuestState extends State<Guest> {
                                       // Previous page button
                                       IconButton(
                                         icon: Icon(Icons.chevron_left),
-                                        onPressed: currentPage > 1
+                                        onPressed:
+                                        // This is Pagination
+                                         currentPage > 1
                                             ? () =>
                                                 setState(() => currentPage--)
                                             : null,
@@ -552,7 +566,9 @@ class _GuestState extends State<Guest> {
                                       // Next page button
                                       IconButton(
                                         icon: Icon(Icons.chevron_right),
-                                        onPressed: currentPage < totalPages
+                                        onPressed: 
+                                        // This is Pagination
+                                        currentPage < totalPages
                                             ? () =>
                                                 setState(() => currentPage++)
                                             : null,

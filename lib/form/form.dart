@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:attendance_app/404.dart';
-import 'package:attendance_app/Animation/Animation.dart';
 import 'package:attendance_app/form/signature.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +12,7 @@ import 'package:signature/signature.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AttendanceForm extends StatefulWidget {
+  // This is passing the data from the previous screen
   final String roles;
   final String department;
   final String agenda;
@@ -23,6 +23,8 @@ class AttendanceForm extends StatefulWidget {
   final int selectedScheduleTime;
 
   const AttendanceForm({
+    // This is passing the data from the previous screen
+    // and requiring the data to be passed
     required this.createdBy,
     required this.expiryTime,
     required this.roles,
@@ -39,6 +41,7 @@ class AttendanceForm extends StatefulWidget {
 }
 
 class _AttendanceFormState extends State<AttendanceForm> {
+  // this is all the variables that are used in the form
   final TextEditingController nameController = TextEditingController();
   final TextEditingController companyController = TextEditingController();
   final TextEditingController emailAddController = TextEditingController();
@@ -57,11 +60,19 @@ class _AttendanceFormState extends State<AttendanceForm> {
   }
 
   bool isNameValid = true;
-bool isCompanyValid = true;
-bool isEmailValid = true;
-List<bool> contactFieldValidity = [];
+  bool isCompanyValid = true;
+  bool isEmailValid = true;
+  List<bool> contactFieldValidity = [];
 
-
+  // Initialize the controllers and other variables
+  // This function is called when the widget is created
+  // It sets up the initial state of the widget
+  // and prepares the controllers for use
+  // It also sets up the scheduled time based on the selected schedule time
+  // and checks if the QR code has expired
+  // or if the form has expired
+  // It also starts the countdown timer to track the remaining time
+  // until the form expires
   @override
   void initState() {
     super.initState();
@@ -96,17 +107,35 @@ List<bool> contactFieldValidity = [];
     _startCountdown();
   }
 
+  // Start the countdown timer
+  // This function is called when the widget is initialized
+  // It calculates the remaining time until the form expires
+  // and sets up a periodic timer to update the remaining time
   void _startCountdown() {
+    // Get the current time in milliseconds since epoch
+    // Calculate the remaining time in seconds
     int now = DateTime.now().millisecondsSinceEpoch;
     remainingTime = ((widget.expiryTime - now) / 1000).round();
 
+    // Check if the remaining time is greater than 0
+    // If so, set up a periodic timer to update the remaining time
+    // If not, show the expired dialog immediately
     if (remainingTime > 0) {
       _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+        // Check if the widget is still mounted
+        // This is important to avoid calling setState on a disposed widget
+        // and to ensure that the timer is only active when the widget is visible
+        // and not in the background
         if (mounted) {
           setState(() {
             remainingTime--;
           });
 
+          // Check if the remaining time is less than or equal to 0
+          // If so, cancel the timer and show the expired dialog
+          // This is important to ensure that the dialog is shown only when the time is up
+          // and to prevent any further updates to the UI
+          // after the form has expired
           if (remainingTime <= 0) {
             _timer.cancel();
             _showExpiredDialog();
@@ -114,10 +143,18 @@ List<bool> contactFieldValidity = [];
         }
       });
     } else {
+      // If the remaining time is less than or equal to 0
+      // show the expired dialog immediately
+      // This is important to ensure that the user is notified of the expiration
+      
       _showExpiredDialog();
     }
   }
 
+  // Show a dialog when the form has expired
+  // This function is called when the form expires
+  // It shows an alert dialog to the user
+  // with a message indicating that the form has expired
   void _showExpiredDialog() {
     showDialog(
       context: context,
@@ -137,6 +174,11 @@ List<bool> contactFieldValidity = [];
     );
   }
 
+  // Dispose of the controllers to free up resources
+  // This function is called when the widget is removed from the widget tree
+  // It ensures that all controllers are properly disposed of
+  // to prevent memory leaks
+  // and to clean up any resources used by the controllers
   @override
   void dispose() {
     nameController.dispose();
@@ -150,26 +192,42 @@ List<bool> contactFieldValidity = [];
     super.dispose();
   }
 
+  // Add a new contact field
+  // This function is called when the add icon is pressed
+  // It adds a new TextEditingController to the list of contact controllers
+  // and updates the state to reflect the change in the UI
   void addNewContactField() {
     setState(() {
-      contactControllers.add(TextEditingController()); // Add a new controller
+      contactControllers.add(TextEditingController());
     });
   }
 
+  // Remove a contact field at the specified index
+  // This function is called when the remove icon is pressed
+  // It removes the TextEditingController at the specified index
+  // and updates the state to reflect the change in the UI
   void removeContactField(int index) {
     setState(() {
       contactControllers
-          .removeAt(index); // Remove the controller at the specified index
+          .removeAt(index);
     });
   }
 
+  // Format the time in minutes and seconds
+  // Example: "5:30" for 5 minutes and 30 seconds
   String _formatTime(int seconds) {
     int minutes = seconds ~/ 60;
     int secs = seconds % 60;
     return "$minutes:${secs.toString().padLeft(2, '0')}";
   }
 
+  // Validate the form fields
   bool validateForm() {
+    // Check if the name, company, and email fields are valid
+    // Check if the contact number fields are valid
+    // Set the validity state for each field
+    // Use trim() to remove leading and trailing spaces
+    // Use isNotEmpty to check if the field is not empty
   setState(() {
     isNameValid = nameController.text.trim().isNotEmpty;
     isCompanyValid = companyController.text.trim().isNotEmpty;
@@ -184,7 +242,7 @@ List<bool> contactFieldValidity = [];
     }).toList();
   });
 
-  // Check if all are valid
+  // Check if all fields are valid
   bool allContactsValid = contactFieldValidity.any((valid) => valid);
   if (!isNameValid || !isCompanyValid || !isEmailValid || !allContactsValid) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -196,35 +254,49 @@ List<bool> contactFieldValidity = [];
   return true;
 }
 
-
+  // Submit the form data to Firestore and upload the signature to Supabase
   void submitForm() async {
-      if (!validateForm()) return; // Early exit if validation fails
+    // Check if the form is valid
+    // Early exit if validation fails
+      if (!validateForm()) return;
 
+    // Check if the signature is empty
+    // Early exit if signature is empty
     if (_signatureController.isEmpty) {
+      // Show a message to the user that say Please add a signature
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please add a signature!")),
       );
       return;
     }
 
-    // Convert signature to PNG bytes
+    // Convert the signature to PNG bytes
     final Uint8List? signatureImage = await _signatureController.toPngBytes();
+    // Check if the image is null or empty
+    // Early exit if the image is null or empty
     if (signatureImage == null || signatureImage.isEmpty) {
-      print("⚠️ Signature image is empty or null.");
+      // Show a message to the user that say Failed to convert signature
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to convert signature!")),
+      );
       return;
     }
-    print("✅ Signature image size: ${signatureImage.length} bytes");
-
-    // Upload to Supabase Storage
+  
+    // Upload the signature to Supabase
     final String? signatureUrl = await _uploadToSupabase(signatureImage);
+    // Check if the upload was successful
+    // Early exit if the upload failed
     if (signatureUrl == null) {
+      // Show a message to the user that say Failed to save signature
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Failed to save signature!")),
       );
       return;
     }
 
-    // Prepare data to save
+    // Prepare the form data to be saved in Firestore
+    // Use the correct field names as per your Firestore structure
+    // Ensure that the keys match your Firestore document structure
     Map<String, dynamic> formData = {
       'name': nameController.text,
       'company': companyController.text,
@@ -239,17 +311,19 @@ List<bool> contactFieldValidity = [];
           ? widget.createdBy // If User, store the original creator
           : "${widget.firstName} ${widget.lastName}", // Otherwise, store current user
       'selectedScheduleTime': widget.selectedScheduleTime,
-      'signature_url': signatureUrl, // Save signature URL
+      'signature_url': signatureUrl,
     };
 
-    // If the role is "User", add `attendanceCreator`
+    // If the role is "User", add `attendanceCreator` field name
     if (widget.roles == "User") {
       formData['attendanceCreator'] = "${widget.firstName} ${widget.lastName}";
     }
 
     // Save form data to Firestore
+    // Ensure the collection name is attendance
     await FirebaseFirestore.instance.collection('attendance').add(formData);
 
+    // Show a success message to the user
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Form submitted successfully!")),
     );
@@ -258,50 +332,56 @@ List<bool> contactFieldValidity = [];
     nameController.clear();
     companyController.clear();
     emailAddController.clear();
+    // Clear all contact number fields after submission
     for (var controller in contactControllers) {
       controller.dispose();
     }
 
-// Reset to one empty contact field
+    // Reset to one empty contact field after submission
     setState(() {
       contactControllers = [TextEditingController()];
     });
 
+    // Clear the signature controller after submission
     _signatureController.clear();
   }
 
+  // Upload the signature image to Supabase and return the public URL
   Future<String?> _uploadToSupabase(Uint8List imageBytes) async {
+    // Ensure the Supabase client is initialized
     try {
+      // Check if Supabase client is initialized
       final client = Supabase.instance.client;
       final String fileName =
           "signature_${DateTime.now().millisecondsSinceEpoch}.png";
-
-      print("🚀 Uploading signature: $fileName");
-
+      
+      // Upload the image to Supabase storage 
       final response = await client.storage
-          .from("signatures") // Ensure this is the correct bucket
+          .from("signatures") // This is the bucket Name
+          // Specify the file name and the image bytes
           .uploadBinary(fileName, imageBytes,
               fileOptions: const FileOptions(upsert: true));
 
-      print("📂 Upload Response: $response");
-
       // CHECK IF UPLOAD FAILED
       if (response.isEmpty) {
-        print("❌ Supabase upload failed: No file path returned.");
+        // Handle the error if the upload failed
         return null;
       }
 
+      // Get the public URL of the uploaded file
       final String publicUrl =
           client.storage.from("signatures").getPublicUrl(fileName);
-      print("✅ Upload successful: $publicUrl");
-
+      // Check if the public URL is empty
       return publicUrl;
+      // Handle the error if the public URL is empty
     } catch (e) {
-      print("❌ Error uploading to Supabase: $e");
       return null;
     }
   }
 
+  // Format the date and time
+  // to a more readable format
+  // Example: "January 1, 2023 at 12:00 PM"
   String formatDateTime(DateTime dateTime) {
     return DateFormat("MMMM d, yyyy 'at' h:mm a").format(dateTime);
   }
@@ -501,6 +581,7 @@ List<bool> contactFieldValidity = [];
                                 icon: Icon(Icons.add_circle_outline,
                                     color: Colors
                                         .blue), // Size and color of the icon
+                                        // This will Trigger the addNewContactField function
                                 onPressed:
                                     addNewContactField, // Add new contact when pressed
                               )
@@ -508,6 +589,7 @@ List<bool> contactFieldValidity = [];
                                 icon: Icon(Icons.remove_circle_outline,
                                     color: Colors
                                         .red), // Remove icon for subsequent fields
+                                        // This will Trigger the removeContactField function
                                 onPressed: () {
                                   removeContactField(
                                       index); // Remove specific contact field
@@ -538,6 +620,7 @@ List<bool> contactFieldValidity = [];
                           ),
                           backgroundColor: WidgetStateProperty.all(Colors.blue),
                         ),
+                        // This will Trigger the submitForm function
                         onPressed: submitForm,
                         child: Text(
                           "Submit",

@@ -19,9 +19,14 @@ class _UserManagementState extends State<UserManagement> {
   Timer? _debounce;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  // Holds the currently selected role from the dropdown (default is '---')
   String selectedRoles = '---';
 
+  // List to store department names fetched from Firestore
   List<String> departmentList = [];
+
+  // Holds the currently selected department from the dropdown
   String? selectedDepartment;
 
   // Search and pagination variables
@@ -33,6 +38,8 @@ class _UserManagementState extends State<UserManagement> {
   List<DocumentSnapshot> _filteredUsers = [];
   bool _isLoading = true;
 
+  // Map that defines the display name of roles and their corresponding internal role identifiers
+// Used to map the human-readable role names to the backend-recognized role keys
   final Map<String, String> rolesMap = {
     '---': '',
     'Super User': 'Superuser',
@@ -42,6 +49,9 @@ class _UserManagementState extends State<UserManagement> {
     'User': 'User'
   };
 
+  // The initState method is called once when the widget is first inserted into the widget tree.
+// Inside it, we call _fetchDepartments() to immediately fetch and prepare the list of departments
+// from Firestore as soon as the screen loads, ensuring the dropdowns or selections are populated early.
   @override
   void initState() {
     super.initState();
@@ -84,7 +94,12 @@ class _UserManagementState extends State<UserManagement> {
     }
   }
 
-  // Function to fetch department references
+  // This function fetches the list of available departments from Firestore.
+// It first looks inside the 'categories' collection to find the document where 'name' is 'Department'.
+// Then, it accesses the 'references' subcollection under that department document.
+// It filters out any references that are marked as deleted ('isDeleted' == false).
+// Finally, it extracts the names of the departments and updates the local 'departmentList' state.
+// If any error occurs during this process, it prints an error message to the console.
   Future<void> _fetchDepartments() async {
     try {
       QuerySnapshot categorySnapshot = await FirebaseFirestore.instance
@@ -342,6 +357,11 @@ class _UserManagementState extends State<UserManagement> {
     );
   }
 
+  // This is a showdialog box where if you click the Check Icon it will open this and it will show two DropDown
+  // in the Dropdown you can select what kind role you will give to the registered user
+  // and the other Dropdown is for the Department
+  // if you click the cancel it will close the showdialog box
+  // if you click the confirm it will triggered the method for _approveUsers
   void _showDialog(BuildContext context, DocumentSnapshot user) {
     showDialog(
       context: context,
@@ -434,7 +454,9 @@ class _UserManagementState extends State<UserManagement> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     ElevatedButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () =>
+                            // this will close the showdialog box
+                            Navigator.pop(context),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red,
                           shape: RoundedRectangleBorder(
@@ -454,7 +476,9 @@ class _UserManagementState extends State<UserManagement> {
                             return;
                           }
 
+                          // this will close the showDialog Box
                           Navigator.pop(context);
+                          // This will triggered the _approveUser and passing the user
                           _approveUser(user);
                         },
                         style: ElevatedButton.styleFrom(
@@ -487,7 +511,9 @@ class _UserManagementState extends State<UserManagement> {
           content: Text(message),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () =>
+                  // This will close the ShowErrorDialog
+                  Navigator.pop(context),
               child: Text('OK'),
             ),
           ],
@@ -496,6 +522,7 @@ class _UserManagementState extends State<UserManagement> {
     );
   }
 
+  // This is a showdialog Box for rejecting a registere user
   void _showDialogReject(String userId) {
     showDialog(
         context: context,
@@ -506,7 +533,9 @@ class _UserManagementState extends State<UserManagement> {
             actions: [
               Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
                 ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () =>
+                      // This will close the ShowDialogBox
+                      Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                     shape: RoundedRectangleBorder(
@@ -520,7 +549,9 @@ class _UserManagementState extends State<UserManagement> {
                 ),
                 ElevatedButton(
                   onPressed: () {
+                    // This will triggered the _rejectUser and it passing the userID
                     _rejectUser(userId);
+                    // This is closing the showdialogbox
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
@@ -540,6 +571,17 @@ class _UserManagementState extends State<UserManagement> {
         });
   }
 
+  // This function handles the approval process for a pending user registration.
+// It performs the following steps:
+// 1. Retrieves the user's email and encrypted password from the Firestore document.
+// 2. Decrypts the password using a helper function.
+// 3. Initializes a temporary Firebase app instance to create a new user account without affecting the current admin session.
+// 4. Creates a new user in Firebase Authentication using the decrypted credentials.
+// 5. Updates the Firestore document with the new user's UID, sets their status to 'active', assigns the selected role and department, and removes the password field for security.
+// 6. Logs the approval action in the audit trail.
+// 7. Displays a success toast notification to inform the admin of the successful operation.
+// 8. Ensures cleanup by deleting the temporary Firebase app instance, regardless of success or failure.
+// If any errors occur during this process, an error toast notification is displayed to inform the admin.
   Future<void> _approveUser(DocumentSnapshot user) async {
     try {
       String email = user["email"];
@@ -622,6 +664,18 @@ class _UserManagementState extends State<UserManagement> {
     }
   }
 
+  // This function handles rejecting a user from the system.
+  // Steps:
+  // 1. Fetch the user document from Firestore using the provided userId.
+  // 2. If the user document does not exist, show an error notification.
+  // 3. If the user exists, retrieve their email from the document.
+  // 4. Check if the email is linked to any sign-in methods (registered in Firebase Authentication).
+  // 5. If the user is found in Firebase Auth and matches the email, delete the user from Firebase Authentication.
+  // 6. Instead of fully deleting from Firestore, mark the user document as "deleted"
+  //    by setting "isDeleted" to true and recording the "deletedAt" timestamp (soft delete).
+  // 7. Log the rejection action in the audit trail for record-keeping.
+  // 8. Show a toast notification indicating the user has been rejected.
+  // 9. If any error occurs during the process, show an error toast message.
   void _rejectUser(String userId) async {
     try {
       // Find the user document by userId

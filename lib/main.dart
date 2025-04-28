@@ -1,5 +1,4 @@
 import 'package:attendance_app/404.dart';
-import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_dashoard.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/sidebar_provider.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/su_address_provider.dart';
 import 'package:attendance_app/edit_mode_provider.dart';
@@ -7,38 +6,50 @@ import 'package:attendance_app/firebase_options.dart';
 import 'package:attendance_app/form/form.dart';
 import 'package:attendance_app/Auth/Persistent.dart';
 import 'package:attendance_app/Auth/login.dart';
-import 'package:attendance_app/head/splashscreen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
+  // Ensure that plugin services are initialized before running the app.
+  // This is necessary for plugins that require platform-specific initialization.
+  // For example, Firebase and Supabase require this to set up their services.
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase services.
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  await Supabase.initialize(
-    url: 'https://yvzrahtqpzwzawbzdeym.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2enJhaHRxcHp3emF3YnpkZXltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NTAwNDAsImV4cCI6MjA1NzQyNjA0MH0.UOxsh2Zif4Fq72MJhWfS1MAtGqg_w8w5c8DsmkaP8DI');
 
+  // Initialize Supabase services.
+  await Supabase.initialize(
+      url: 'https://yvzrahtqpzwzawbzdeym.supabase.co',
+      anonKey:
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2enJhaHRxcHp3emF3YnpkZXltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NTAwNDAsImV4cCI6MjA1NzQyNjA0MH0.UOxsh2Zif4Fq72MJhWfS1MAtGqg_w8w5c8DsmkaP8DI');
+
+  // Set Firebase authentication persistence to LOCAL.
+  // This means that the user's authentication state will be persisted even after the app is closed.
+  // This is useful for keeping users logged in across app restarts.
+  // The persistence can be set to LOCAL, SESSION, or NONE.
+  // LOCAL: The user's authentication state will be persisted even after the app is closed.
   await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
 
-  runApp(MultiProvider(
-    providers: [
-      ChangeNotifierProvider(create: (context) => EditModeProvider(),),
-      ChangeNotifierProvider(create: (_) => AddressProvider()),
-      ChangeNotifierProvider(create: (_) => SidebarProvider()),
-    ],
-    child: MyApp()));
-  _hideBar();
+  runApp(
+    //multiprovider is used to provide multiple providers to the widget tree 
+    //it is like a global variable but it is disposable to reduce memory leak.
+    MultiProvider(providers: [
+    ChangeNotifierProvider(
+      create: (context) => EditModeProvider(),
+    ),
+    ChangeNotifierProvider(create: (_) => AddressProvider()),
+    ChangeNotifierProvider(create: (_) => SidebarProvider()),
+  ], child: MyApp())
+  );
+  
 }
 
-Future _hideBar() async {
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
-}
 
 class MyApp extends StatelessWidget {
   MyApp({super.key});
@@ -53,38 +64,39 @@ class MyApp extends StatelessWidget {
     );
   }
 
-  /// **Route Handler Function**
+  /// Handles route generation based on the incoming route settings.
   Route<dynamic> _generateRoute(RouteSettings settings) {
     Uri uri = Uri.parse(settings.name ?? "/");
 
+    /// - If the route is '/', navigates to Login page.
     switch (uri.path) {
       case '/':
         return MaterialPageRoute(builder: (context) => const Login());
 
+      /// - If the route is '/attendance_form', validates expiry time and opens AttendanceForm page.
       case '/attendance_form':
         return _handleAttendanceFormRoute(uri);
 
+      /// - For any unknown routes, navigates to NotFoundPage.
       default:
         return MaterialPageRoute(builder: (context) => const NotFoundPage());
     }
   }
 
-  /// **Handles the `/attendance_form` route safely**
+  /// **Handles the `/attendance_form` route**
   MaterialPageRoute _handleAttendanceFormRoute(Uri uri) {
-    // Parse expiry time and validate
+    /// - Extracts and validates important parameters like `expiryTime` and `selectedScheduleTime`.
     int expiryTime = int.tryParse(uri.queryParameters['expiryTime'] ?? "") ?? 0;
     int currentTime = DateTime.now().millisecondsSinceEpoch;
     int selectedScheduleTime =
         int.tryParse(uri.queryParameters['selectedScheduleTime'] ?? "") ?? 0;
 
-    print("Schedule Appointment Time: $selectedScheduleTime");
-
-    print("Extracted expiryTime: $expiryTime, Current Time: $currentTime");
-
+    /// - If the form link is expired (expiryTime < currentTime), redirects to NotFoundPage.
     if (expiryTime == 0 || expiryTime < currentTime) {
       return MaterialPageRoute(builder: (context) => const NotFoundPage());
     }
 
+    /// - If valid, passes all query parameters to the AttendanceForm widget.
     return MaterialPageRoute(
       builder: (context) => AttendanceForm(
         selectedScheduleTime: selectedScheduleTime,

@@ -236,6 +236,7 @@ class _InternalUsersState extends State<InternalUsers> {
                       ),
                       SizedBox(width: screenWidth / 100),
                       GestureDetector(
+                        // This will trigger the updateItemsPerPage method
                         onTap: updateItemsPerPage,
                         child: Container(
                           width: screenWidth / 23,
@@ -269,6 +270,19 @@ class _InternalUsersState extends State<InternalUsers> {
                 padding: EdgeInsets.symmetric(horizontal: screenWidth / 90),
                 child: widget.selectedAgenda.isEmpty
                     ? Center(child: Text("No appointment selected"))
+                    // This StreamBuilder listens to real-time updates from the 'appointment' collection in Firestore. 
+// It filters appointments by the selected agenda (from `widget.selectedAgenda`) and by a status of "Completed".
+// If the snapshot does not contain any data or the list of documents is empty, a message is displayed stating that 
+// no appointments matching the given agenda are found.
+// Once data is available, the code retrieves the first document from the snapshot and extracts the appointment data 
+// into a Map<String, dynamic> for easier handling.
+// It checks whether the 'internal_users' field exists and is a list. If this condition is met, 
+// it assigns the list of internal users to the `allUsers` variable. The `filterUsers()` function is called to
+// If no internal users are found in the appointment, the UI displays a message indicating that no users exist for 
+// this appointment.
+// Next, the code retrieves the items to be displayed on the current page using the `getCurrentPageItems()` function.
+// If the current page has no items and the search query is not empty, a message is shown to indicate that no users 
+// match the search. If there are no items but no search query is entered, a message is displayed saying "No users on this page".
                     : StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance
                             .collection('appointment')
@@ -440,7 +454,9 @@ class _InternalUsersState extends State<InternalUsers> {
                                       // Previous page button
                                       IconButton(
                                         icon: Icon(Icons.chevron_left),
-                                        onPressed: currentPage > 1
+                                        onPressed:
+                                        // This is Pagination
+                                         currentPage > 1
                                             ? () =>
                                                 setState(() => currentPage--)
                                             : null,
@@ -528,7 +544,9 @@ class _InternalUsersState extends State<InternalUsers> {
                                       // Next page button
                                       IconButton(
                                         icon: Icon(Icons.chevron_right),
-                                        onPressed: currentPage < totalPages
+                                        onPressed: 
+                                        // This is Pagination
+                                        currentPage < totalPages
                                             ? () =>
                                                 setState(() => currentPage++)
                                             : null,

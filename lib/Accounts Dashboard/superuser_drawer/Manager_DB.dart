@@ -11,6 +11,14 @@ class ManagerDB extends StatefulWidget {
 }
 
 class _ManagerDBState extends State<ManagerDB> {
+    // The fetchFirestoreData method fetches data from multiple Firestore collections and returns it as a map.
+  // It takes an optional 'lastSync' parameter, which is used to filter documents that have been updated after a specific timestamp.
+  // The method iterates over a predefined list of collection names (appointment, attendance, audit_logs, categories, clients, and users).
+  // For collections like appointment, attendance, and audit_logs, it filters the data based on the 'updatedAt' field to only fetch records
+  // that have been modified since the provided lastSync timestamp. 
+  // After fetching the data from each collection, the method processes each document by including the document ID and converting 
+  // any Timestamp or DateTime fields to ISO8601 string format. Finally, the data is stored in a map, where the keys are collection names 
+  // and the values are lists of processed documents, which are then returned.
   Future<Map<String, List<Map<String, dynamic>>>> fetchFirestoreData(
       DateTime? lastSync) async {
     final firestore = FirebaseFirestore.instance;
@@ -59,6 +67,14 @@ class _ManagerDBState extends State<ManagerDB> {
     return allData;
   }
 
+   // The syncToMongoDB method synchronizes data from Firestore to MongoDB via an API.
+  // First, it retrieves the last sync timestamp from a server endpoint ('http://localhost:3000/last-sync'). 
+  // If the timestamp is found and valid, it is parsed into a DateTime object; otherwise, the lastSync variable remains null.
+  // Next, it calls the fetchFirestoreData method to retrieve the data from Firestore, optionally filtered by the last sync time.
+  // The method then determines whether this is the first sync by checking if lastSync is null.
+  // After fetching the data, the method sends the data to the server by making a POST request to 'http://localhost:3000/sync'.
+  // The request includes whether it's the first sync and the Firestore data in the request body.
+  // If the sync is successful (status code 200), a Snackbar with a success message is shown; otherwise, a failure message is displayed.
   Future<void> syncToMongoDB() async {
     final lastSyncRes =
         await http.get(Uri.parse('http://localhost:3000/last-sync'));
@@ -84,10 +100,10 @@ class _ManagerDBState extends State<ManagerDB> {
     );
 
     if (syncResponse.statusCode == 200) {
-      print('Sync successful!');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Sync successful!"),));
     } else {
-      print('Failed to sync!');
-    }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to sync!"),));
+  }
   }
 
   @override
@@ -139,6 +155,7 @@ class _ManagerDBState extends State<ManagerDB> {
                   ),
                 ),
                 onPressed: () {
+                  // This will Triggered the syncToMongoDB it will reset the firestore and backup the data in the MongoDb
                   syncToMongoDB();
                 },
                 child: Text('Delete & Transfer to MongoDB',style: TextStyle(
