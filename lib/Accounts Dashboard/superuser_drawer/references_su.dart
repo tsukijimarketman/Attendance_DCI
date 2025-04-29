@@ -1,5 +1,4 @@
-// ignore_for_file: unused_element
-
+import 'dart:async';
 import 'package:attendance_app/Auth/audit_function.dart';
 import 'package:attendance_app/widget/animated_textfield.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -17,228 +16,247 @@ class References extends StatefulWidget {
 class _ReferencesState extends State<References> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   TextEditingController _nameController = TextEditingController();
-  TextEditingController _searchCategoryController = TextEditingController();
   TextEditingController _searchDataController = TextEditingController();
-  TextEditingController _editDataController =
-      TextEditingController(); // Controller for editing data
+  TextEditingController _editDataController = TextEditingController();
 
-  // Store selected category
+  // Default to the "Department" category
   String? selectedCategoryId;
-  String? _selectedDataId; // Track selected data entry
-  String selectedCategoryName = "Select Category";
-  String categorySearchQuery = "";
+  String? _selectedDataId;
   String dataSearchQuery = "";
+
+  // Pagination variables
+  int _currentPage = 1;
+  final int _itemsPerPage = 10;
+  List<DocumentSnapshot> _allDepartments = [];
+  List<DocumentSnapshot> _filteredDepartments = [];
+  Timer? _debounce;
+
+  // Font constants
+  static const String fontRegular = "R";
+  static const String fontMedium = "M";
+  static const String fontSemiBold = "SB";
+  static const String fontBold = "B";
+  static const String fontBlack = "BL";
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch the Department category ID on initialization
+    _fetchDepartmentCategoryId();
+    _searchDataController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchDataController.removeListener(_onSearchChanged);
+    _searchDataController.dispose();
+    _nameController.dispose();
+    _editDataController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  // Search input listener with debounce
+  void _onSearchChanged() {
+    // Cancel the previous timer if it's still active
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+    // Set a new timer for debouncing
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      setState(() {
+        dataSearchQuery = _searchDataController.text.toLowerCase();
+        _filterDepartments();
+        _currentPage = 1; // Reset to first page when search changes
+      });
+    });
+  }
+
+  // This method filters departments based on search criteria
+  void _filterDepartments() {
+    if (dataSearchQuery.isEmpty) {
+      _filteredDepartments = List.from(_allDepartments);
+    } else {
+      _filteredDepartments = _allDepartments.where((department) {
+        String departmentName = department["name"].toString().toLowerCase();
+        return departmentName.contains(dataSearchQuery);
+      }).toList();
+    }
+  }
+
+  // This method returns the items for the current page based on pagination settings
+  List<DocumentSnapshot> _getCurrentPageItems() {
+    final startIndex = (_currentPage - 1) * _itemsPerPage;
+    final endIndex = startIndex + _itemsPerPage;
+
+    if (startIndex >= _filteredDepartments.length) {
+      return [];
+    }
+
+    if (endIndex > _filteredDepartments.length) {
+      return _filteredDepartments.sublist(startIndex);
+    }
+
+    return _filteredDepartments.sublist(startIndex, endIndex);
+  }
+
+  // This getter calculates the total number of pages needed
+  int get _totalPages {
+    return (_filteredDepartments.length / _itemsPerPage).ceil();
+  }
+
+  Future<void> _fetchDepartmentCategoryId() async {
+    try {
+      QuerySnapshot categorySnapshot = await _firestore
+          .collection("categories")
+          .where("name", isEqualTo: "Department")
+          .limit(1)
+          .get();
+
+      if (categorySnapshot.docs.isNotEmpty) {
+        setState(() {
+          selectedCategoryId = categorySnapshot.docs.first.id;
+        });
+      } else {
+        // Create Department category if it doesn't exist
+        DocumentReference newCategoryRef =
+            await _firestore.collection("categories").add({
+          "name": "Department",
+          "timestamp": FieldValue.serverTimestamp(),
+        });
+        setState(() {
+          selectedCategoryId = newCategoryRef.id;
+        });
+      }
+    } catch (e) {
+      _showErrorToast("Error initializing departments: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Get screen dimensions for responsive layout
     double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;
 
     return SafeArea(
       child: Container(
-        padding: EdgeInsets.all(10),
-        child: Row(
+        width: screenWidth,
+        height: screenHeight,
+        padding: EdgeInsets.symmetric(
+            horizontal: screenWidth * 0.02,
+            vertical: screenWidth / 80), // Responsive padding
+        child: Column(
           children: [
-            // Category List Section
-            Expanded(
-              child: SizedBox(
-                width: screenWidth / 2.2,
-                height: screenHeight / 1.1,
-                child: Card(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: 10),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 15),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Category List',
-                              style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.w600),
+            Container(
+              width: screenWidth,
+              height: screenWidth / 25,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: screenWidth / 200),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text("Department Management",
+                            style: TextStyle(
+                                fontSize:
+                                    MediaQuery.of(context).size.width / 41,
+                                fontFamily: "BL",
+                                fontWeight: FontWeight.bold,
+                                color: Color.fromARGB(255, 11, 55, 99))),
+                        ElevatedButton.icon(
+                          icon: Icon(Icons.add, color: Colors.white),
+                          label: Text(
+                            'Add Department',
+                            style: TextStyle(
+                              fontFamily: fontMedium,
+                              color: Colors.white,
                             ),
-                            /// This is the add Category Icon Button where you can use this if you want to add new Category on the system
-                            /// Just UNCOMMENT this code and the MEthod and you will be having a function for adding a Cateogry
-                            // TextButton(
-                            //   style: ButtonStyle(
-                            //     backgroundColor:
-                            //         MaterialStateProperty.all(Colors.amber),
-                            //     shape: MaterialStateProperty.all(
-                            //         RoundedRectangleBorder(
-                            //       borderRadius: BorderRadius.circular(10),
-                            //     )),
-                            //   ),
-                            //   onPressed: () => _showDialogAddCategory(context),
-                            //   child: Text(
-                            //     'Add Category',
-                            //     style: TextStyle(
-                            //         fontSize: 12, color: Colors.black),
-                            //   ),
-                            // ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: 10),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 15),
-                        child: CupertinoTextField(
-                          controller: _searchCategoryController,
-                          placeholder: 'Search Categories',
-                          prefix: Padding(
-                            padding: EdgeInsets.only(left: 10),
-                            child: Icon(Icons.search, color: Colors.grey),
                           ),
-                          onChanged: (value) {
-                            setState(() {
-                              categorySearchQuery = value.toLowerCase();
-                            });
-                          },
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(10),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                const Color.fromARGB(255, 11, 55, 99),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: screenWidth * 0.015,
+                              vertical: screenHeight * 0.01,
+                            ),
                           ),
+                          onPressed: () => _showDialogAddData(context),
                         ),
-                      ),
-                      Expanded(
-                        child: StreamBuilder(
-                          // This StreamBuilder listens for real-time updates from Firestore for the "categories" collection. 
-                          // It handles different states such as showing a loading indicator while waiting for data or displaying 
-                          // a message when no categories are available. Once data is available, the list of categories is filtered 
-                          // based on the search query provided by the user. If no matching categories are found, a message is shown 
-                          // indicating this. The StreamBuilder ensures the UI is automatically updated with the latest data, 
-                          // creating a dynamic and responsive user experience. It efficiently handles and displays categories, 
-                          // updating the list based on the search query and presenting the results in a ListView.
-                          stream:
-                              _firestore.collection("categories").snapshots(),
-                          builder:
-                              (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return Center(child: CircularProgressIndicator());
-                            }
-                            if (!snapshot.hasData ||
-                                snapshot.data!.docs.isEmpty) {
-                              return Center(
-                                  child: Text("No categories available."));
-                            }
-
-                            var filteredCategories =
-                                snapshot.data!.docs.where((doc) {
-                              var categoryName =
-                                  doc["name"].toString().toLowerCase();
-                              return categoryName.contains(categorySearchQuery);
-                            }).toList();
-
-                            if (filteredCategories.isEmpty) {
-                              return Center(
-                                  child: Text("No matching categories."));
-                            }
-
-                            return ListView.builder(
-                              itemCount: filteredCategories.length,
-                              itemBuilder: (context, index) {
-                                var category = filteredCategories[index];
-                                return ListTile(
-                                  title: Text(category["name"]),
-                                  tileColor: selectedCategoryId == category.id
-                                      ? Colors.grey[300]
-                                      : null,
-                                  onTap: () {
-                                    setState(() {
-                                      selectedCategoryId = category.id;
-                                      selectedCategoryName = category["name"];
-                                    });
-                                  },
-                                  // this is the Icon For Deleting a Category you can UNCOMMENT this to bring the function back
-                                  // trailing: IconButton(
-                                  //   icon: Icon(Icons.delete, color: Colors.red),
-                                  //   onPressed: () =>
-                                  //       _deleteCategory(category.id),
-                                  // ),
-                                );
-                              },
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                    Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: screenHeight / 120),
+                      decoration: BoxDecoration(
+                          border: Border(
+                              bottom: BorderSide(
+                                  color: Color.fromARGB(255, 11, 55, 99),
+                                  width: 2))),
+                    ),
+                  ],
                 ),
               ),
             ),
-
-            // Data List Section
-            Expanded(
-              child: SizedBox(
-                width: screenWidth / 2.2,
-                height: screenHeight / 1.1,
-                child: Card(
+            SizedBox(height: screenWidth / 180), // Responsive spacing
+            Container(
+              width: screenWidth,
+              height: screenWidth / 2.65,
+              child: Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(height: 10),
+                      // Search Bar
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 15),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Data List (${selectedCategoryName})',
-                              style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.w600),
-                            ),
-                            TextButton(
-                              style: ButtonStyle(
-                                backgroundColor:
-                                    MaterialStateProperty.all(const Color.fromARGB(255, 11, 55, 99),),
-                                shape: MaterialStateProperty.all(
-                                    RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                )),
-                              ),
-                              onPressed: () => _showDialogAddData(context),
-                              child: Text(
-                                'Add Data',
-                                style: TextStyle(
-                                    fontSize: 12, color: Colors.white),
-                              ),
-                            ),
-                          ],
+                        padding: EdgeInsets.symmetric(
+                          horizontal: screenWidth * 0.03,
+                          vertical: screenHeight * 0.01,
                         ),
-                      ),
-                      SizedBox(height: 10),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 15),
-                        child: CupertinoTextField(
-                          controller: _searchDataController,
-                          placeholder: 'Search Data',
-                          prefix: Padding(
-                            padding: EdgeInsets.only(left: 10),
-                            child: Icon(Icons.search, color: Colors.grey),
-                          ),
-                          onChanged: (value) {
-                            setState(() {
-                              dataSearchQuery = value.toLowerCase();
-                            });
-                          },
+                        child: Container(
                           decoration: BoxDecoration(
                             color: Colors.grey[200],
                             borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: CupertinoTextField(
+                            controller: _searchDataController,
+                            placeholder: 'Search Departments',
+                            prefix: Padding(
+                              padding: EdgeInsets.only(left: 10),
+                              child: Icon(Icons.search, color: Colors.grey),
+                            ),
+                            padding: EdgeInsets.symmetric(
+                              vertical: screenHeight * 0.015,
+                              horizontal: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            style: TextStyle(
+                              fontFamily: fontRegular,
+                              fontSize: screenWidth * 0.01 > 16
+                                  ? 16
+                                  : screenWidth * 0.01 < 12
+                                      ? 12
+                                      : screenWidth * 0.01,
+                            ),
                           ),
                         ),
                       ),
+
+                      // Department List
                       Expanded(
                         child: StreamBuilder(
-                          // This StreamBuilder listens for real-time updates from Firestore for the "references" collection 
-                          // under the selected category. It filters out documents where 'isDeleted' is true. When data is 
-                          // available, it checks for any search query and filters the list of references based on the 'name' field. 
-                          // If no matching data is found, a message is displayed to inform the user. The StreamBuilder ensures 
-                          // that the UI is updated automatically when data changes, providing a dynamic experience for the user. 
-                          // It handles different states, such as showing a loading indicator while waiting for data, displaying 
-                          // a message when there is no data, and rendering a list of filtered results when data is available. 
-                          // Additionally, the code checks whether each reference is selected based on the current selection.
                           stream: selectedCategoryId != null
                               ? _firestore
                                   .collection("categories")
@@ -251,76 +269,301 @@ class _ReferencesState extends State<References> {
                               (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                             if (snapshot.connectionState ==
                                 ConnectionState.waiting) {
-                              return Center(child: CircularProgressIndicator());
+                              return Center(
+                                child: CircularProgressIndicator(
+                                  color: const Color.fromARGB(255, 11, 55, 99),
+                                ),
+                              );
                             }
+
                             if (!snapshot.hasData ||
                                 snapshot.data!.docs.isEmpty) {
-                              return Center(child: Text("No data available."));
+                              return Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.folder_open,
+                                      size: screenWidth * 0.04,
+                                      color: Colors.grey,
+                                    ),
+                                    SizedBox(height: screenHeight * 0.01),
+                                    Text(
+                                      "No departments available",
+                                      style: TextStyle(
+                                        fontFamily: fontMedium,
+                                        fontSize: screenWidth * 0.012,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
                             }
 
-                            // Filter data based on the search query
-                            var filteredData = snapshot.data!.docs.where((doc) {
-                              var dataName =
-                                  doc["name"].toString().toLowerCase();
-                              return dataName.contains(dataSearchQuery);
-                            }).toList();
+                            // Update all departments when data changes
+                            _allDepartments = snapshot.data!.docs;
 
-                            if (filteredData.isEmpty) {
-                              return Center(child: Text("No matching data."));
+                            // Apply filtering based on search query
+                            if (dataSearchQuery.isEmpty) {
+                              _filteredDepartments = _allDepartments;
+                            } else {
+                              _filterDepartments();
                             }
 
-                            return ListView.builder(
-                              itemCount: filteredData.length,
-                              itemBuilder: (context, index) {
-                                var data = filteredData[index];
-                                bool isSelected = _selectedDataId == data.id;
+                            // Get current page items
+                            final currentPageItems = _getCurrentPageItems();
 
-                                return ListTile(
-                                  title: Text(
-                                    data["name"],
-                                    style: TextStyle(
-                                      fontWeight: isSelected
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                      color: isSelected
-                                          ? Colors.black
-                                          : Colors.black, // Highlight color
+                            if (_filteredDepartments.isEmpty) {
+                              return Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.search_off,
+                                      size: screenWidth * 0.04,
+                                      color: Colors.grey,
+                                    ),
+                                    SizedBox(height: screenHeight * 0.01),
+                                    Text(
+                                      "No departments matching your search",
+                                      style: TextStyle(
+                                        fontFamily: fontMedium,
+                                        fontSize: screenWidth * 0.012,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+
+                            return Column(
+                              children: [
+                                Expanded(
+                                  child: Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: screenWidth * 0.02,
+                                      vertical: screenHeight * 0.01,
+                                    ),
+                                    child: ListView.separated(
+                                      itemCount: currentPageItems.length,
+                                      separatorBuilder: (context, index) =>
+                                          Divider(
+                                        color: Colors.grey.shade300,
+                                        height: 1,
+                                      ),
+                                      itemBuilder: (context, index) {
+                                        var data = currentPageItems[index];
+                                        bool isSelected =
+                                            _selectedDataId == data.id;
+
+                                        return Container(
+                                          decoration: BoxDecoration(
+                                            color: isSelected
+                                                ? const Color.fromARGB(
+                                                        255, 11, 55, 99)
+                                                    .withOpacity(0.1)
+                                                : Colors.transparent,
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          child: ListTile(
+                                            contentPadding:
+                                                EdgeInsets.symmetric(
+                                              horizontal: screenWidth * 0.02,
+                                              vertical: screenHeight * 0.005,
+                                            ),
+                                            title: Text(
+                                              data["name"],
+                                              style: TextStyle(
+                                                fontFamily: isSelected
+                                                    ? fontSemiBold
+                                                    : fontRegular,
+                                                fontSize: screenWidth * 0.012 >
+                                                        18
+                                                    ? 18
+                                                    : screenWidth * 0.012 < 14
+                                                        ? 14
+                                                        : screenWidth * 0.012,
+                                                color: isSelected
+                                                    ? const Color.fromARGB(
+                                                        255, 11, 55, 99)
+                                                    : Colors.black87,
+                                              ),
+                                            ),
+                                            onTap: () {
+                                              setState(() {
+                                                _selectedDataId =
+                                                    isSelected ? null : data.id;
+                                              });
+                                            },
+                                            trailing: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                if (isSelected) ...[
+                                                  IconButton(
+                                                    icon: Icon(
+                                                      Icons.edit_rounded,
+                                                      color:
+                                                          const Color.fromARGB(
+                                                              255, 11, 55, 99),
+                                                      size: screenWidth *
+                                                                  0.012 >
+                                                              24
+                                                          ? 24
+                                                          : screenWidth *
+                                                                      0.012 <
+                                                                  16
+                                                              ? 16
+                                                              : screenWidth *
+                                                                  0.012,
+                                                    ),
+                                                    onPressed: () =>
+                                                        _showEditDialog(data.id,
+                                                            data["name"]),
+                                                    tooltip: 'Edit Department',
+                                                  ),
+                                                  IconButton(
+                                                    icon: Icon(
+                                                      Icons
+                                                          .delete_outline_rounded,
+                                                      color: Colors.redAccent,
+                                                      size: screenWidth *
+                                                                  0.012 >
+                                                              24
+                                                          ? 24
+                                                          : screenWidth *
+                                                                      0.012 <
+                                                                  16
+                                                              ? 16
+                                                              : screenWidth *
+                                                                  0.012,
+                                                    ),
+                                                    onPressed: () =>
+                                                        _showdialogDeleteData(
+                                                            data.id),
+                                                    tooltip:
+                                                        'Delete Department',
+                                                  ),
+                                                ] else
+                                                  Icon(
+                                                    Icons.keyboard_arrow_right,
+                                                    color: Colors.grey,
+                                                    size: screenWidth * 0.012 >
+                                                            24
+                                                        ? 24
+                                                        : screenWidth * 0.012 <
+                                                                16
+                                                            ? 16
+                                                            : screenWidth *
+                                                                0.012,
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      },
                                     ),
                                   ),
-                                  tileColor: isSelected
-                                      ? Colors.grey.withOpacity(0.2)
-                                      : null, // Light background for selected
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedDataId =
-                                          isSelected ? null : data.id;
-                                    });
-                                  },
-                                  trailing: isSelected
-                                      ? Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            IconButton(
-                                              icon: Icon(Icons.edit,
-                                                  color: Colors.blue),
-                                              onPressed: () {
-                                                // Thi will show the Dialog Box for Updating the Data in the Categories
-                                                _showEditDialog(
-                                                    data.id, data["name"]);
-                                              },
-                                            ),
-                                            IconButton(
-                                              icon: Icon(Icons.delete,
-                                                  color: Colors.red),
-                                              onPressed: () =>
-                                                  // This will show the Dialog Box for Deleting a Data in the Categories
-                                                  _showdialogDeleteData(data.id),
-                                            ),
-                                          ],
-                                        )
-                                      : null, // Show icons only when selected
-                                );
-                              },
+                                ),
+                                // Pagination info
+                                Padding(
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: screenWidth * 0.02),
+                                  child: Text(
+                                    'Showing ${currentPageItems.length} of ${_filteredDepartments.length} departments',
+                                    style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontSize: screenWidth * 0.01,
+                                      fontFamily: fontRegular,
+                                    ),
+                                  ),
+                                ),
+                                // Pagination controls
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                      vertical: screenHeight * 0.01),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      IconButton(
+                                        icon: Icon(Icons.first_page,
+                                            color: _currentPage > 1
+                                                ? const Color.fromARGB(
+                                                    255, 11, 55, 99)
+                                                : Colors.grey),
+                                        onPressed: _currentPage > 1
+                                            ? () =>
+                                                setState(() => _currentPage = 1)
+                                            : null,
+                                        tooltip: 'First Page',
+                                        iconSize: screenWidth * 0.01 > 20
+                                            ? 20
+                                            : screenWidth * 0.01,
+                                      ),
+                                      IconButton(
+                                        icon: Icon(Icons.chevron_left,
+                                            color: _currentPage > 1
+                                                ? const Color.fromARGB(
+                                                    255, 11, 55, 99)
+                                                : Colors.grey),
+                                        onPressed: _currentPage > 1
+                                            ? () =>
+                                                setState(() => _currentPage--)
+                                            : null,
+                                        tooltip: 'Previous Page',
+                                        iconSize: screenWidth * 0.01 > 20
+                                            ? 20
+                                            : screenWidth * 0.01,
+                                      ),
+                                      Container(
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: screenWidth * 0.01),
+                                        child: Text(
+                                          'Page $_currentPage of $_totalPages',
+                                          style: TextStyle(
+                                            fontFamily: fontMedium,
+                                            fontSize: screenWidth * 0.01,
+                                            color: const Color.fromARGB(
+                                                255, 11, 55, 99),
+                                          ),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: Icon(Icons.chevron_right,
+                                            color: _currentPage < _totalPages
+                                                ? const Color.fromARGB(
+                                                    255, 11, 55, 99)
+                                                : Colors.grey),
+                                        onPressed: _currentPage < _totalPages
+                                            ? () =>
+                                                setState(() => _currentPage++)
+                                            : null,
+                                        tooltip: 'Next Page',
+                                        iconSize: screenWidth * 0.01 > 20
+                                            ? 20
+                                            : screenWidth * 0.01,
+                                      ),
+                                      IconButton(
+                                        icon: Icon(Icons.last_page,
+                                            color: _currentPage < _totalPages
+                                                ? const Color.fromARGB(
+                                                    255, 11, 55, 99)
+                                                : Colors.grey),
+                                        onPressed: _currentPage < _totalPages
+                                            ? () => setState(() =>
+                                                _currentPage = _totalPages)
+                                            : null,
+                                        tooltip: 'Last Page',
+                                        iconSize: screenWidth * 0.01 > 20
+                                            ? 20
+                                            : screenWidth * 0.01,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             );
                           },
                         ),
@@ -336,66 +579,455 @@ class _ReferencesState extends State<References> {
     );
   }
 
-  // This is a show dialog box for the Editing the Data for the Categories
+  // Updated _showDialogAddData method with the new design
+  void _showDialogAddData(BuildContext context) {
+    if (selectedCategoryId == null) {
+      _showErrorToast('Department category not found');
+      return;
+    }
+
+    _nameController.clear();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.0),
+              ),
+              elevation: 8.0,
+              child: Container(
+                height: MediaQuery.of(context).size.width / 5.5,
+                width: MediaQuery.of(context).size.width / 3.5,
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16.0),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Colors.white, Color(0xFFF5F9FF)],
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.business,
+                          color: Color(0xFF0e2643),
+                          size: 28,
+                        ),
+                        SizedBox(width: 10),
+                        Text(
+                          "Add Department",
+                          style: TextStyle(
+                            fontFamily: fontSemiBold,
+                            color: Color(0xFF0e2643),
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 15),
+                    // Content
+                    Container(
+                      padding: EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            spreadRadius: 0,
+                          ),
+                        ],
+                      ),
+                      child: AnimatedTextField(
+                        controller: _nameController,
+                        label: "Department Name",
+                        suffix: null,
+                        readOnly: false,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    // Buttons
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Container(
+                          width: MediaQuery.of(context).size.width / 8,
+                          height: MediaQuery.of(context).size.width / 35,
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(
+                                MediaQuery.of(context).size.width / 170),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                spreadRadius: 0,
+                              ),
+                            ],
+                          ),
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text(
+                              "Cancel",
+                              style: TextStyle(
+                                fontFamily: fontRegular,
+                                fontSize:
+                                    MediaQuery.of(context).size.width / 100,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Container(
+                          width: MediaQuery.of(context).size.width / 8,
+                          height: MediaQuery.of(context).size.width / 35,
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            borderRadius: BorderRadius.circular(
+                                MediaQuery.of(context).size.width / 170),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                spreadRadius: 0,
+                              ),
+                            ],
+                          ),
+                          child: TextButton(
+                            onPressed: () {
+                              _addData();
+                              Navigator.pop(context);
+                            },
+                            child: Text(
+                              "Confirm",
+                              style: TextStyle(
+                                fontFamily: fontRegular,
+                                fontSize:
+                                    MediaQuery.of(context).size.width / 100,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+// Updated _showEditDialog method with the new design
   void _showEditDialog(String dataId, String currentName) {
     _editDataController.text = currentName;
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Edit Data List"),
-          
-          content: AnimatedTextField(
-            controller: _editDataController,
-            label: "Update Name",
-            suffix: null,
-            readOnly: false,
-          ),
-          actions: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                  onPressed: () => 
-                  // This will close the Show Dialog Box
-                  Navigator.pop(context), 
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.0),
+              ),
+              elevation: 8.0,
+              child: Container(
+                height: MediaQuery.of(context).size.width / 5.5,
+                width: MediaQuery.of(context).size.width / 3.5,
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16.0),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Colors.white, Color(0xFFF5F9FF)],
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.edit,
+                          color: Color(0xFF0e2643),
+                          size: 28,
+                        ),
+                        SizedBox(width: 10),
+                        Text(
+                          "Edit Department",
+                          style: TextStyle(
+                            fontFamily: fontSemiBold,
+                            color: Color(0xFF0e2643),
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  child: Text('Cancel', style: TextStyle(color: Colors.white),)),
-                ElevatedButton(
-                  onPressed: (){
-                    // This will triggered the _updateData Method
-                _updateData(dataId, _editDataController.text);
-                // This will Close the Show Dialog Box
-                Navigator.pop(context);},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ), 
-                  ),
-                  child: Text('Confirm', style: TextStyle(color: Colors.white),),
-                )
-              ],
-            ),
-          ],
+                    SizedBox(height: 15),
+                    // Content
+                    Container(
+                      padding: EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            spreadRadius: 0,
+                          ),
+                        ],
+                      ),
+                      child: AnimatedTextField(
+                        controller: _editDataController,
+                        label: "Department Name",
+                        suffix: null,
+                        readOnly: false,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    // Buttons
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Container(
+                          width: MediaQuery.of(context).size.width / 8,
+                          height: MediaQuery.of(context).size.width / 35,
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(
+                                MediaQuery.of(context).size.width / 170),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                spreadRadius: 0,
+                              ),
+                            ],
+                          ),
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text(
+                              "Cancel",
+                              style: TextStyle(
+                                fontFamily: fontRegular,
+                                fontSize:
+                                    MediaQuery.of(context).size.width / 100,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Container(
+                          width: MediaQuery.of(context).size.width / 8,
+                          height: MediaQuery.of(context).size.width / 35,
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            borderRadius: BorderRadius.circular(
+                                MediaQuery.of(context).size.width / 170),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                spreadRadius: 0,
+                              ),
+                            ],
+                          ),
+                          child: TextButton(
+                            onPressed: () {
+                              _updateData(dataId, _editDataController.text);
+                              Navigator.pop(context);
+                            },
+                            child: Text(
+                              "Confirm",
+                              style: TextStyle(
+                                fontFamily: fontRegular,
+                                fontSize:
+                                    MediaQuery.of(context).size.width / 100,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );
   }
 
-  // This function handles the updating of data for a specific reference under the selected category. 
-// It ensures that a category is selected, a valid data ID is provided, and the new name is not empty 
-// before proceeding. The function then updates the reference document in Firestore with the new name. 
-// After the update, an audit trail is logged to track the change. The selected data ID is cleared to 
-// indicate the deselection of the updated data. A success notification is shown to the user upon 
-// successful update, and an error notification is displayed if any issues occur during the process. 
-// This function ensures data consistency while providing feedback to the user.
+// Updated _showdialogDeleteData method with the new design
+  void _showdialogDeleteData(String id) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.0),
+              ),
+              elevation: 8.0,
+              child: Container(
+                height: MediaQuery.of(context).size.width / 5.5,
+                width: MediaQuery.of(context).size.width / 3.5,
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16.0),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Colors.white, Color(0xFFF5F9FF)],
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.delete_forever,
+                          color: Colors.red[700],
+                          size: 28,
+                        ),
+                        SizedBox(width: 10),
+                        Text(
+                          "Delete Department",
+                          style: TextStyle(
+                            fontFamily: fontSemiBold,
+                            color: Colors.red[700],
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 15),
+                    // Content
+                    Container(
+                      padding: EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            spreadRadius: 0,
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        "Are you sure you want to delete this department? This action cannot be undone.",
+                        style: TextStyle(
+                          fontFamily: fontRegular,
+                          fontSize: MediaQuery.of(context).size.width / 90,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    // Buttons
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Container(
+                          width: MediaQuery.of(context).size.width / 8,
+                          height: MediaQuery.of(context).size.width / 35,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[400],
+                            borderRadius: BorderRadius.circular(
+                                MediaQuery.of(context).size.width / 170),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                spreadRadius: 0,
+                              ),
+                            ],
+                          ),
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text(
+                              "Cancel",
+                              style: TextStyle(
+                                fontFamily: fontRegular,
+                                fontSize:
+                                    MediaQuery.of(context).size.width / 100,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Container(
+                          width: MediaQuery.of(context).size.width / 8,
+                          height: MediaQuery.of(context).size.width / 35,
+                          decoration: BoxDecoration(
+                            color: Colors.red[700],
+                            borderRadius: BorderRadius.circular(
+                                MediaQuery.of(context).size.width / 170),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                spreadRadius: 0,
+                              ),
+                            ],
+                          ),
+                          child: TextButton(
+                            onPressed: () {
+                              _deleteData(_selectedDataId!);
+                              Navigator.pop(context);
+                            },
+                            child: Text(
+                              "Delete",
+                              style: TextStyle(
+                                fontFamily: fontRegular,
+                                fontSize:
+                                    MediaQuery.of(context).size.width / 100,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<void> _updateData(String dataId, String newName) async {
     if (selectedCategoryId == null || dataId.isEmpty || newName.trim().isEmpty)
       return;
@@ -408,214 +1040,41 @@ class _ReferencesState extends State<References> {
           .doc(dataId)
           .update({"name": newName});
 
-       await logAuditTrail(
-      "Data Updated",
-      "Updated reference '$dataId' under category '$selectedCategoryId' with new name: $newName"
-    );
+      await logAuditTrail("Department Updated",
+          "Updated department '$dataId' with new name: $newName");
 
       setState(() => _selectedDataId = null); // Deselect after editing
 
-      toastification.show(
-          context: context,
-          alignment: Alignment.topRight,
-          icon: Icon(Icons.check_circle_outline, color: Colors.green),
-          title: Text('Updated Successfully'),
-          description: Text('Data updated successfully'),
-          type: ToastificationType.info,
-          style: ToastificationStyle.flatColored,
-          autoCloseDuration: const Duration(seconds: 3),
-          animationDuration: const Duration(milliseconds: 300),
-        );
-        return;
-      
-    
+      _showSuccessToast('Department updated successfully');
     } catch (e) {
-      toastification.show(
-          context: context,
-          alignment: Alignment.topRight,
-          icon: Icon(Icons.error, color: Colors.red),
-          title: Text('Error'),
-          description: Text('Error updating data: $e'),
-          type: ToastificationType.error,
-          style: ToastificationStyle.flatColored,
-          autoCloseDuration: const Duration(seconds: 3),
-          animationDuration: const Duration(milliseconds: 300),
-        );
-        return;
-      }
-  }
-
-    // This is a Show Dialog box for adding data on the categories
-    void _showDialogAddData(BuildContext context) {
-      // This will check if the selectedCategoryId is null then it will terminate 
-      // but if the selectedCategoryId is not null it will proceed to next step
-    if (selectedCategoryId == null) {
-      return;
+      _showErrorToast('Error updating department: $e');
     }
-      // This will clear the name Text field
-    _nameController.clear();
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Add Data to $selectedCategoryName'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AnimatedTextField(
-                controller: _nameController,
-                label: "Enter Name",
-                suffix: null,
-                readOnly: false,
-              ),
-            ],
-          ),
-          actions: <Widget>[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                  onPressed: () =>
-                   // This will close the Show Dialog Box
-                   Navigator.pop(context), 
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: Text('Cancel', style: TextStyle(color: Colors.white),)),
-                ElevatedButton(
-                  onPressed: (){
-                    //This will triggered the _addData Method
-                _addData();
-                // This will close the ShowDialogBox
-                Navigator.pop(context);},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ), 
-                  ),
-                  child: Text('Confirm', style: TextStyle(color: Colors.white),),
-                )
-              ],
-            ),
-          ],
-        );
-      },
-    );
   }
 
-  // This function is responsible for adding new data under the selected category in Firestore. 
-// It first checks if a category is selected. If a category is selected, it creates a new document 
-// in the "references" sub-collection under the chosen category with the name provided in the input 
-// and a timestamp. After adding the new reference, an audit trail is logged to keep track of the action. 
-// A success notification is displayed to the user if the operation is successful. In case of an error, 
-// an error notification is shown with the appropriate message. This function performs both data 
-// creation and user feedback handling to ensure a smooth experience.
   Future<void> _addData() async {
-    if (selectedCategoryId == null) return;
+    if (selectedCategoryId == null || _nameController.text.trim().isEmpty)
+      return;
 
-   try {
-    // Add new document and capture the reference
-    DocumentReference docRef = await _firestore
-        .collection("categories")
-        .doc(selectedCategoryId)
-        .collection("references")
-        .add({
-      "name": _nameController.text,
-      "timestamp": FieldValue.serverTimestamp(),
-      'isDeleted': false,
-    });
+    try {
+      DocumentReference docRef = await _firestore
+          .collection("categories")
+          .doc(selectedCategoryId)
+          .collection("references")
+          .add({
+        "name": _nameController.text,
+        "timestamp": FieldValue.serverTimestamp(),
+        'isDeleted': false,
+      });
 
-    // ✅ Now docRef is defined, so we can use it in the log
-    await logAuditTrail(
-      "Data Added",
-      "Added new reference '${docRef.id}' under category '$selectedCategoryId' with name: ${_nameController.text}"
-    );
+      await logAuditTrail("Department Added",
+          "Added new department '${docRef.id}' with name: ${_nameController.text}");
 
-    toastification.show(
-          context: context,
-          alignment: Alignment.topRight,
-          icon: Icon(Icons.check_circle_outline, color: Colors.green),
-          title: Text('Created Successfully'),
-          description: Text('Data created successfully'),
-          type: ToastificationType.info,
-          style: ToastificationStyle.flatColored,
-          autoCloseDuration: const Duration(seconds: 3),
-          animationDuration: const Duration(milliseconds: 300),
-        );
-        return;
-      
-    
-
+      _showSuccessToast('Department added successfully');
     } catch (e) {
-      toastification.show(
-          context: context,
-          alignment: Alignment.topRight,
-          icon: Icon(Icons.error, color: Colors.red),
-          title: Text('Error'),
-          description: Text('Error updating data: $e'),
-          type: ToastificationType.error,
-          style: ToastificationStyle.flatColored,
-          autoCloseDuration: const Duration(seconds: 3),
-          animationDuration: const Duration(milliseconds: 300),
-        );
-        return;
+      _showErrorToast('Error adding department: $e');
     }
   }
 
-  // This is a show Dialog box for deleting a data of the categories
-  void _showdialogDeleteData(String id){
-    showDialog(
-      context: context, 
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Delete Data"),
-          content: Text("Are you sure you want to delete this data?"),
-          actions: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                  onPressed: () =>
-                  // This will close the Show Dialog Box for deleting the data of the categories
-                   Navigator.pop(context), 
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: Text('Cancel', style: TextStyle(color: Colors.white),)),
-                ElevatedButton(
-                  onPressed: (){
-                  // This will triggered the _deleteData method 
-                _deleteData(_selectedDataId!);
-                // This will close the Show Dialog Box of the Delete for the data of the Categories
-                Navigator.pop(context);},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ), 
-                  ),
-                  child: Text('Confirm', style: TextStyle(color: Colors.white),),
-                )
-              ],
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // This Method is for Deleting the Data of the Category
-  // 1. it will check if the selectedCategoryId is == null then it will terminate but if the selectedCategoryId is not null it will
-  // check the collection of categories inside of that there is the .doc the name would be the selectedCategoryId inside of that there
-  // is a sub-collection name references with the doc of if it will update the isDeleted fieldname into true it will not idrectly delete
-  // in the firestore it is just deleted in the frontend after that it will show a toastification if the process is success or failed
   Future<void> _deleteData(String id) async {
     if (selectedCategoryId == null) return;
 
@@ -626,103 +1085,56 @@ class _ReferencesState extends State<References> {
           .collection("references")
           .doc(id)
           .update({
-            "isDeleted": true,
-          });
-
-           await logAuditTrail(
-      "Data Deleted",
-      "Deleted reference '$id' under category '$selectedCategoryId'"
-    );
-
-      toastification.show(
-          context: context,
-          alignment: Alignment.topRight,
-          icon: Icon(Icons.check_circle_outline, color: Colors.green),
-          title: Text('Deleted Successfully'),
-          description: Text('Data deleted successfully'),
-          type: ToastificationType.info,
-          style: ToastificationStyle.flatColored,
-          autoCloseDuration: const Duration(seconds: 3),
-          animationDuration: const Duration(milliseconds: 300),
-        );
-        return;
-      
-    
-
-    } catch (e) {
-      toastification.show(
-          context: context,
-          alignment: Alignment.topRight,
-          icon: Icon(Icons.error, color: Colors.red),
-          title: Text('Error'),
-          description: Text('Error updating data: $e'),
-          type: ToastificationType.error,
-          style: ToastificationStyle.flatColored,
-          autoCloseDuration: const Duration(seconds: 3),
-          animationDuration: const Duration(milliseconds: 300),
-        );
-        return;
-      }
-    
-  }
-
-
-  // This is a Show Dialog Box for Adding a Category this will Trigger the method for Adding a Category
-  // Function to show Add Category dialog
-  void _showDialogAddCategory(BuildContext context) {
-    _nameController.clear();
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Add Category'),
-          content: TextField(
-            controller: _nameController,
-            decoration: InputDecoration(labelText: "Enter Name"),
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => 
-              // This will close the show Dialog Box
-              Navigator.pop(context),
-              child: Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                // THis will Triggered the _addCategory
-                _addCategory();
-                // This will close the ShowDialog box
-                Navigator.pop(context);
-              },
-              child: Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // This will not show in the ui But if you need to add new Category you can use this function for Adding new Category in the references
-  // Function to add a new category
-  Future<void> _addCategory() async {
-    try {
-      await _firestore.collection("categories").add({
-        "name": _nameController.text,
-        "timestamp": FieldValue.serverTimestamp(),
+        "isDeleted": true,
       });
+
+      await logAuditTrail("Department Deleted", "Deleted department '$id'");
+
+      setState(() => _selectedDataId = null); // Deselect after deleting
+      _showSuccessToast('Department deleted successfully');
     } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text ("Error: $e")));
-        }
+      _showErrorToast('Error deleting department: $e');
+    }
   }
 
-  // Function to delete a category
-  // This will not show in the ui but if you need to Delete a Category in the reference you can just use this method
-  // To Delete Categories
-  Future<void> _deleteCategory(String id) async {
-    try {
-      await _firestore.collection("categories").doc(id).delete();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
-    }
+  // Toast notifications
+  void _showSuccessToast(String message) {
+    toastification.show(
+      context: context,
+      alignment: Alignment.topRight,
+      icon: Icon(Icons.check_circle_outline, color: Colors.green),
+      title: Text(
+        'Success',
+        style: TextStyle(fontFamily: fontBold),
+      ),
+      description: Text(
+        message,
+        style: TextStyle(fontFamily: fontRegular),
+      ),
+      type: ToastificationType.success,
+      style: ToastificationStyle.flatColored,
+      autoCloseDuration: const Duration(seconds: 3),
+      animationDuration: const Duration(milliseconds: 300),
+    );
+  }
+
+  void _showErrorToast(String message) {
+    toastification.show(
+      context: context,
+      alignment: Alignment.topRight,
+      icon: Icon(Icons.error_outline, color: Colors.white),
+      title: Text(
+        'Error',
+        style: TextStyle(fontFamily: fontBold, color: Colors.white),
+      ),
+      description: Text(
+        message,
+        style: TextStyle(fontFamily: fontRegular, color: Colors.white),
+      ),
+      type: ToastificationType.error,
+      style: ToastificationStyle.flatColored,
+      autoCloseDuration: const Duration(seconds: 3),
+      animationDuration: const Duration(milliseconds: 300),
+    );
   }
 }
