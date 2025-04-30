@@ -464,512 +464,474 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
     final subtitleSize = screenWidth / 70;
     final bodySize = screenWidth / 90;
 
-    return Row(children: [
-      Column(
+    return Padding(
+      padding: EdgeInsets.symmetric(
+          horizontal: MediaQuery.of(context).size.width / 40,
+          vertical: MediaQuery.of(context).size.width / 180),
+      child: Column(
         children: [
+          SizedBox(height: screenWidth / 100),
           Container(
-            width: screenWidth / 3,
-            height: screenWidth / 2.8,
+            width: screenWidth,
+            height: screenHeight / 15,
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: Offset(0, 3),
-                ),
-              ],
-            ),
-            margin: EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  color: Color.fromARGB(255, 11, 55, 99),
-                  height: screenWidth / 25,
-                  width: screenWidth,
-                  child: Center(
-                    child: Text(
-                      "Schedule an Appointment",
-                      style: TextStyle(
-                          fontSize: subtitleSize,
-                          fontFamily: "SB",
-                          color: Colors.white),
+                border: Border(
+                    bottom: BorderSide(
+                        color: Color.fromARGB(255, 11, 55, 99), width: 2))),
+            child: Text("Appointment Details",
+                style: TextStyle(
+                    fontSize: MediaQuery.of(context).size.width / 41,
+                    fontFamily: "BL",
+                    fontWeight: FontWeight.bold,
+                    color: Color.fromARGB(255, 11, 55, 99))),
+          ),
+          SizedBox(height: screenHeight / 60),
+          Expanded(
+            child: Row(children: [
+              Column(
+                children: [
+                  Container(
+                    width: screenWidth / 3,
+                    height: screenWidth / 2.8,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
                     ),
-                  ),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 5),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          "Agenda",
-                          style: TextStyle(
-                            fontFamily: "M",
-                            fontSize: bodySize,
-                            color: Color.fromARGB(255, 11, 55, 99),
-                          ),
-                        ),
-                        SizedBox(height: 8),
                         Container(
-                          height: screenHeight * 0.06,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            color: Colors.white,
-                            border: Border.all(
-                              color: Color.fromARGB(255, 11, 55, 99),
-                              width: 1,
-                            ),
-                          ),
-                          child: TextField(
-                            controller: agendaController,
-                            style: TextStyle(
-                              fontFamily: "R",
-                              fontSize: bodySize,
-                            ),
-                            decoration: InputDecoration(
-                              contentPadding:
-                                  EdgeInsets.symmetric(horizontal: 16),
-                              border: InputBorder.none,
-                              hintText: 'Enter agenda title',
-                              hintStyle: TextStyle(
-                                fontFamily: "R",
-                                color: Colors.grey,
-                              ),
+                          color: Color.fromARGB(255, 11, 55, 99),
+                          height: screenWidth / 25,
+                          width: screenWidth,
+                          child: Center(
+                            child: Text(
+                              "Schedule an Appointment",
+                              style: TextStyle(
+                                  fontSize: subtitleSize,
+                                  fontFamily: "SB",
+                                  color: Colors.white),
                             ),
                           ),
                         ),
-                        SizedBox(height: screenHeight * 0.02),
-
-                        // Description field
-                        Text(
-                          "Description",
-                          style: TextStyle(
-                            fontFamily: "M",
-                            fontSize: bodySize,
-                            color: Color.fromARGB(255, 11, 55, 99),
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Container(
-                          height: screenHeight / 8.5,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            color: Colors.white,
-                            border: Border.all(
-                              color: Color.fromARGB(255, 11, 55, 99),
-                              width: 1,
-                            ),
-                          ),
-                          child: TextField(
-                            controller: descriptionAgendaController,
-                            style: TextStyle(
-                              fontFamily: "R",
-                              fontSize: bodySize,
-                            ),
-                            maxLines: null,
-                            decoration: InputDecoration(
-                              contentPadding: EdgeInsets.all(16),
-                              border: InputBorder.none,
-                              hintText: 'Describe the purpose of this meeting',
-                              hintStyle: TextStyle(
-                                fontFamily: "R",
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: screenHeight * 0.02),
-
-                        // Department field
-                        Text(
-                          "Department",
-                          style: TextStyle(
-                            fontFamily: "M",
-                            fontSize: bodySize,
-                            color: Color.fromARGB(255, 11, 55, 99),
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Container(
-                          height: screenHeight * 0.06,
-                          padding:
-                              EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            color: Colors.grey[100],
-                            border: Border.all(
-                              color: Color.fromARGB(255, 11, 55, 99),
-                              width: 1,
-                            ),
-                          ),
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            departmentController.text.isNotEmpty
-                                ? departmentController.text
-                                : "Loading...",
-                            style: TextStyle(
-                              fontSize: bodySize,
-                              fontFamily: "R",
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: screenHeight * 0.02),
-
-                        // Date & Time picker
-                        Text(
-                          "Date & Time",
-                          style: TextStyle(
-                            fontFamily: "M",
-                            fontSize: bodySize,
-                            color: Color.fromARGB(255, 11, 55, 99),
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        GestureDetector(
-                          onTap: pickScheduleDateTime,
-                          child: Container(
-                            height: screenHeight * 0.06,
+                        Expanded(
+                          child: Padding(
                             padding: EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              color: Colors.white,
-                              border: Border.all(
-                                color: Color.fromARGB(255, 11, 55, 99),
-                                width: 1,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                horizontal: 24, vertical: 5),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  selectedScheduleTime != null
-                                      ? formatDateTime(
-                                          selectedScheduleTime!.toLocal())
-                                      : "Select Date & Time",
+                                  "Agenda",
                                   style: TextStyle(
+                                    fontFamily: "M",
                                     fontSize: bodySize,
-                                    fontFamily: "R",
-                                    color: selectedScheduleTime != null
-                                        ? Colors.black87
-                                        : Colors.grey,
+                                    color: Color.fromARGB(255, 11, 55, 99),
                                   ),
                                 ),
-                                Icon(
-                                  Icons.calendar_today,
-                                  color: Color.fromARGB(255, 11, 55, 99),
-                                  size: bodySize * 1.2,
+                                SizedBox(height: 8),
+                                Container(
+                                  height: screenHeight * 0.06,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    color: Colors.white,
+                                    border: Border.all(
+                                      color: Color.fromARGB(255, 11, 55, 99),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: TextField(
+                                    controller: agendaController,
+                                    style: TextStyle(
+                                      fontFamily: "R",
+                                      fontSize: bodySize,
+                                    ),
+                                    decoration: InputDecoration(
+                                      contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 16),
+                                      border: InputBorder.none,
+                                      hintText: 'Enter agenda title',
+                                      hintStyle: TextStyle(
+                                        fontFamily: "R",
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ),
                                 ),
+                                SizedBox(height: screenHeight * 0.02),
+    
+                                // Description field
+                                Text(
+                                  "Description",
+                                  style: TextStyle(
+                                    fontFamily: "M",
+                                    fontSize: bodySize,
+                                    color: Color.fromARGB(255, 11, 55, 99),
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                Container(
+                                  height: screenHeight / 8.5,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    color: Colors.white,
+                                    border: Border.all(
+                                      color: Color.fromARGB(255, 11, 55, 99),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: TextField(
+                                    controller: descriptionAgendaController,
+                                    style: TextStyle(
+                                      fontFamily: "R",
+                                      fontSize: bodySize,
+                                    ),
+                                    maxLines: null,
+                                    decoration: InputDecoration(
+                                      contentPadding: EdgeInsets.all(16),
+                                      border: InputBorder.none,
+                                      hintText:
+                                          'Describe the purpose of this meeting',
+                                      hintStyle: TextStyle(
+                                        fontFamily: "R",
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: screenHeight * 0.02),
+    
+                                // Department field
+                                Text(
+                                  "Department",
+                                  style: TextStyle(
+                                    fontFamily: "M",
+                                    fontSize: bodySize,
+                                    color: Color.fromARGB(255, 11, 55, 99),
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                Container(
+                                  height: screenHeight * 0.06,
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    color: Colors.grey[100],
+                                    border: Border.all(
+                                      color: Color.fromARGB(255, 11, 55, 99),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    departmentController.text.isNotEmpty
+                                        ? departmentController.text
+                                        : "Loading...",
+                                    style: TextStyle(
+                                      fontSize: bodySize,
+                                      fontFamily: "R",
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: screenHeight * 0.02),
+    
+                                // Date & Time picker
+                                Text(
+                                  "Date & Time",
+                                  style: TextStyle(
+                                    fontFamily: "M",
+                                    fontSize: bodySize,
+                                    color: Color.fromARGB(255, 11, 55, 99),
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                GestureDetector(
+                                  onTap: pickScheduleDateTime,
+                                  child: Container(
+                                    height: screenHeight * 0.06,
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
+                                      color: Colors.white,
+                                      border: Border.all(
+                                        color:
+                                            Color.fromARGB(255, 11, 55, 99),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          selectedScheduleTime != null
+                                              ? formatDateTime(
+                                                  selectedScheduleTime!
+                                                      .toLocal())
+                                              : "Select Date & Time",
+                                          style: TextStyle(
+                                            fontSize: bodySize,
+                                            fontFamily: "R",
+                                            color:
+                                                selectedScheduleTime != null
+                                                    ? Colors.black87
+                                                    : Colors.grey,
+                                          ),
+                                        ),
+                                        Icon(
+                                          Icons.calendar_today,
+                                          color:
+                                              Color.fromARGB(255, 11, 55, 99),
+                                          size: bodySize * 1.2,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: screenWidth / 100),
+                                GestureDetector(
+                                  onTap: () {
+                                    if (selectedScheduleTime == null) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                              "Please select a date and time."),
+                                        ),
+                                      );
+                                    } else {
+                                      showconfirmdialog();
+                                    }
+                                  },
+                                  child: Container(
+                                    width: screenWidth,
+                                    height: screenWidth / 35,
+                                    decoration: BoxDecoration(
+                                      color: Color.fromARGB(255, 11, 55, 99),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        'Create Appointment',
+                                        style: TextStyle(
+                                          fontSize: screenWidth / 90,
+                                          fontFamily: "SB",
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ).showCursorOnHover,
                               ],
                             ),
                           ),
                         ),
-                        SizedBox(height: screenWidth / 100),
-                        GestureDetector(
-                          onTap: () {
-                            if (selectedScheduleTime == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content:
-                                      Text("Please select a date and time."),
-                                ),
-                              );
-                            } else {
-                              showconfirmdialog();
-                            }
-                          },
-                          child: Container(
-                            width: screenWidth,
-                            height: screenWidth / 35,
-                            decoration: BoxDecoration(
-                              color: Color.fromARGB(255, 11, 55, 99),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Center(
-                              child: Text(
-                                'Create Appointment',
-                                style: TextStyle(
-                                  fontSize: screenWidth / 90,
-                                  fontFamily: "SB",
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ).showCursorOnHover,
                       ],
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      //can you redesign this second expanded card
-      Expanded(
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                offset: Offset(0, 3),
+                ],
               ),
-            ],
-          ),
-          margin: EdgeInsets.all(16),
-          child: Column(
-            children: [
-              // Unified Header
-              Container(
-                color: Color.fromARGB(255, 11, 55, 99),
-                height: MediaQuery.of(context).size.width / 25,
-                width: double.infinity,
-                child: Center(
-                  child: Text(
-                    "Meeting Participants",
-                    style: TextStyle(
-                      fontSize: MediaQuery.of(context).size.width / 70,
-                      fontFamily: "SB",
-                      color: Colors.white,
-                    ),
+              SizedBox(width: screenWidth / 80),
+              //can you redesign this second expanded card
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
                   ),
-                ),
-              ),
-              // Unified Search Bar
-              Container(
-                height: MediaQuery.of(context).size.width / 25,
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: SearchAnchor(
-                    builder:
-                        (BuildContext context, SearchController controller) {
-                      return SearchBar(
-                        leading: Icon(
-                          Icons.search,
-                          color: Color.fromARGB(255, 11, 55, 99),
-                          size: MediaQuery.of(context).size.width / 90,
-                        ),
-                        controller: controller,
-                        hintText: "Search participants...",
-                        hintStyle: MaterialStateProperty.all(
-                          TextStyle(
-                            fontFamily: "R",
-                            fontSize: MediaQuery.of(context).size.width / 90,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        textStyle: MaterialStateProperty.all(
-                          TextStyle(
-                            fontFamily: "R",
-                            fontSize: MediaQuery.of(context).size.width / 90,
-                          ),
-                        ),
-                        onChanged: (query) {
-                          controller.openView();
-                        },
-                      );
-                    },
-                    suggestionsBuilder: (BuildContext context,
-                        SearchController controller) async {
-                      // Fetch external guests
-                      QuerySnapshot guestSnapshot = await FirebaseFirestore
-                          .instance
-                          .collection("clients")
-                          .get();
-
-                      List<Map<String, dynamic>> allGuests =
-                          guestSnapshot.docs.map((doc) {
-                        return {
-                          "type": "external",
-                          "fullName": doc["fullName"] ?? "No Name",
-                          "emailAdd": doc["emailAdd"] ?? "No Email",
-                          "companyName": doc["companyName"] ?? "No Company",
-                          "contactNum": doc["contactNum"] ?? "No Contact",
-                        };
-                      }).toList();
-
-                      // Fetch internal users
-                      QuerySnapshot userSnapshot = await FirebaseFirestore
-                          .instance
-                          .collection("users")
-                          .where('roles', isEqualTo: "User")
-                          .get();
-
-                      List<Map<String, dynamic>> allInternalUsers =
-                          userSnapshot.docs.map((doc) {
-                        return {
-                          "type": "internal",
-                          "fullName":
-                              "${doc["first_name"] ?? ""} ${doc["last_name"] ?? ""}"
-                                  .trim(),
-                          "email": doc["email"] ?? "No Email",
-                          "department": doc["department"] ?? "No Department",
-                        };
-                      }).toList();
-
-                      // Combine and filter both lists
-                      List<Map<String, dynamic>> allParticipants = [
-                        ...allGuests,
-                        ...allInternalUsers
-                      ];
-
-                      List<Map<String, dynamic>> filteredParticipants =
-                          allParticipants
-                              .where((participant) =>
-                                  participant["fullName"]
-                                      .toString()
-                                      .toLowerCase()
-                                      .contains(
-                                          controller.text.toLowerCase()) ||
-                                  (participant["type"] == "external" &&
-                                      participant["companyName"]
-                                          .toString()
-                                          .toLowerCase()
-                                          .contains(
-                                              controller.text.toLowerCase())) ||
-                                  (participant["type"] == "internal" &&
-                                      participant["department"]
-                                          .toString()
-                                          .toLowerCase()
-                                          .contains(
-                                              controller.text.toLowerCase())))
-                              .toList();
-
-                      if (filteredParticipants.isEmpty) {
-                        return [
-                          ListTile(
-                            title: Text(
-                              "No participants found",
-                              style: TextStyle(
-                                fontFamily: "R",
-                                fontSize:
-                                    MediaQuery.of(context).size.width / 90,
-                              ),
-                            ),
-                            subtitle: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  controller.closeView(null);
-                                  _showAddGuestDialog();
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      Color.fromARGB(255, 11, 55, 99),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                                child: Text(
-                                  "Add a new guest",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontFamily: "M",
-                                    fontSize:
-                                        MediaQuery.of(context).size.width / 90,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          )
-                        ];
-                      }
-
-                      return filteredParticipants.map((participant) {
-                        bool isSelected = false;
-
-                        if (participant["type"] == "external") {
-                          isSelected = selectedGuests.any((g) =>
-                              g["fullName"] == participant["fullName"] &&
-                              g["emailAdd"] == participant["emailAdd"] &&
-                              g["companyName"] == participant["companyName"] &&
-                              g["contactNum"] == participant["contactNum"]);
-                        } else {
-                          isSelected = selectedUsers.any((u) =>
-                              u["fullName"] == participant["fullName"] &&
-                              u["email"] == participant["email"] &&
-                              u["department"] == participant["department"]);
-                        }
-
-                        return ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: Color.fromARGB(255, 11, 55, 99)
-                                .withOpacity(0.1),
-                            child: Text(
-                              participant["fullName"].isNotEmpty
-                                  ? participant["fullName"][0].toUpperCase()
-                                  : "?",
-                              style: TextStyle(
-                                fontFamily: "B",
-                                fontSize:
-                                    MediaQuery.of(context).size.width / 110,
-                                color: Color.fromARGB(255, 11, 55, 99),
-                              ),
+                  child: Column(
+                    children: [
+                      // Unified Header
+                      Container(
+                        color: Color.fromARGB(255, 11, 55, 99),
+                        height: MediaQuery.of(context).size.width / 25,
+                        width: double.infinity,
+                        child: Center(
+                          child: Text(
+                            "Meeting Participants",
+                            style: TextStyle(
+                              fontSize:
+                                  MediaQuery.of(context).size.width / 70,
+                              fontFamily: "SB",
+                              color: Colors.white,
                             ),
                           ),
-                          title: Row(
-                            children: [
-                              Text(
-                                participant["fullName"],
-                                style: TextStyle(
-                                  fontFamily: "M",
-                                  fontSize:
+                        ),
+                      ),
+                      // Unified Search Bar
+                      Container(
+                        height: MediaQuery.of(context).size.width / 25,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: SearchAnchor(
+                            builder: (BuildContext context,
+                                SearchController controller) {
+                              return SearchBar(
+                                leading: Icon(
+                                  Icons.search,
+                                  color: Color.fromARGB(255, 11, 55, 99),
+                                  size:
                                       MediaQuery.of(context).size.width / 90,
                                 ),
-                              ),
-                              SizedBox(width: 8),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: participant["type"] == "external"
-                                      ? Colors.orange.withOpacity(0.2)
-                                      : Colors.green.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  participant["type"] == "external"
-                                      ? "External"
-                                      : "Internal",
-                                  style: TextStyle(
+                                controller: controller,
+                                hintText: "Search participants...",
+                                hintStyle: MaterialStateProperty.all(
+                                  TextStyle(
                                     fontFamily: "R",
                                     fontSize:
-                                        MediaQuery.of(context).size.width / 120,
-                                    color: participant["type"] == "external"
-                                        ? Colors.orange[800]
-                                        : Colors.green[800],
+                                        MediaQuery.of(context).size.width /
+                                            90,
+                                    color: Colors.grey,
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          subtitle: Text(
-                            participant["type"] == "external"
-                                ? "${participant["emailAdd"]}\n${participant["companyName"]}"
-                                : "${participant["email"]}\n${participant["department"]}",
-                            style: TextStyle(
-                              fontFamily: "R",
-                              fontSize: MediaQuery.of(context).size.width / 100,
-                            ),
-                          ),
-                          isThreeLine: true,
-                          trailing: isSelected
-                              ? Icon(Icons.check_circle, color: Colors.green)
-                              : null,
-                          onTap: () {
-                            setState(() {
-                              if (participant["type"] == "external") {
-                                if (isSelected) {
-                                  selectedGuests.removeWhere((g) =>
+                                textStyle: MaterialStateProperty.all(
+                                  TextStyle(
+                                    fontFamily: "R",
+                                    fontSize:
+                                        MediaQuery.of(context).size.width /
+                                            90,
+                                  ),
+                                ),
+                                onChanged: (query) {
+                                  controller.openView();
+                                },
+                              );
+                            },
+                            suggestionsBuilder: (BuildContext context,
+                                SearchController controller) async {
+                              // Fetch external guests
+                              QuerySnapshot guestSnapshot =
+                                  await FirebaseFirestore.instance
+                                      .collection("clients")
+                                      .get();
+    
+                              List<Map<String, dynamic>> allGuests =
+                                  guestSnapshot.docs.map((doc) {
+                                return {
+                                  "type": "external",
+                                  "fullName": doc["fullName"] ?? "No Name",
+                                  "emailAdd": doc["emailAdd"] ?? "No Email",
+                                  "companyName":
+                                      doc["companyName"] ?? "No Company",
+                                  "contactNum":
+                                      doc["contactNum"] ?? "No Contact",
+                                };
+                              }).toList();
+    
+                              // Fetch internal users
+                              QuerySnapshot userSnapshot =
+                                  await FirebaseFirestore.instance
+                                      .collection("users")
+                                      .get();
+    
+                              List<Map<String, dynamic>> allInternalUsers =
+                                  userSnapshot.docs.map((doc) {
+                                return {
+                                  "type": "internal",
+                                  "fullName":
+                                      "${doc["first_name"] ?? ""} ${doc["last_name"] ?? ""}"
+                                          .trim(),
+                                  "email": doc["email"] ?? "No Email",
+                                  "department":
+                                      doc["department"] ?? "No Department",
+                                };
+                              }).toList();
+    
+                              // Combine and filter both lists
+                              List<Map<String, dynamic>> allParticipants = [
+                                ...allGuests,
+                                ...allInternalUsers
+                              ];
+    
+                              List<Map<String, dynamic>>
+                                  filteredParticipants = allParticipants
+                                      .where((participant) =>
+                                          participant["fullName"]
+                                              .toString()
+                                              .toLowerCase()
+                                              .contains(controller.text
+                                                  .toLowerCase()) ||
+                                          (participant["type"] == "external" &&
+                                              participant["companyName"]
+                                                  .toString()
+                                                  .toLowerCase()
+                                                  .contains(controller.text
+                                                      .toLowerCase())) ||
+                                          (participant["type"] == "internal" &&
+                                              participant["department"]
+                                                  .toString()
+                                                  .toLowerCase()
+                                                  .contains(
+                                                      controller.text.toLowerCase())))
+                                      .toList();
+    
+                              if (filteredParticipants.isEmpty) {
+                                return [
+                                  ListTile(
+                                    title: Text(
+                                      "No participants found",
+                                      style: TextStyle(
+                                        fontFamily: "R",
+                                        fontSize: MediaQuery.of(context)
+                                                .size
+                                                .width /
+                                            90,
+                                      ),
+                                    ),
+                                    subtitle: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: ElevatedButton(
+                                        onPressed: () {
+                                          controller.closeView(null);
+                                          _showAddGuestDialog();
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              Color.fromARGB(255, 11, 55, 99),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          "Add a new guest",
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontFamily: "M",
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                90,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                ];
+                              }
+    
+                              return filteredParticipants.map((participant) {
+                                bool isSelected = false;
+    
+                                if (participant["type"] == "external") {
+                                  isSelected = selectedGuests.any((g) =>
                                       g["fullName"] ==
                                           participant["fullName"] &&
                                       g["emailAdd"] ==
@@ -979,569 +941,763 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                       g["contactNum"] ==
                                           participant["contactNum"]);
                                 } else {
-                                  selectedGuests.add({
-                                    "fullName": participant["fullName"],
-                                    "emailAdd": participant["emailAdd"],
-                                    "companyName": participant["companyName"],
-                                    "contactNum": participant["contactNum"],
-                                  });
-                                }
-                              } else {
-                                if (isSelected) {
-                                  selectedUsers.removeWhere((u) =>
+                                  isSelected = selectedUsers.any((u) =>
                                       u["fullName"] ==
                                           participant["fullName"] &&
                                       u["email"] == participant["email"] &&
                                       u["department"] ==
                                           participant["department"]);
-                                } else {
-                                  selectedUsers.add({
-                                    "fullName": participant["fullName"],
-                                    "email": participant["email"],
-                                    "department": participant["department"],
-                                  });
                                 }
-                              }
-                            });
-                            controller.closeView(null);
-                            controller.clear();
-                          },
-                        );
-                      }).toList();
-                    },
-                  ),
-                ),
-              ),
-              // Participants List Area (Split into two sections)
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // External Guests Section
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border(
-                            right: BorderSide(
-                              color: Colors.grey.withOpacity(0.3),
-                              width: 1,
-                            ),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              height: MediaQuery.of(context).size.width / 29,
-                              child: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      "External Guests",
+    
+                                return ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundColor:
+                                        Color.fromARGB(255, 11, 55, 99)
+                                            .withOpacity(0.1),
+                                    child: Text(
+                                      participant["fullName"].isNotEmpty
+                                          ? participant["fullName"][0]
+                                              .toUpperCase()
+                                          : "?",
                                       style: TextStyle(
-                                        fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                80,
-                                        fontFamily: "SB",
-                                        color: Color.fromARGB(255, 11, 55, 99),
+                                        fontFamily: "B",
+                                        fontSize: MediaQuery.of(context)
+                                                .size
+                                                .width /
+                                            110,
+                                        color:
+                                            Color.fromARGB(255, 11, 55, 99),
                                       ),
                                     ),
-                                    ElevatedButton.icon(
-                                      icon: Icon(
-                                        Icons.add,
-                                        size:
-                                            MediaQuery.of(context).size.width /
-                                                100,
-                                        color: Colors.white,
-                                      ),
-                                      label: Text(
-                                        "Add Guest",
+                                  ),
+                                  title: Row(
+                                    children: [
+                                      Text(
+                                        participant["fullName"],
                                         style: TextStyle(
-                                          color: Colors.white,
                                           fontFamily: "M",
                                           fontSize: MediaQuery.of(context)
                                                   .size
                                                   .width /
-                                              100,
+                                              90,
                                         ),
                                       ),
-                                      onPressed: _showAddGuestDialog,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                            Color.fromARGB(255, 11, 55, 99),
+                                      SizedBox(width: 8),
+                                      Container(
                                         padding: EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 4),
-                                        shape: RoundedRectangleBorder(
+                                            horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: participant["type"] ==
+                                                  "external"
+                                              ? Colors.orange.withOpacity(0.2)
+                                              : Colors.green.withOpacity(0.2),
                                           borderRadius:
-                                              BorderRadius.circular(6),
+                                              BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          participant["type"] == "external"
+                                              ? "External"
+                                              : "Internal",
+                                          style: TextStyle(
+                                            fontFamily: "R",
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                120,
+                                            color: participant["type"] ==
+                                                    "external"
+                                                ? Colors.orange[800]
+                                                : Colors.green[800],
+                                          ),
                                         ),
                                       ),
+                                    ],
+                                  ),
+                                  subtitle: Text(
+                                    participant["type"] == "external"
+                                        ? "${participant["emailAdd"]}\n${participant["companyName"]}"
+                                        : "${participant["email"]}\n${participant["department"]}",
+                                    style: TextStyle(
+                                      fontFamily: "R",
+                                      fontSize:
+                                          MediaQuery.of(context).size.width /
+                                              100,
+                                    ),
+                                  ),
+                                  isThreeLine: true,
+                                  trailing: isSelected
+                                      ? Icon(Icons.check_circle,
+                                          color: Colors.green)
+                                      : null,
+                                  onTap: () {
+                                    setState(() {
+                                      if (participant["type"] == "external") {
+                                        if (isSelected) {
+                                          selectedGuests.removeWhere((g) =>
+                                              g["fullName"] ==
+                                                  participant["fullName"] &&
+                                              g["emailAdd"] ==
+                                                  participant["emailAdd"] &&
+                                              g["companyName"] ==
+                                                  participant[
+                                                      "companyName"] &&
+                                              g["contactNum"] ==
+                                                  participant["contactNum"]);
+                                        } else {
+                                          selectedGuests.add({
+                                            "fullName":
+                                                participant["fullName"],
+                                            "emailAdd":
+                                                participant["emailAdd"],
+                                            "companyName":
+                                                participant["companyName"],
+                                            "contactNum":
+                                                participant["contactNum"],
+                                          });
+                                        }
+                                      } else {
+                                        if (isSelected) {
+                                          selectedUsers.removeWhere((u) =>
+                                              u["fullName"] ==
+                                                  participant["fullName"] &&
+                                              u["email"] ==
+                                                  participant["email"] &&
+                                              u["department"] ==
+                                                  participant["department"]);
+                                        } else {
+                                          selectedUsers.add({
+                                            "fullName":
+                                                participant["fullName"],
+                                            "email": participant["email"],
+                                            "department":
+                                                participant["department"],
+                                          });
+                                        }
+                                      }
+                                    });
+                                    controller.closeView(null);
+                                    controller.clear();
+                                  },
+                                );
+                              }).toList();
+                            },
+                          ),
+                        ),
+                      ),
+                      // Participants List Area (Split into two sections)
+                      Expanded(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // External Guests Section
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  border: Border(
+                                    right: BorderSide(
+                                      color: Colors.grey.withOpacity(0.3),
+                                      width: 1,
+                                    ),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      height:
+                                          MediaQuery.of(context).size.width /
+                                              29,
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              "External Guests",
+                                              style: TextStyle(
+                                                fontSize:
+                                                    MediaQuery.of(context)
+                                                            .size
+                                                            .width /
+                                                        80,
+                                                fontFamily: "SB",
+                                                color: Color.fromARGB(
+                                                    255, 11, 55, 99),
+                                              ),
+                                            ),
+                                            ElevatedButton.icon(
+                                              icon: Icon(
+                                                Icons.add,
+                                                size: MediaQuery.of(context)
+                                                        .size
+                                                        .width /
+                                                    100,
+                                                color: Colors.white,
+                                              ),
+                                              label: Text(
+                                                "Add Guest",
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontFamily: "M",
+                                                  fontSize:
+                                                      MediaQuery.of(context)
+                                                              .size
+                                                              .width /
+                                                          100,
+                                                ),
+                                              ),
+                                              onPressed: _showAddGuestDialog,
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor:
+                                                    Color.fromARGB(
+                                                        255, 11, 55, 99),
+                                                padding: EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 4),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          6),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    Divider(
+                                        height: 1,
+                                        thickness: 1,
+                                        color: Colors.grey.withOpacity(0.2)),
+                                    Expanded(
+                                      child: selectedGuests.isEmpty
+                                          ? Center(
+                                              child: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Icon(
+                                                    Icons.people_outline,
+                                                    size:
+                                                        MediaQuery.of(context)
+                                                                .size
+                                                                .width /
+                                                            40,
+                                                    color: Colors.grey,
+                                                  ),
+                                                  SizedBox(height: 8),
+                                                  Text(
+                                                    "No external guests selected",
+                                                    style: TextStyle(
+                                                      fontFamily: "R",
+                                                      fontSize: MediaQuery.of(
+                                                                  context)
+                                                              .size
+                                                              .width /
+                                                          90,
+                                                      color: Colors.grey,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            )
+                                          : ListView.builder(
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: 8, vertical: 4),
+                                              itemCount:
+                                                  selectedGuests.length,
+                                              itemBuilder: (context, index) {
+                                                var guest =
+                                                    selectedGuests[index];
+                                                return Card(
+                                                  margin: EdgeInsets.only(
+                                                      bottom: 6),
+                                                  elevation: 1,
+                                                  shape:
+                                                      RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
+                                                    side: BorderSide(
+                                                      color: Color.fromARGB(
+                                                          255, 240, 240, 240),
+                                                      width: 1,
+                                                    ),
+                                                  ),
+                                                  child: Padding(
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                            8.0),
+                                                    child: Row(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        CircleAvatar(
+                                                          backgroundColor:
+                                                              Color.fromARGB(
+                                                                      255,
+                                                                      11,
+                                                                      55,
+                                                                      99)
+                                                                  .withOpacity(
+                                                                      0.1),
+                                                          radius: MediaQuery.of(
+                                                                      context)
+                                                                  .size
+                                                                  .width /
+                                                              80,
+                                                          child: Text(
+                                                            guest["fullName"]!
+                                                                    .isNotEmpty
+                                                                ? guest["fullName"]![
+                                                                        0]
+                                                                    .toUpperCase()
+                                                                : "?",
+                                                            style: TextStyle(
+                                                              fontFamily: "B",
+                                                              fontSize: MediaQuery.of(
+                                                                          context)
+                                                                      .size
+                                                                      .width /
+                                                                  100,
+                                                              color: Color
+                                                                  .fromARGB(
+                                                                      255,
+                                                                      11,
+                                                                      55,
+                                                                      99),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        SizedBox(width: 12),
+                                                        Expanded(
+                                                          child: Column(
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                            children: [
+                                                              Text(
+                                                                guest[
+                                                                    "fullName"]!,
+                                                                style:
+                                                                    TextStyle(
+                                                                  fontFamily:
+                                                                      "SB",
+                                                                  fontSize: MediaQuery.of(context)
+                                                                          .size
+                                                                          .width /
+                                                                      90,
+                                                                ),
+                                                              ),
+                                                              SizedBox(
+                                                                  height: 2),
+                                                              Row(
+                                                                children: [
+                                                                  Icon(
+                                                                    Icons
+                                                                        .email_outlined,
+                                                                    size: MediaQuery.of(context)
+                                                                            .size
+                                                                            .width /
+                                                                        120,
+                                                                    color: Colors
+                                                                        .grey,
+                                                                  ),
+                                                                  SizedBox(
+                                                                      width:
+                                                                          2),
+                                                                  Expanded(
+                                                                    child:
+                                                                        Text(
+                                                                      guest[
+                                                                          "emailAdd"],
+                                                                      style:
+                                                                          TextStyle(
+                                                                        fontFamily:
+                                                                            "R",
+                                                                        fontSize:
+                                                                            MediaQuery.of(context).size.width / 110,
+                                                                        color:
+                                                                            Colors.grey[700],
+                                                                        overflow:
+                                                                            TextOverflow.ellipsis,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                              SizedBox(
+                                                                  height: 2),
+                                                              Row(
+                                                                children: [
+                                                                  Icon(
+                                                                    Icons
+                                                                        .business_outlined,
+                                                                    size: MediaQuery.of(context)
+                                                                            .size
+                                                                            .width /
+                                                                        120,
+                                                                    color: Colors
+                                                                        .grey,
+                                                                  ),
+                                                                  SizedBox(
+                                                                      width:
+                                                                          2),
+                                                                  Expanded(
+                                                                    child:
+                                                                        Text(
+                                                                      guest[
+                                                                          "companyName"],
+                                                                      style:
+                                                                          TextStyle(
+                                                                        fontFamily:
+                                                                            "R",
+                                                                        fontSize:
+                                                                            MediaQuery.of(context).size.width / 110,
+                                                                        color:
+                                                                            Colors.grey[700],
+                                                                        overflow:
+                                                                            TextOverflow.ellipsis,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        IconButton(
+                                                          icon: Icon(
+                                                            Icons
+                                                                .delete_outline,
+                                                            color: Colors
+                                                                .red[400],
+                                                            size: MediaQuery.of(
+                                                                        context)
+                                                                    .size
+                                                                    .width /
+                                                                90,
+                                                          ),
+                                                          padding:
+                                                              EdgeInsets.zero,
+                                                          constraints:
+                                                              BoxConstraints(),
+                                                          onPressed: () {
+                                                            setState(() {
+                                                              selectedGuests.removeWhere((g) =>
+                                                                  g["fullName"] == guest["fullName"] &&
+                                                                  g["emailAdd"] ==
+                                                                      guest[
+                                                                          "emailAdd"] &&
+                                                                  g["companyName"] ==
+                                                                      guest[
+                                                                          "companyName"] &&
+                                                                  g["contactNum"] ==
+                                                                      guest[
+                                                                          "contactNum"]);
+                                                            });
+                                                          },
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
                                     ),
                                   ],
                                 ),
                               ),
                             ),
-                            Divider(
-                                height: 1,
-                                thickness: 1,
-                                color: Colors.grey.withOpacity(0.2)),
+                            // Internal Users Section
+                            // Internal Users Section
                             Expanded(
-                              child: selectedGuests.isEmpty
-                                  ? Center(
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.people_outline,
-                                            size: MediaQuery.of(context)
-                                                    .size
-                                                    .width /
-                                                40,
-                                            color: Colors.grey,
-                                          ),
-                                          SizedBox(height: 8),
-                                          Text(
-                                            "No external guests selected",
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Color.fromARGB(255, 250, 250, 250),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      height:
+                                          MediaQuery.of(context).size.width /
+                                              29,
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Center(
+                                          child: Text(
+                                            "Internal Team Members",
                                             style: TextStyle(
-                                              fontFamily: "R",
                                               fontSize: MediaQuery.of(context)
                                                       .size
                                                       .width /
-                                                  90,
-                                              color: Colors.grey,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  : ListView.builder(
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 4),
-                                      itemCount: selectedGuests.length,
-                                      itemBuilder: (context, index) {
-                                        var guest = selectedGuests[index];
-                                        return Card(
-                                          margin: EdgeInsets.only(bottom: 6),
-                                          elevation: 1,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                            side: BorderSide(
+                                                  80,
+                                              fontFamily: "SB",
                                               color: Color.fromARGB(
-                                                  255, 240, 240, 240),
-                                              width: 1,
+                                                  255, 11, 55, 99),
                                             ),
                                           ),
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: Row(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.center,
-                                              children: [
-                                                CircleAvatar(
-                                                  backgroundColor:
-                                                      Color.fromARGB(
-                                                              255, 11, 55, 99)
-                                                          .withOpacity(0.1),
-                                                  radius: MediaQuery.of(context)
-                                                          .size
-                                                          .width /
-                                                      80,
-                                                  child: Text(
-                                                    guest["fullName"]!
-                                                            .isNotEmpty
-                                                        ? guest["fullName"]![0]
-                                                            .toUpperCase()
-                                                        : "?",
+                                        ),
+                                      ),
+                                    ),
+                                    Divider(
+                                        height: 1,
+                                        thickness: 1,
+                                        color: Colors.grey.withOpacity(0.2)),
+                                    Expanded(
+                                      child: selectedUsers.isEmpty
+                                          ? Center(
+                                              child: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Icon(
+                                                    Icons.group_outlined,
+                                                    size:
+                                                        MediaQuery.of(context)
+                                                                .size
+                                                                .width /
+                                                            40,
+                                                    color: Colors.grey,
+                                                  ),
+                                                  SizedBox(height: 8),
+                                                  Text(
+                                                    "No internal participants selected",
                                                     style: TextStyle(
-                                                      fontFamily: "B",
-                                                      fontSize:
-                                                          MediaQuery.of(context)
-                                                                  .size
-                                                                  .width /
-                                                              100,
-                                                      color: Color.fromARGB(
-                                                          255, 11, 55, 99),
+                                                      fontFamily: "R",
+                                                      fontSize: MediaQuery.of(
+                                                                  context)
+                                                              .size
+                                                              .width /
+                                                          90,
+                                                      color: Colors.grey,
                                                     ),
                                                   ),
-                                                ),
-                                                SizedBox(width: 12),
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Text(
-                                                        guest["fullName"]!,
-                                                        style: TextStyle(
-                                                          fontFamily: "SB",
-                                                          fontSize: MediaQuery.of(
+                                                ],
+                                              ),
+                                            )
+                                          : ListView.builder(
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: 8, vertical: 4),
+                                              itemCount: selectedUsers.length,
+                                              itemBuilder: (context, index) {
+                                                var user =
+                                                    selectedUsers[index];
+                                                return Card(
+                                                  margin: EdgeInsets.only(
+                                                      bottom: 6),
+                                                  elevation: 1,
+                                                  shape:
+                                                      RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
+                                                    side: BorderSide(
+                                                      color: Color.fromARGB(
+                                                          255, 240, 240, 240),
+                                                      width: 1,
+                                                    ),
+                                                  ),
+                                                  child: Padding(
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                            8.0),
+                                                    child: Row(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        CircleAvatar(
+                                                          backgroundColor:
+                                                              Color.fromARGB(
+                                                                      255,
+                                                                      11,
+                                                                      55,
+                                                                      99)
+                                                                  .withOpacity(
+                                                                      0.1),
+                                                          radius: MediaQuery.of(
                                                                       context)
                                                                   .size
                                                                   .width /
-                                                              90,
+                                                              80,
+                                                          child: Text(
+                                                            user["fullName"]!
+                                                                    .isNotEmpty
+                                                                ? user["fullName"]![
+                                                                        0]
+                                                                    .toUpperCase()
+                                                                : "?",
+                                                            style: TextStyle(
+                                                              fontFamily: "B",
+                                                              fontSize: MediaQuery.of(
+                                                                          context)
+                                                                      .size
+                                                                      .width /
+                                                                  100,
+                                                              color: Color
+                                                                  .fromARGB(
+                                                                      255,
+                                                                      11,
+                                                                      55,
+                                                                      99),
+                                                            ),
+                                                          ),
                                                         ),
-                                                      ),
-                                                      SizedBox(height: 2),
-                                                      Row(
-                                                        children: [
-                                                          Icon(
+                                                        SizedBox(width: 12),
+                                                        Expanded(
+                                                          child: Column(
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                            children: [
+                                                              Text(
+                                                                user[
+                                                                    "fullName"]!,
+                                                                style:
+                                                                    TextStyle(
+                                                                  fontFamily:
+                                                                      "SB",
+                                                                  fontSize: MediaQuery.of(context)
+                                                                          .size
+                                                                          .width /
+                                                                      90,
+                                                                ),
+                                                              ),
+                                                              SizedBox(
+                                                                  height: 2),
+                                                              Row(
+                                                                children: [
+                                                                  Icon(
+                                                                    Icons
+                                                                        .email_outlined,
+                                                                    size: MediaQuery.of(context)
+                                                                            .size
+                                                                            .width /
+                                                                        120,
+                                                                    color: Colors
+                                                                        .grey,
+                                                                  ),
+                                                                  SizedBox(
+                                                                      width:
+                                                                          2),
+                                                                  Expanded(
+                                                                    child:
+                                                                        Text(
+                                                                      user[
+                                                                          "email"],
+                                                                      style:
+                                                                          TextStyle(
+                                                                        fontFamily:
+                                                                            "R",
+                                                                        fontSize:
+                                                                            MediaQuery.of(context).size.width / 110,
+                                                                        color:
+                                                                            Colors.grey[700],
+                                                                        overflow:
+                                                                            TextOverflow.ellipsis,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                              SizedBox(
+                                                                  height: 2),
+                                                              Row(
+                                                                children: [
+                                                                  Icon(
+                                                                    Icons
+                                                                        .business_outlined,
+                                                                    size: MediaQuery.of(context)
+                                                                            .size
+                                                                            .width /
+                                                                        120,
+                                                                    color: Colors
+                                                                        .grey,
+                                                                  ),
+                                                                  SizedBox(
+                                                                      width:
+                                                                          2),
+                                                                  Expanded(
+                                                                    child:
+                                                                        Text(
+                                                                      user[
+                                                                          "department"],
+                                                                      style:
+                                                                          TextStyle(
+                                                                        fontFamily:
+                                                                            "R",
+                                                                        fontSize:
+                                                                            MediaQuery.of(context).size.width / 110,
+                                                                        color:
+                                                                            Colors.grey[700],
+                                                                        overflow:
+                                                                            TextOverflow.ellipsis,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        IconButton(
+                                                          icon: Icon(
                                                             Icons
-                                                                .email_outlined,
+                                                                .delete_outline,
+                                                            color: Colors
+                                                                .red[400],
                                                             size: MediaQuery.of(
                                                                         context)
                                                                     .size
                                                                     .width /
-                                                                120,
-                                                            color: Colors.grey,
+                                                                90,
                                                           ),
-                                                          SizedBox(width: 2),
-                                                          Expanded(
-                                                            child: Text(
-                                                              guest["emailAdd"],
-                                                              style: TextStyle(
-                                                                fontFamily: "R",
-                                                                fontSize: MediaQuery.of(
-                                                                            context)
-                                                                        .size
-                                                                        .width /
-                                                                    110,
-                                                                color: Colors
-                                                                    .grey[700],
-                                                                overflow:
-                                                                    TextOverflow
-                                                                        .ellipsis,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                      SizedBox(height: 2),
-                                                      Row(
-                                                        children: [
-                                                          Icon(
-                                                            Icons
-                                                                .business_outlined,
-                                                            size: MediaQuery.of(
-                                                                        context)
-                                                                    .size
-                                                                    .width /
-                                                                120,
-                                                            color: Colors.grey,
-                                                          ),
-                                                          SizedBox(width: 2),
-                                                          Expanded(
-                                                            child: Text(
-                                                              guest[
-                                                                  "companyName"],
-                                                              style: TextStyle(
-                                                                fontFamily: "R",
-                                                                fontSize: MediaQuery.of(
-                                                                            context)
-                                                                        .size
-                                                                        .width /
-                                                                    110,
-                                                                color: Colors
-                                                                    .grey[700],
-                                                                overflow:
-                                                                    TextOverflow
-                                                                        .ellipsis,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ],
+                                                          padding:
+                                                              EdgeInsets.zero,
+                                                          constraints:
+                                                              BoxConstraints(),
+                                                          onPressed: () {
+                                                            setState(() {
+                                                              selectedUsers.removeWhere((u) =>
+                                                                  u["fullName"] == user["fullName"] &&
+                                                                  u["email"] ==
+                                                                      user[
+                                                                          "email"] &&
+                                                                  u["department"] ==
+                                                                      user[
+                                                                          "department"]);
+                                                            });
+                                                          },
+                                                        ),
+                                                      ],
+                                                    ),
                                                   ),
-                                                ),
-                                                IconButton(
-                                                  icon: Icon(
-                                                    Icons.delete_outline,
-                                                    color: Colors.red[400],
-                                                    size: MediaQuery.of(context)
-                                                            .size
-                                                            .width /
-                                                        90,
-                                                  ),
-                                                  padding: EdgeInsets.zero,
-                                                  constraints: BoxConstraints(),
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      selectedGuests.removeWhere((g) =>
-                                                          g["fullName"] == guest["fullName"] &&
-                                                          g["emailAdd"] ==
-                                                              guest[
-                                                                  "emailAdd"] &&
-                                                          g["companyName"] ==
-                                                              guest[
-                                                                  "companyName"] &&
-                                                          g["contactNum"] ==
-                                                              guest[
-                                                                  "contactNum"]);
-                                                    });
-                                                  },
-                                                ),
-                                              ],
+                                                );
+                                              },
                                             ),
-                                          ),
-                                        );
-                                      },
                                     ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // Internal Users Section
-                    // Internal Users Section
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Color.fromARGB(255, 250, 250, 250),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              height: MediaQuery.of(context).size.width / 29,
-                              child: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Center(
-                                  child: Text(
-                                    "Internal Team Members",
-                                    style: TextStyle(
-                                      fontSize:
-                                          MediaQuery.of(context).size.width / 80,
-                                      fontFamily: "SB",
-                                      color: Color.fromARGB(255, 11, 55, 99),
-                                    ),
-                                  ),
+                                  ],
                                 ),
                               ),
                             ),
-                            Divider(
-                                height: 1,
-                                thickness: 1,
-                                color: Colors.grey.withOpacity(0.2)),
-                            Expanded(
-                              child: selectedUsers.isEmpty
-                                  ? Center(
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.group_outlined,
-                                            size: MediaQuery.of(context)
-                                                    .size
-                                                    .width /
-                                                40,
-                                            color: Colors.grey,
-                                          ),
-                                          SizedBox(height: 8),
-                                          Text(
-                                            "No internal participants selected",
-                                            style: TextStyle(
-                                              fontFamily: "R",
-                                              fontSize: MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  90,
-                                              color: Colors.grey,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  : ListView.builder(
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 4),
-                                      itemCount: selectedUsers.length,
-                                      itemBuilder: (context, index) {
-                                        var user = selectedUsers[index];
-                                        return Card(
-                                          margin: EdgeInsets.only(bottom: 6),
-                                          elevation: 1,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                            side: BorderSide(
-                                              color: Color.fromARGB(
-                                                  255, 240, 240, 240),
-                                              width: 1,
-                                            ),
-                                          ),
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: Row(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.center,
-                                              children: [
-                                                CircleAvatar(
-                                                  backgroundColor:
-                                                      Color.fromARGB(
-                                                              255, 11, 55, 99)
-                                                          .withOpacity(0.1),
-                                                  radius: MediaQuery.of(context)
-                                                          .size
-                                                          .width /
-                                                      80,
-                                                  child: Text(
-                                                    user["fullName"]!.isNotEmpty
-                                                        ? user["fullName"]![0]
-                                                            .toUpperCase()
-                                                        : "?",
-                                                    style: TextStyle(
-                                                      fontFamily: "B",
-                                                      fontSize:
-                                                          MediaQuery.of(context)
-                                                                  .size
-                                                                  .width /
-                                                              100,
-                                                      color: Color.fromARGB(
-                                                          255, 11, 55, 99),
-                                                    ),
-                                                  ),
-                                                ),
-                                                SizedBox(width: 12),
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Text(
-                                                        user["fullName"]!,
-                                                        style: TextStyle(
-                                                          fontFamily: "SB",
-                                                          fontSize: MediaQuery.of(
-                                                                      context)
-                                                                  .size
-                                                                  .width /
-                                                              90,
-                                                        ),
-                                                      ),
-                                                      SizedBox(height: 2),
-                                                      Row(
-                                                        children: [
-                                                          Icon(
-                                                            Icons
-                                                                .email_outlined,
-                                                            size: MediaQuery.of(
-                                                                        context)
-                                                                    .size
-                                                                    .width /
-                                                                120,
-                                                            color: Colors.grey,
-                                                          ),
-                                                          SizedBox(width: 2),
-                                                          Expanded(
-                                                            child: Text(
-                                                              user["email"],
-                                                              style: TextStyle(
-                                                                fontFamily: "R",
-                                                                fontSize: MediaQuery.of(
-                                                                            context)
-                                                                        .size
-                                                                        .width /
-                                                                    110,
-                                                                color: Colors
-                                                                    .grey[700],
-                                                                overflow:
-                                                                    TextOverflow
-                                                                        .ellipsis,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                      SizedBox(height: 2),
-                                                      Row(
-                                                        children: [
-                                                          Icon(
-                                                            Icons
-                                                                .business_outlined,
-                                                            size: MediaQuery.of(
-                                                                        context)
-                                                                    .size
-                                                                    .width /
-                                                                120,
-                                                            color: Colors.grey,
-                                                          ),
-                                                          SizedBox(width: 2),
-                                                          Expanded(
-                                                            child: Text(
-                                                              user[
-                                                                  "department"],
-                                                              style: TextStyle(
-                                                                fontFamily: "R",
-                                                                fontSize: MediaQuery.of(
-                                                                            context)
-                                                                        .size
-                                                                        .width /
-                                                                    110,
-                                                                color: Colors
-                                                                    .grey[700],
-                                                                overflow:
-                                                                    TextOverflow
-                                                                        .ellipsis,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                IconButton(
-                                                  icon: Icon(
-                                                    Icons.delete_outline,
-                                                    color: Colors.red[400],
-                                                    size: MediaQuery.of(context)
-                                                            .size
-                                                            .width /
-                                                        90,
-                                                  ),
-                                                  padding: EdgeInsets.zero,
-                                                  constraints: BoxConstraints(),
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      selectedUsers.removeWhere((u) =>
-                                                          u["fullName"] ==
-                                                              user[
-                                                                  "fullName"] &&
-                                                          u["email"] ==
-                                                              user["email"] &&
-                                                          u["department"] ==
-                                                              user[
-                                                                  "department"]);
-                                                    });
-                                                  },
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                            ),
                           ],
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ],
+            ]),
           ),
-        ),
+        ],
       ),
-    ]);
+    );
   }
 }
