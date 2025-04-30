@@ -14,86 +14,170 @@ class AppointmentStatus extends StatefulWidget {
 class _AppointmentStatusState extends State<AppointmentStatus> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Stream<Map<String, int>> getAppointmentStatusCounts() {
-    // Get the base collection reference
-    final appointmentsRef = _firestore.collection('appointment');
+  // To store status counts
+  Map<String, int> statusCounts = {
+    'Scheduled': 0,
+    'In Progress': 0,
+    'Completed': 0,
+    'Cancelled': 0
+  };
 
-    // Create a stream controller to combine results
-    final controller = StreamController<Map<String, int>>();
+  // For appointment monitoring
+  Timer? _statusCheckTimer;
+  StreamSubscription? _appointmentsSubscription;
+  bool _isLoading = true;
 
-    // Initialize the counts map
-    Map<String, int> statusCounts = {
-      'Scheduled': 0,
-      'In Progress': 0,
-      'Completed': 0,
-      'Cancelled': 0
-    };
+  @override
+  void initState() {
+    super.initState();
+    // Start monitoring appointments
+    _setupAppointmentMonitoring();
+    // Set up periodic check for appointments that should be In Progress
+    _startStatusCheckTimer();
+  }
 
-    // Track completion of all queries
-    int completedQueries = 0;
+  @override
+  void dispose() {
+    _statusCheckTimer?.cancel();
+    _appointmentsSubscription?.cancel();
+    super.dispose();
+  }
 
-    // Function to update counts and check if all queries are done
-    void updateAndCheckCompletion() {
-      completedQueries++;
-      if (completedQueries >= 4) {
-        controller.add(statusCounts);
+  // Set up a stream subscription to monitor appointment changes
+  void _setupAppointmentMonitoring() {
+    _appointmentsSubscription =
+        _firestore.collection('appointment').snapshots().listen((snapshot) {
+      _fetchStatusCounts();
+    });
+
+    // Initial fetch
+    _fetchStatusCounts();
+  }
+
+  // Set up a timer to check appointment statuses periodically
+  void _startStatusCheckTimer() {
+    // Check every minute
+    _statusCheckTimer = Timer.periodic(Duration(minutes: 1), (timer) {
+      _checkAndUpdateAppointmentsStatus();
+    });
+
+    // Also run immediately on startup
+    _checkAndUpdateAppointmentsStatus();
+  }
+
+  // Fetch the counts for each appointment status
+  Future<void> _fetchStatusCounts() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Reset counts
+      Map<String, int> tempCounts = {
+        'Scheduled': 0,
+        'In Progress': 0,
+        'Completed': 0,
+        'Cancelled': 0
+      };
+
+      // Fetch all status counts in parallel
+      final futures = tempCounts.keys.map((status) async {
+        final snapshot = await _firestore
+            .collection('appointment')
+            .where('status', isEqualTo: status)
+            .get();
+        return MapEntry(status, snapshot.docs.length);
+      });
+
+      // Wait for all queries to complete
+      final results = await Future.wait(futures);
+
+      // Update the status counts map
+      for (var entry in results) {
+        tempCounts[entry.key] = entry.value;
+      }
+
+      // Update state only if component is still mounted
+      if (mounted) {
+        setState(() {
+          statusCounts = tempCounts;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error fetching appointment status counts: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
+  }
 
-    // Query for Scheduled appointments
-    appointmentsRef
-        .where('status', isEqualTo: 'Scheduled')
-        .get()
-        .then((snapshot) {
-      statusCounts['Scheduled'] = snapshot.docs.length;
-      updateAndCheckCompletion();
-    }).catchError((error) {
-      print('Error fetching Scheduled appointments: $error');
-      updateAndCheckCompletion();
-    });
+  // Check for scheduled appointments that should be changed to In Progress
+  Future<void> _checkAndUpdateAppointmentsStatus() async {
+    try {
+      // Get the current date and time
+      final now = DateTime.now();
 
-    // Query for In Progress appointments
-    appointmentsRef
-        .where('status', isEqualTo: 'In Progress')
-        .get()
-        .then((snapshot) {
-      statusCounts['In Progress'] = snapshot.docs.length;
-      updateAndCheckCompletion();
-    }).catchError((error) {
-      print('Error fetching In Progress appointments: $error');
-      updateAndCheckCompletion();
-    });
+      // Query for all appointments with "Scheduled" status
+      final scheduledAppointments = await _firestore
+          .collection('appointment')
+          .where('status', isEqualTo: 'Scheduled')
+          .get();
 
-    // Query for Completed appointments
-    appointmentsRef
-        .where('status', isEqualTo: 'Completed')
-        .get()
-        .then((snapshot) {
-      statusCounts['Completed'] = snapshot.docs.length;
-      updateAndCheckCompletion();
-    }).catchError((error) {
-      print('Error fetching Completed appointments: $error');
-      updateAndCheckCompletion();
-    });
+      int updatedCount = 0;
 
-    // Query for Cancelled appointments
-    appointmentsRef
-        .where('status', isEqualTo: 'Cancelled')
-        .get()
-        .then((snapshot) {
-      statusCounts['Cancelled'] = snapshot.docs.length;
-      updateAndCheckCompletion();
-    }).catchError((error) {
-      print('Error fetching Cancelled appointments: $error');
-      updateAndCheckCompletion();
-    });
+      // Check each scheduled appointment
+      for (var doc in scheduledAppointments.docs) {
+        try {
+          // Get the scheduled time
+          final scheduleStr = doc.data()['schedule'] as String?;
 
-    // Close the stream controller when the stream is no longer needed
-    controller.onCancel = () {
-      controller.close();
-    };
+          if (scheduleStr != null && scheduleStr.isNotEmpty) {
+            final scheduledTime = DateTime.parse(scheduleStr);
 
-    return controller.stream;
+            // If the scheduled time has passed, update to "In Progress"
+            if (now.isAfter(scheduledTime)) {
+              await _firestore
+                  .collection('appointment')
+                  .doc(doc.id)
+                  .update({'status': 'In Progress'});
+
+              // Log the automatic status change
+              await _logAuditTrail(doc.id, "Auto Status Update",
+                  "Appointment with agenda: ${doc.data()['agenda'] ?? 'Unknown'} automatically changed to In Progress");
+
+              updatedCount++;
+            }
+          }
+        } catch (parseError) {
+          print('Error parsing date for document ${doc.id}: $parseError');
+        }
+      }
+
+      // If any appointments were updated, refresh the counts
+      if (updatedCount > 0) {
+        _fetchStatusCounts();
+      }
+    } catch (e) {
+      print('Error checking appointment statuses: $e');
+    }
+  }
+
+  // Log audit trail entry
+  Future<void> _logAuditTrail(
+      String appointmentId, String action, String description) async {
+    try {
+      await _firestore.collection('audit_trail').add({
+        'appointmentId': appointmentId,
+        'action': action,
+        'description': description,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      print('Error logging audit trail: $e');
+    }
   }
 
   @override
@@ -111,290 +195,255 @@ class _AppointmentStatusState extends State<AppointmentStatus> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        StreamBuilder<Map<String, int>>(
-          stream: getAppointmentStatusCounts(),
-          builder: (context, snapshot) {
-            // Show loading state
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(
+        _isLoading
+            ? Center(
                 child: CircularProgressIndicator(
                   color: Color(0xFF082649),
                 ),
-              );
-            }
-    
-            // Handle errors
-            if (snapshot.hasError) {
-              return Center(
-                child: Text(
-                  "Error loading appointment data",
-                  style: TextStyle(
-                    fontSize: width / 70,
-                    fontFamily: "SB",
-                    color: Colors.red,
-                  ),
+              )
+            : Container(
+                width: width,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // Scheduled status card
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    AppointmentView(statusType: 'Scheduled')));
+                      },
+                      child: Container(
+                        width: width / 5.5,
+                        height: width / 9.5,
+                        padding: EdgeInsets.all(width / 80),
+                        decoration: BoxDecoration(
+                          color: Color(0xFF082649),
+                          borderRadius: BorderRadius.circular(width / 120),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 8,
+                              offset: Offset(0, 4), // X, Y
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Scheduled",
+                              style: TextStyle(
+                                fontSize: width / 80,
+                                fontFamily: "SB",
+                                color: Colors.white,
+                              ),
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                Icon(
+                                  Icons.schedule_rounded,
+                                  color: Colors.white,
+                                  size: width / 17,
+                                ),
+                                SizedBox(width: width / 80),
+                                Text(
+                                  statusCounts['Scheduled'].toString(),
+                                  style: TextStyle(
+                                    fontSize: width / 40,
+                                    fontFamily: "SB",
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ).showCursorOnHover,
+
+                    // Ongoing status card
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => AppointmentView(
+                                    statusType: 'In Progress')));
+                      },
+                      child: Container(
+                        width: width / 5.5,
+                        height: width / 9.5,
+                        padding: EdgeInsets.all(width / 80),
+                        decoration: BoxDecoration(
+                          color: Colors.orange,
+                          borderRadius: BorderRadius.circular(width / 120),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 8,
+                              offset: Offset(0, 4), // X, Y
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "In Progress",
+                              style: TextStyle(
+                                fontSize: width / 80,
+                                fontFamily: "SB",
+                                color: Colors.white,
+                              ),
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                Icon(
+                                  Icons.access_time_rounded,
+                                  color: Colors.white,
+                                  size: width / 17,
+                                ),
+                                SizedBox(width: width / 80),
+                                Text(
+                                  statusCounts['In Progress'].toString(),
+                                  style: TextStyle(
+                                    fontSize: width / 40,
+                                    fontFamily: "SB",
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ).showCursorOnHover,
+
+                    // Completed status card
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    AppointmentView(statusType: 'Completed')));
+                      },
+                      child: Container(
+                        width: width / 5.5,
+                        height: width / 9.5,
+                        padding: EdgeInsets.all(width / 80),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(width / 120),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 8,
+                              offset: Offset(0, 4), // X, Y
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Completed",
+                              style: TextStyle(
+                                fontSize: width / 80,
+                                fontFamily: "SB",
+                                color: Colors.white,
+                              ),
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                Icon(
+                                  Icons.check_circle_outline_rounded,
+                                  color: Colors.white,
+                                  size: width / 17,
+                                ),
+                                SizedBox(width: width / 80),
+                                Text(
+                                  statusCounts['Completed'].toString(),
+                                  style: TextStyle(
+                                    fontSize: width / 40,
+                                    fontFamily: "SB",
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ).showCursorOnHover,
+
+                    // Cancelled status card
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    AppointmentView(statusType: 'Cancelled')));
+                      },
+                      child: Container(
+                        width: width / 5.5,
+                        height: width / 9.5,
+                        padding: EdgeInsets.all(width / 80),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(width / 120),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 8,
+                              offset: Offset(0, 4), // X, Y
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Cancelled",
+                              style: TextStyle(
+                                fontSize: width / 80,
+                                fontFamily: "SB",
+                                color: Colors.white,
+                              ),
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                Icon(
+                                  Icons.cancel_rounded,
+                                  color: Colors.white,
+                                  size: width / 17,
+                                ),
+                                SizedBox(width: width / 80),
+                                Text(
+                                  statusCounts['Cancelled'].toString(),
+                                  style: TextStyle(
+                                    fontSize: width / 40,
+                                    fontFamily: "SB",
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ).showCursorOnHover,
+                  ],
                 ),
-              );
-            }
-    
-            // Get data or provide defaults
-            final statusCounts = snapshot.data ??
-                {
-                  'Scheduled': 0,
-                  'In Progress': 0,
-                  'Completed': 0,
-                  'Cancelled': 0
-                };
-    
-            return Container(
-              width: width,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  // Scheduled status card
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AppointmentView(statusType: 'Scheduled')
-                        )
-                      );
-                    },
-                    child: Container(
-                      width: width / 5.5,
-                      height: width / 9.5,
-                      padding: EdgeInsets.all(width / 80),
-                      decoration: BoxDecoration(
-                        color: Color(0xFF082649),
-                        borderRadius: BorderRadius.circular(width / 120),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 8,
-                            offset: Offset(0, 4), // X, Y
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Scheduled",
-                            style: TextStyle(
-                              fontSize: width / 80,
-                              fontFamily: "SB",
-                              color: Colors.white,
-                            ),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              Icon(
-                                Icons.schedule_rounded,
-                                color: Colors.white,
-                                size: width / 17,
-                              ),
-                              SizedBox(width: width / 80),
-                              Text(
-                                statusCounts['Scheduled'].toString(),
-                                style: TextStyle(
-                                  fontSize: width / 40,
-                                  fontFamily: "SB",
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ).showCursorOnHover,
-    
-                  // Ongoing status card
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AppointmentView(statusType: 'In Progress')
-                        )
-                      );
-                    },
-                    child: Container(
-                      width: width / 5.5,
-                      height: width / 9.5,
-                      padding: EdgeInsets.all(width / 80),
-                      decoration: BoxDecoration(
-                        color: Colors.orange,
-                        borderRadius: BorderRadius.circular(width / 120),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 8,
-                            offset: Offset(0, 4), // X, Y
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "In Progress",
-                            style: TextStyle(
-                              fontSize: width / 80,
-                              fontFamily: "SB",
-                              color: Colors.white,
-                            ),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              Icon(
-                                Icons.access_time_rounded,
-                                color: Colors.white,
-                                size: width / 17,
-                              ),
-                              SizedBox(width: width / 80),
-                              Text(
-                                statusCounts['In Progress'].toString(),
-                                style: TextStyle(
-                                  fontSize: width / 40,
-                                  fontFamily: "SB",
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ).showCursorOnHover,
-    
-                  // Completed status card
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AppointmentView(statusType: 'Completed')
-                        )
-                      );
-                    },
-                    child: Container(
-                      width: width / 5.5,
-                      height: width / 9.5,
-                      padding: EdgeInsets.all(width / 80),
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        borderRadius: BorderRadius.circular(width / 120),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 8,
-                            offset: Offset(0, 4), // X, Y
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Completed",
-                            style: TextStyle(
-                              fontSize: width / 80,
-                              fontFamily: "SB",
-                              color: Colors.white,
-                            ),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              Icon(
-                                Icons.check_circle_outline_rounded,
-                                color: Colors.white,
-                                size: width / 17,
-                              ),
-                              SizedBox(width: width / 80),
-                              Text(
-                                statusCounts['Completed'].toString(),
-                                style: TextStyle(
-                                  fontSize: width / 40,
-                                  fontFamily: "SB",
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ).showCursorOnHover,
-    
-                  // Cancelled status card
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AppointmentView(statusType: 'Cancelled')
-                        )
-                      );
-                    },
-                    child: Container(
-                      width: width / 5.5,
-                      height: width / 9.5,
-                      padding: EdgeInsets.all(width / 80),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(width / 120),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 8,
-                            offset: Offset(0, 4), // X, Y
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Cancelled",
-                            style: TextStyle(
-                              fontSize: width / 80,
-                              fontFamily: "SB",
-                              color: Colors.white,
-                            ),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              Icon(
-                                Icons.cancel_rounded,
-                                color: Colors.white,
-                                size: width / 17,
-                              ),
-                              SizedBox(width: width / 80),
-                              Text(
-                                statusCounts['Cancelled'].toString(),
-                                style: TextStyle(
-                                  fontSize: width / 40,
-                                  fontFamily: "SB",
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ).showCursorOnHover,
-                ],
               ),
-            );
-          },
-        ),
       ],
     );
   }
