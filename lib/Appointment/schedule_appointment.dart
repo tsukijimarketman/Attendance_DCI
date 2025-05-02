@@ -22,7 +22,6 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
       TextEditingController();
 
   User? user = FirebaseAuth.instance.currentUser;
-  
 
   String firstName = "";
   String lastName = "";
@@ -52,16 +51,52 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
 
   void submitForm() async {
     try {
-      String fullName = "$firstName $lastName".trim();
+      User? currentUser = FirebaseAuth.instance.currentUser;
+
+      if (currentUser == null) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text("User not logged in!")));
+        return;
+      }
+
+      // Fetch current user's data from Firestore
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('uid', isEqualTo: currentUser.uid)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("User data not found.")));
+        return;
+      }
+
+      Map<String, dynamic> userData =
+          querySnapshot.docs.first.data() as Map<String, dynamic>;
+
+      // Prepare current user data
+      Map<String, dynamic> currentUserData = {
+        "fullName": "${userData['first_name']} ${userData['last_name']}".trim(),
+        "email": userData['email'],
+        "department": userData['department'] ?? "Unknown",
+        "schedule": scheduleController.text.trim(),
+        "status": "Scheduled",
+      };
+
+      // Prepare data to save in Firestore
       String agendaText = agendaController.text.trim();
       String scheduleText = scheduleController.text.trim();
       String descriptionText = descriptionAgendaController.text.trim();
 
       List<Map<String, dynamic>> localSelectedGuests =
           List.from(selectedGuests);
-
       List<Map<String, dynamic>> localSelectedUsers = List.from(selectedUsers);
 
+      // Ensure current user is included in internal_users
+      localSelectedUsers.add(currentUserData);
+
+      // Gather guest emails for calendar event
       List<String> guestEmails = localSelectedGuests
           .map((guest) => guest['emailAdd'] as String?)
           .whereType<String>()
@@ -93,20 +128,21 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
         return;
       }
 
+      // Save appointment in Firestore
       await FirebaseFirestore.instance.collection('appointment').add({
         'agenda': agendaText,
         'department': departmentController.text,
         'schedule': scheduleText,
         'agendaDescript': descriptionText,
         'guest': localSelectedGuests,
-        'internal_users': localSelectedUsers,
+        'internal_users': localSelectedUsers, // Includes current user now
         'status': 'Scheduled',
-        'createdBy': fullName,
+        'createdBy': currentUserData["fullName"],
         'googleEventId': eventId,
       });
 
       await logAuditTrail("Created Appointment",
-          "User $fullName scheduled an appointment with agenda: $agendaText");
+          "User ${currentUserData["fullName"]} scheduled an appointment with agenda: $agendaText");
 
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Form submitted successfully!")));
@@ -813,6 +849,10 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                             },
                             suggestionsBuilder: (BuildContext context,
                                 SearchController controller) async {
+                              String? currentUserUid =
+                                  FirebaseAuth.instance.currentUser?.uid;
+                              String? currentUserEmail = user?.email;
+
                               // Fetch external guests
                               QuerySnapshot guestSnapshot =
                                   await FirebaseFirestore.instance
@@ -832,17 +872,29 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                 };
                               }).toList();
 
-                              String? currentuseremail = user?.email;
+                              // Filter out any external guests with current user's email
+                              allGuests = allGuests
+                                  .where((guest) =>
+                                      guest["emailAdd"] != currentUserEmail)
+                                  .toList();
 
-                              // Fetch internal users
+                              // Get all users documents
                               QuerySnapshot userSnapshot =
                                   await FirebaseFirestore.instance
                                       .collection("users")
-                                      .where('email', isNotEqualTo: currentuseremail)
                                       .get();
 
+                              // Filter internal users after getting all documents
                               List<Map<String, dynamic>> allInternalUsers =
-                                  userSnapshot.docs.map((doc) {
+                                  userSnapshot.docs.where((doc) {
+                                // First check if the document has a uid field matching current user
+                                if (doc.data() is Map &&
+                                    (doc.data() as Map).containsKey("uid")) {
+                                  return doc["uid"] != currentUserUid;
+                                }
+                                // If no uid field or can't determine, fall back to email check
+                                return doc["email"] != currentUserEmail;
+                              }).map((doc) {
                                 return {
                                   "type": "internal",
                                   "fullName":
@@ -851,15 +903,18 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                   "email": doc["email"] ?? "No Email",
                                   "department":
                                       doc["department"] ?? "No Department",
+                                  "uid": doc["uid"] ??
+                                      "", // Include UID for more reliable filtering
                                 };
                               }).toList();
 
-                              // Combine and filter both lists
+                              // Combine both lists (already filtered)
                               List<Map<String, dynamic>> allParticipants = [
                                 ...allGuests,
                                 ...allInternalUsers
                               ];
 
+                              // Filter based on search text
                               List<Map<String, dynamic>> filteredParticipants =
                                   allParticipants
                                       .where((participant) =>

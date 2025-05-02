@@ -287,7 +287,6 @@ class _InternalUsersState extends State<InternalUsers> {
                         stream: FirebaseFirestore.instance
                             .collection('appointment')
                             .where('agenda', isEqualTo: widget.selectedAgenda)
-                            .where('status', isEqualTo: "Completed")
                             .snapshots(),
                         builder: (context, snapshot) {
                           if (snapshot.connectionState ==
