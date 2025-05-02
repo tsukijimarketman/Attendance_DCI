@@ -13,7 +13,7 @@ final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
 class _KeyMetricsState extends State<KeyMetrics> {
   Stream<QuerySnapshot> getUsersStream() {
-    return _firestore.collection('users').snapshots();
+    return _firestore.collection('users').where('status', isNotEqualTo: 'pending').snapshots();
   }
 
   Stream<QuerySnapshot> getPendingApprovalsStream() {

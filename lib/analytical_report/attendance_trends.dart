@@ -3,25 +3,29 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
-class WeeklyAttendanceTrends extends StatefulWidget {
+class AttendanceTrends extends StatefulWidget {
   final String? status; // Optional status filter
-  final int weeksToShow; // Number of weeks to display
+  final int periodsToShow; // Number of periods to display
   
-  const WeeklyAttendanceTrends({
+  const AttendanceTrends({
     Key? key,
     this.status,
-    this.weeksToShow = 8, // Default to showing 8 weeks
+    this.periodsToShow = 8, // Default to showing 8 periods
   }) : super(key: key);
 
   @override
-  State<WeeklyAttendanceTrends> createState() => _WeeklyAttendanceTrendsState();
+  State<AttendanceTrends> createState() => _AttendanceTrendsState();
 }
 
-class _WeeklyAttendanceTrendsState extends State<WeeklyAttendanceTrends> {
+class _AttendanceTrendsState extends State<AttendanceTrends> {
   bool isLoading = true;
-  List<Map<String, dynamic>> weeklyData = [];
+  List<Map<String, dynamic>> attendanceData = [];
   bool showAverage = false;
   double averageCount = 0;
+  
+  // Track currently selected time period
+  String _selectedTimePeriod = 'Weekly';
+  final List<String> _timePeriods = ['Weekly', 'Monthly', 'Yearly'];
   
   // Colors for the chart
   final List<Color> gradientColors = [
@@ -50,13 +54,32 @@ class _WeeklyAttendanceTrendsState extends State<WeeklyAttendanceTrends> {
   }
 
   Future<void> fetchAttendanceData() async {
+    setState(() {
+      isLoading = true;
+    });
+    
     try {
-      // Calculate the start date (N weeks ago)
+      // Calculate the start date based on time period
       final now = DateTime.now();
-      final startDate = now.subtract(Duration(days: widget.weeksToShow * 7));
+      DateTime startDate;
+      
+      switch (_selectedTimePeriod) {
+        case 'Weekly':
+          startDate = now.subtract(Duration(days: widget.periodsToShow * 7));
+          break;
+        case 'Monthly':
+          // Go back periodsToShow months
+          startDate = DateTime(now.year, now.month - widget.periodsToShow, now.day);
+          break;
+        case 'Yearly':
+          // Go back periodsToShow years
+          startDate = DateTime(now.year - widget.periodsToShow, now.month, now.day);
+          break;
+        default:
+          startDate = now.subtract(Duration(days: widget.periodsToShow * 7));
+      }
       
       // Reference to the attendance collection
-      // Note: Adjust the collection path if your attendance data is structured differently
       Query query = FirebaseFirestore.instance.collection('appointment');
       
       // Apply date filter to limit the data
@@ -70,8 +93,8 @@ class _WeeklyAttendanceTrendsState extends State<WeeklyAttendanceTrends> {
       // Get all appointments
       final QuerySnapshot snapshot = await query.get();
       
-      // Process data by week
-      final Map<String, int> weeklyCounts = {};
+      // Process data by period
+      final Map<String, int> periodCounts = {};
       
       for (var doc in snapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
@@ -80,10 +103,24 @@ class _WeeklyAttendanceTrendsState extends State<WeeklyAttendanceTrends> {
         String dateStr = data['schedule'] as String;
         DateTime appointmentDate = DateTime.parse(dateStr);
         
-        // Format the week and year
-        String weekPeriod = getWeekPeriod(appointmentDate);
+        // Format based on selected time period
+        String periodKey;
         
-        // Count attendees (assuming a 'guest' array field exists)
+        switch (_selectedTimePeriod) {
+          case 'Weekly':
+            periodKey = getWeekPeriod(appointmentDate);
+            break;
+          case 'Monthly':
+            periodKey = DateFormat('MMM yyyy').format(appointmentDate);
+            break;
+          case 'Yearly':
+            periodKey = DateFormat('yyyy').format(appointmentDate);
+            break;
+          default:
+            periodKey = getWeekPeriod(appointmentDate);
+        }
+        
+        // Count attendees
         int attendeeCount = 0;
         
         if (data.containsKey('guest') && data['guest'] is List) {
@@ -97,40 +134,76 @@ class _WeeklyAttendanceTrendsState extends State<WeeklyAttendanceTrends> {
         // If no attendees found, count at least 1 (the appointment creator)
         if (attendeeCount == 0) attendeeCount = 1;
         
-        // Add to weekly counts
-        weeklyCounts[weekPeriod] = (weeklyCounts[weekPeriod] ?? 0) + attendeeCount;
+        // Add to period counts
+        periodCounts[periodKey] = (periodCounts[periodKey] ?? 0) + attendeeCount;
       }
       
-      // Convert to list and sort by date
+      // Convert to list
       List<Map<String, dynamic>> result = [];
-      weeklyCounts.forEach((week, count) {
+      periodCounts.forEach((period, count) {
         result.add({
-          'period': week,
+          'period': period,
           'attendees': count,
         });
       });
       
-      // Sort by week period
+      // Sort by date
       result.sort((a, b) {
-        // Extract the week number and month/year
-        final RegExp regExp = RegExp(r'Week (\d+) (.+)');
-        final aMatch = regExp.firstMatch(a['period']);
-        final bMatch = regExp.firstMatch(b['period']);
+        DateTime dateA;
+        DateTime dateB;
         
-        if (aMatch == null || bMatch == null) return 0;
+        switch (_selectedTimePeriod) {
+          case 'Weekly':
+            // Extract date from "Week N MMM yyyy" format
+            final regexWeek = RegExp(r'Week \d+ (.+)');
+            final matchA = regexWeek.firstMatch(a['period']);
+            final matchB = regexWeek.firstMatch(b['period']);
+            final dateStrA = matchA?.group(1) ?? '';
+            final dateStrB = matchB?.group(1) ?? '';
+            
+            try {
+              dateA = DateFormat('MMM yyyy').parse(dateStrA);
+              dateB = DateFormat('MMM yyyy').parse(dateStrB);
+              
+              // If same month/year, compare by week number
+              if (dateA.isAtSameMomentAs(dateB)) {
+                final weekA = int.parse(a['period'].split(' ')[1]);
+                final weekB = int.parse(b['period'].split(' ')[1]);
+                return weekA.compareTo(weekB);
+              }
+              
+              return dateA.compareTo(dateB);
+            } catch (e) {
+              // Fallback to string comparison if parsing fails
+              return a['period'].compareTo(b['period']);
+            }
+            break;
+          case 'Monthly':
+            try {
+              dateA = DateFormat('MMM yyyy').parse(a['period']);
+              dateB = DateFormat('MMM yyyy').parse(b['period']);
+            } catch (e) {
+              return a['period'].compareTo(b['period']);
+            }
+            break;
+          case 'Yearly':
+            try {
+              dateA = DateFormat('yyyy').parse(a['period']);
+              dateB = DateFormat('yyyy').parse(b['period']);
+            } catch (e) {
+              return a['period'].compareTo(b['period']);
+            }
+            break;
+          default:
+            try {
+              dateA = DateFormat('MMM yyyy').parse(a['period']);
+              dateB = DateFormat('MMM yyyy').parse(b['period']);
+            } catch (e) {
+              return a['period'].compareTo(b['period']);
+            }
+        }
         
-        final aWeekNum = int.parse(aMatch.group(1)!);
-        final bWeekNum = int.parse(bMatch.group(1)!);
-        
-        final aDate = DateFormat('MMM yyyy').parse(aMatch.group(2)!);
-        final bDate = DateFormat('MMM yyyy').parse(bMatch.group(2)!);
-        
-        // First compare by date
-        final dateComparison = aDate.compareTo(bDate);
-        if (dateComparison != 0) return dateComparison;
-        
-        // If same month/year, compare by week number
-        return aWeekNum.compareTo(bWeekNum);
+        return dateA.compareTo(dateB);
       });
       
       // Calculate average
@@ -143,7 +216,7 @@ class _WeeklyAttendanceTrendsState extends State<WeeklyAttendanceTrends> {
       }
       
       setState(() {
-        weeklyData = result;
+        attendanceData = result;
         isLoading = false;
       });
     } catch (e) {
@@ -168,35 +241,68 @@ class _WeeklyAttendanceTrendsState extends State<WeeklyAttendanceTrends> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Weekly Attendance Trends',
-                  style: TextStyle(
+                Text(
+                  '$_selectedTimePeriod Attendance Trends',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      showAverage = !showAverage;
-                    });
-                  },
-                  child: Text(
-                    'Show ${showAverage ? 'Trend' : 'Average'}',
-                    style: TextStyle(
-                      color: showAverage ? Colors.white.withOpacity(0.5) : Colors.white,
+                Row(
+                  children: [
+                    // Time period selection dropdown
+                    DropdownButton<String>(
+                      value: _selectedTimePeriod,
+                      dropdownColor: const Color(0xFF2c3e50),
+                      style: const TextStyle(color: Colors.white),
+                      underline: Container(
+                        height: 2,
+                        color: Colors.orangeAccent,
+                      ),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            _selectedTimePeriod = newValue;
+                          });
+                          fetchAttendanceData();
+                        }
+                      },
+                      items: _timePeriods.map<DropdownMenuItem<String>>((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
                     ),
-                  ),
+                    const SizedBox(width: 16),
+                    // Average toggle button
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          showAverage = !showAverage;
+                        });
+                      },
+                      child: Text(
+                        'Show ${showAverage ? 'Trend' : 'Average'}',
+                        style: TextStyle(
+                          color: showAverage ? Colors.white.withOpacity(0.5) : Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
             const SizedBox(height: 8),
             if (isLoading)
               const Center(
-                child: CircularProgressIndicator(),
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: CircularProgressIndicator(),
+                ),
               )
-            else if (weeklyData.isEmpty)
+            else if (attendanceData.isEmpty)
               const Center(
                 child: Padding(
                   padding: EdgeInsets.all(20),
@@ -230,8 +336,8 @@ class _WeeklyAttendanceTrendsState extends State<WeeklyAttendanceTrends> {
   LineChartData mainData() {
     // Convert data to spots
     final List<FlSpot> spots = [];
-    for (int i = 0; i < weeklyData.length; i++) {
-      spots.add(FlSpot(i.toDouble(), weeklyData[i]['attendees'].toDouble()));
+    for (int i = 0; i < attendanceData.length; i++) {
+      spots.add(FlSpot(i.toDouble(), attendanceData[i]['attendees'].toDouble()));
     }
 
     return LineChartData(
@@ -264,32 +370,16 @@ class _WeeklyAttendanceTrendsState extends State<WeeklyAttendanceTrends> {
         bottomTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
-            reservedSize: 38,
+            reservedSize: getReservedSizeForLabels(),
             interval: 1,
             getTitlesWidget: (value, meta) {
-              if (value.toInt() >= 0 && value.toInt() < weeklyData.length) {
-                final String period = weeklyData[value.toInt()]['period'];
-                // Extract just the week number and month
-                final parts = period.split(' ');
-                if (parts.length >= 3) {
-                  final simplifiedPeriod = '${parts[0]} ${parts[1]}\n${parts[2]}';
-                  return SideTitleWidget(
-                    meta: meta,
-                    child: Text(
-                      simplifiedPeriod,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 10,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  );
-                }
+              if (value.toInt() >= 0 && value.toInt() < attendanceData.length) {
+                final period = attendanceData[value.toInt()]['period'];
                 return SideTitleWidget(
                   meta: meta,
+                  angle: _selectedTimePeriod == 'Weekly' ? 0.3 : 0,
                   child: Text(
-                    period,
+                    _formatLabel(period),
                     style: const TextStyle(
                       color: Colors.white70,
                       fontWeight: FontWeight.bold,
@@ -330,11 +420,11 @@ class _WeeklyAttendanceTrendsState extends State<WeeklyAttendanceTrends> {
         border: Border.all(color: const Color(0xff37434d)),
       ),
       minX: 0,
-      maxX: (weeklyData.length - 1).toDouble(),
+      maxX: (attendanceData.length - 1).toDouble(),
       minY: 0,
-      maxY: weeklyData.isEmpty 
+      maxY: attendanceData.isEmpty 
           ? 10 
-          : (weeklyData.map((e) => e['attendees'] as int).reduce((a, b) => a > b ? a : b) + 5)
+          : (attendanceData.map((e) => e['attendees'] as int).reduce((a, b) => a > b ? a : b) + 5)
               .toDouble().ceilToDouble(),
       lineBarsData: [
         LineChartBarData(
@@ -371,8 +461,8 @@ class _WeeklyAttendanceTrendsState extends State<WeeklyAttendanceTrends> {
           getTooltipItems: (List<LineBarSpot> touchedSpots) {
             return touchedSpots.map((LineBarSpot touchedSpot) {
               final int index = touchedSpot.x.toInt();
-              final String period = weeklyData[index]['period'];
-              final int attendees = weeklyData[index]['attendees'];
+              final String period = attendanceData[index]['period'];
+              final int attendees = attendanceData[index]['attendees'];
               return LineTooltipItem(
                 '$period\n$attendees attendees',
                 const TextStyle(color: Colors.white),
@@ -388,7 +478,7 @@ class _WeeklyAttendanceTrendsState extends State<WeeklyAttendanceTrends> {
   LineChartData averageData() {
     // Create spots for average line
     final List<FlSpot> averageSpots = [];
-    for (int i = 0; i < weeklyData.length; i++) {
+    for (int i = 0; i < attendanceData.length; i++) {
       averageSpots.add(FlSpot(i.toDouble(), averageCount));
     }
 
@@ -429,31 +519,15 @@ class _WeeklyAttendanceTrendsState extends State<WeeklyAttendanceTrends> {
         bottomTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
-            reservedSize: 38,
+            reservedSize: getReservedSizeForLabels(),
             getTitlesWidget: (value, meta) {
-              if (value.toInt() >= 0 && value.toInt() < weeklyData.length) {
-                final String period = weeklyData[value.toInt()]['period'];
-                // Extract just the week number and month
-                final parts = period.split(' ');
-                if (parts.length >= 3) {
-                  final simplifiedPeriod = '${parts[0]} ${parts[1]}\n${parts[2]}';
-                  return SideTitleWidget(
-                    meta: meta,
-                    child: Text(
-                      simplifiedPeriod,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 10,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  );
-                }
+              if (value.toInt() >= 0 && value.toInt() < attendanceData.length) {
+                final period = attendanceData[value.toInt()]['period'];
                 return SideTitleWidget(
                   meta: meta,
+                  angle: _selectedTimePeriod == 'Weekly' ? 0.3 : 0,
                   child: Text(
-                    period,
+                    _formatLabel(period),
                     style: const TextStyle(
                       color: Colors.white70,
                       fontWeight: FontWeight.bold,
@@ -501,11 +575,11 @@ class _WeeklyAttendanceTrendsState extends State<WeeklyAttendanceTrends> {
         border: Border.all(color: const Color(0xff37434d)),
       ),
       minX: 0,
-      maxX: (weeklyData.length - 1).toDouble(),
+      maxX: (attendanceData.length - 1).toDouble(),
       minY: 0,
-      maxY: weeklyData.isEmpty 
+      maxY: attendanceData.isEmpty 
           ? 10 
-          : (weeklyData.map((e) => e['attendees'] as int).reduce((a, b) => a > b ? a : b) + 5)
+          : (attendanceData.map((e) => e['attendees'] as int).reduce((a, b) => a > b ? a : b) + 5)
               .toDouble().ceilToDouble(),
       lineBarsData: [
         LineChartBarData(
@@ -529,5 +603,40 @@ class _WeeklyAttendanceTrendsState extends State<WeeklyAttendanceTrends> {
         ),
       ],
     );
+  }
+  
+  // Helper function to adjust label appearance based on time period
+  String _formatLabel(String label) {
+    switch (_selectedTimePeriod) {
+      case 'Weekly':
+        // For weekly view, extract and format "Week N" and month
+        final parts = label.split(' ');
+        if (parts.length >= 3) {
+          return '${parts[0]} ${parts[1]}\n${parts[2]}';
+        }
+        return label;
+      case 'Monthly':
+        // For monthly view, no special formatting needed
+        return label;
+      case 'Yearly':
+        // For yearly view, just show the year
+        return label;
+      default:
+        return label;
+    }
+  }
+
+  // Adjust the bottom title height based on the selected time period
+  double getReservedSizeForLabels() {
+    switch (_selectedTimePeriod) {
+      case 'Weekly':
+        return 60; // More space for weekly labels
+      case 'Monthly':
+        return 30; // Standard space for monthly labels
+      case 'Yearly':
+        return 30; // Standard space for yearly labels
+      default:
+        return 30;
+    }
   }
 }

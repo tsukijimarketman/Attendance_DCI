@@ -8,7 +8,7 @@ import 'package:intl/intl.dart';
 
 class AppointmentView extends StatefulWidget {
   final String statusType; // This will hold the selected status type
-  
+
   const AppointmentView({super.key, required this.statusType});
 
   @override
@@ -56,11 +56,11 @@ class _AppointmentViewState extends State<AppointmentView> {
     super.initState();
     fetchUserDepartment();
     itemsPerPageController.text = itemsPerPage.toString();
-    
+
     // Set status-specific properties
     setStatusProperties();
   }
-  
+
   void setStatusProperties() {
     switch (widget.statusType) {
       case 'Completed':
@@ -229,6 +229,21 @@ class _AppointmentViewState extends State<AppointmentView> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Please enter a valid number greater than 0')));
     }
+  }
+
+  // Toggle selection for an appointment
+  void toggleAppointmentSelection(String agenda) {
+    setState(() {
+      // If the currently selected agenda is tapped again, deselect it
+      if (selectedAgenda == agenda) {
+        selectedAgenda = '';
+        isAppointmentSelected = false;
+      } else {
+        // Otherwise, select the new agenda
+        selectedAgenda = agenda;
+        isAppointmentSelected = true;
+      }
+    });
   }
 
   @override
@@ -401,7 +416,8 @@ class _AppointmentViewState extends State<AppointmentView> {
 // with search and pagination functionality, along with clear messaging when no results are found.
                                 stream: FirebaseFirestore.instance
                                     .collection('appointment')
-                                    .where('status', isEqualTo: widget.statusType)
+                                    .where('status',
+                                        isEqualTo: widget.statusType)
                                     .snapshots(),
                                 builder: (context, snapshot) {
                                   if (snapshot.connectionState ==
@@ -411,8 +427,8 @@ class _AppointmentViewState extends State<AppointmentView> {
                                   if (!snapshot.hasData ||
                                       snapshot.data!.docs.isEmpty) {
                                     return Center(
-                                        child:
-                                            Text("No ${widget.statusType.toLowerCase()} appointments"));
+                                        child: Text(
+                                            "No ${widget.statusType.toLowerCase()} appointments"));
                                   }
 
                                   var appointmentDocs = snapshot.data!.docs;
@@ -462,6 +478,9 @@ class _AppointmentViewState extends State<AppointmentView> {
                                             String schedule =
                                                 formatDate(data['schedule']);
 
+                                            bool isSelected =
+                                                selectedAgenda == agenda;
+
                                             return Container(
                                               color: Colors.white,
                                               height: screenWidth / 18,
@@ -472,50 +491,49 @@ class _AppointmentViewState extends State<AppointmentView> {
                                                       BorderRadius.circular(
                                                           screenWidth / 160),
                                                 ),
-                                                color: selectedAgenda == agenda
-                                                    ? statusColor.withOpacity(0.2) // Highlight selected item with status color
-                                                    : statusColor.withOpacity(0.1),
+                                                color: isSelected
+                                                    ? statusColor.withOpacity(
+                                                        0.2) // Highlight selected item with status color
+                                                    : Colors.white,
                                                 child: InkWell(
-                                                  // Added InkWell for tap detection
+                                                  // Proper InkWell implementation
                                                   onTap: () {
-                                                    setState(() {
-                                                  // This will colored the Agenda
-                                                      selectedAgenda = agenda;
-                                                      isAppointmentSelected =
-                                                          true; // Set to true when an appointment is selected
-                                                    });
-                                           
+                                                    toggleAppointmentSelection(
+                                                        agenda);
                                                   },
-                                                  child: Container(
-                                                    color: Colors.white,
-                                                    child: ListTile(
-                                                      title: Row(
-                                                        children: [
-                                                          Expanded(
-                                                            child: Text(
-                                                              agenda,
-                                                              style: TextStyle(
-                                                                  fontSize:
-                                                                      screenWidth /
-                                                                          90,
-                                                                  fontFamily:
-                                                                      "B"),
-                                                            ),
+                                                  hoverColor: statusColor
+                                                      .withOpacity(0.1),
+                                                  splashColor: statusColor
+                                                      .withOpacity(0.3),
+                                                  highlightColor: statusColor
+                                                      .withOpacity(0.2),
+                                                  child: ListTile(
+                                                    title: Row(
+                                                      children: [
+                                                        Expanded(
+                                                          child: Text(
+                                                            agenda,
+                                                            style: TextStyle(
+                                                                fontSize:
+                                                                    screenWidth /
+                                                                        90,
+                                                                fontFamily:
+                                                                    "B"),
                                                           ),
-                                                        ],
-                                                      ),
-                                                      subtitle: Text(
-                                                        "Scheduled: $schedule",
-                                                        style: TextStyle(
-                                                            fontSize:
-                                                                screenWidth / 110,
-                                                            fontFamily: "R"),
-                                                      ),
-                                                      leading: Icon(
-                                                        statusIcon,
-                                                        color: statusColor,
-                                                        size: screenWidth / 40,
-                                                      ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    subtitle: Text(
+                                                      "Scheduled: $schedule",
+                                                      style: TextStyle(
+                                                          fontSize:
+                                                              screenWidth / 110,
+                                                          fontFamily: "R"),
+                                                    ),
+                                                    leading: Icon(
+                                                      statusIcon,
+                                                      color: statusColor,
+                                                      size: screenWidth / 40,
                                                     ),
                                                   ),
                                                 ),
@@ -627,12 +645,8 @@ class _AppointmentViewState extends State<AppointmentView> {
                                                                 style:
                                                                     TextStyle(
                                                                   color: isCurrentPage
-                                                                      ? const Color
-                                                                          .fromRGBO(
-                                                                          255,
-                                                                          255,
-                                                                          255,
-                                                                          1)
+                                                                      ? Colors
+                                                                          .white
                                                                       : Colors
                                                                           .black,
                                                                   fontWeight: isCurrentPage
@@ -717,7 +731,8 @@ class _AppointmentViewState extends State<AppointmentView> {
                               width: screenWidth / 1.5,
                               height: screenHeight,
                               child: MeetingTabs(
-                                selectedAgenda: selectedAgenda, statusType: widget.statusType,
+                                selectedAgenda: selectedAgenda,
+                                statusType: widget.statusType,
                               ),
                             ),
                           )

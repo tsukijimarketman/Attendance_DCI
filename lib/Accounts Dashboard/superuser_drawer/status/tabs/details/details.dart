@@ -1,14 +1,18 @@
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/tabs/details/guest.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/tabs/details/users.dart';
+import 'package:attendance_app/hover_extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:attendance_app/Calendar/calendar.dart'; // Added for GoogleCalendarService
 
 class DetailPage extends StatefulWidget {
   final String selectedAgenda;
   final String statusType;
 
-  const DetailPage({super.key, required this.selectedAgenda, required this.statusType});
+  const DetailPage(
+      {super.key, required this.selectedAgenda, required this.statusType});
 
   @override
   State<DetailPage> createState() => _DetailPageState();
@@ -21,11 +25,11 @@ class _DetailPageState extends State<DetailPage> {
   String schedule = "N/A";
   String status = "N/A";
   String organizer = "N/A";
+  String remark = ""; // To store cancellation remark
   List<Map<String, dynamic>> guests = [];
   List<Map<String, dynamic>> users = [];
   String fullName = ""; // This should be set with the current user's name
-  String userDepartment =
-      ""; // This should be set with the current user's department
+  String userDepartment = ""; // This should be set with the current user's department
   bool isLoading = true;
 
   String formatSchedule(String scheduleString) {
@@ -41,13 +45,41 @@ class _DetailPageState extends State<DetailPage> {
   @override
   void initState() {
     super.initState();
-    // This should be replaced with actual user data fetching
-    // For example, from a user authentication service
-    fullName = "John Doe"; // Replace with actual user name
-    userDepartment =
-        "Quality Management System"; // Replace with actual user department
+    fetchUserData().then((_) {
+      fetchAppointmentData();
+    });
+  }
 
-    fetchAppointmentData();
+  Future<void> fetchUserData() async {
+    User? user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      try {
+        QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .where('uid', isEqualTo: user.uid)
+            .limit(1)
+            .get();
+
+        if (querySnapshot.docs.isNotEmpty) {
+          var userData = querySnapshot.docs.first.data() as Map<String, dynamic>;
+
+          setState(() {
+            fullName = "${userData['first_name']} ${userData['last_name']}";
+            userDepartment = userData['department'] ?? "";
+          });
+        } else {
+          print("No user document found.");
+        }
+      } catch (e) {
+        print("Error fetching user data: $e");
+      }
+    } else {
+      print("No user is logged in.");
+      // Set placeholder values for testing
+      fullName = "John Doe";
+      userDepartment = "Quality Management System";
+    }
   }
 
   // Fetches appointment data by agenda from Firestore. Updates state with the appointment details 
@@ -72,6 +104,7 @@ class _DetailPageState extends State<DetailPage> {
           schedule = formatSchedule(data['schedule'] ?? "N/A");
           status = data['status'] ?? "N/A";
           organizer = data['createdBy'] ?? fullName;
+          remark = data['remark'] ?? "No remarks provided";
 
           // Fetch guests and users arrays
           if (data.containsKey('guest') && data['guest'] is List) {
@@ -96,6 +129,261 @@ class _DetailPageState extends State<DetailPage> {
     }
   }
 
+  void _showCancelDialog(String agenda) {
+    TextEditingController remarkController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0),
+          ),
+          elevation: 8.0,
+          child: Container(
+            height: MediaQuery.of(context).size.width / 4.6,
+            width: MediaQuery.of(context).size.width / 3,
+            padding: EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16.0),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Colors.white, Color(0xFFF5F9FF)],
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.cancel_rounded,
+                      color: Colors.red,
+                      size: 28,
+                    ),
+                    SizedBox(width: 10),
+                    Text(
+                      "Cancel Appointment",
+                      style: TextStyle(
+                        fontFamily: "SB",
+                        color: Color(0xFF0e2643),
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 15),
+                Container(
+                  padding: EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        spreadRadius: 0,
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        "Please provide a reason for cancellation:",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: "R",
+                          fontSize: 16,
+                          color: Color(0xFF555555),
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      TextField(
+                        controller: remarkController,
+                        maxLines: 3,
+                        decoration: InputDecoration(
+                          labelText: "Cancellation Remark",
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Container(
+                      width: MediaQuery.of(context).size.width / 7,
+                      height: MediaQuery.of(context).size.width / 35,
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+                        borderRadius: BorderRadius.circular(
+                            MediaQuery.of(context).size.width / 170),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            spreadRadius: 0,
+                          ),
+                        ],
+                      ),
+                      child: TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: Text(
+                          "Dismiss",
+                          style: TextStyle(
+                            fontFamily: "R",
+                            fontSize: MediaQuery.of(context).size.width / 100,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: MediaQuery.of(context).size.width / 7,
+                      height: MediaQuery.of(context).size.width / 35,
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(
+                            MediaQuery.of(context).size.width / 170),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            spreadRadius: 0,
+                          ),
+                        ],
+                      ),
+                      child: TextButton(
+                        onPressed: () {
+                          String remark = remarkController.text.trim();
+                          if (remark.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Remark is required.")),
+                            );
+                            return;
+                          }
+
+                          Navigator.of(context).pop(); // Close dialog
+                          deleteEvent(agenda); // Call delete here
+                          updateAppointmentStatus('Cancelled', remark: remark); // Update status
+                        },
+                        child: Text(
+                          "Confirm",
+                          style: TextStyle(
+                            fontFamily: "R",
+                            fontSize: MediaQuery.of(context).size.width / 100,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> deleteEvent(String agenda) async {
+    try {
+      // Step 1: Get the document and the Google eventId
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('appointment')
+          .where('agenda', isEqualTo: agenda)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        print("❌ No matching appointment found to delete.");
+        return;
+      }
+
+      var appointmentData = snapshot.docs.first.data() as Map<String, dynamic>;
+      String eventId = appointmentData['googleEventId']; // Get the Google event ID
+
+      // Step 2: Authenticate with Google
+      GoogleCalendarService googleCalendarService = GoogleCalendarService();
+      String? accessToken = await googleCalendarService.authenticateUser();
+
+      if (accessToken == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Google authentication required!")),
+        );
+        return;
+      }
+
+      // Step 3: Delete the event from Google Calendar
+      await googleCalendarService.deleteCalendarEvent(accessToken, eventId);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Event cancelled successfully!")),
+      );
+    } catch (e) {
+      print("❌ Error deleting event: $e");
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Error: $e")));
+    }
+  }
+
+  Future<void> updateAppointmentStatus(String newStatus, {String? remark}) async {
+    try {
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('appointment')
+          .where('agenda', isEqualTo: widget.selectedAgenda)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        String docId = querySnapshot.docs.first.id;
+
+        Map<String, dynamic> updateData = {
+          'status': newStatus,
+        };
+
+        if (newStatus == 'Cancelled' && remark != null) {
+          updateData.addAll({
+            'remark': remark,
+            'cancelledBy': fullName,
+            'cancelledAt': FieldValue.serverTimestamp(),
+          });
+        }
+
+        await FirebaseFirestore.instance
+            .collection('appointment')
+            .doc(docId)
+            .update(updateData);
+
+        setState(() {
+          status = newStatus;
+          if (remark != null) {
+            this.remark = remark;
+          }
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Status updated to $newStatus")),
+        );
+
+        print("Status updated to $newStatus");
+      } else {
+        print("No appointment found to update.");
+      }
+    } catch (e) {
+      print("Error updating status: $e");
+    }
+  }
+
 
   // `didUpdateWidget` is called when the parent widget rebuilds. It checks if the `selectedAgenda` has changed,
 // and if so, it resets the state (e.g., setting values to "N/A" and clearing lists) and triggers a new data fetch 
@@ -115,6 +403,7 @@ class _DetailPageState extends State<DetailPage> {
         schedule = "N/A";
         status = "N/A";
         organizer = "N/A";
+        remark = ""; // Reset remark as well
         guests = [];
         users = [];
       });
@@ -134,18 +423,47 @@ class _DetailPageState extends State<DetailPage> {
 
     return SingleChildScrollView(
       child: Container(
-        height: MediaQuery.of(context).size.width / 1.65,
+        height: MediaQuery.of(context).size.width / 1.57,
         width: MediaQuery.of(context).size.width / 1.5,
         padding: EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Meeting Details',
-              style: TextStyle(
-                  fontSize: MediaQuery.of(context).size.width / 60,
-                  fontFamily: "B",
-                  color: Colors.white),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Meeting Details',
+                  style: TextStyle(
+                      fontSize: MediaQuery.of(context).size.width / 60,
+                      fontFamily: "B",
+                      color: Colors.white),
+                ),
+                // Only show cancel button if statusType is "Scheduled" or "In Progress"
+                if (widget.statusType == "Scheduled" || widget.statusType == "In Progress")
+                  GestureDetector(
+                    onTap: () {
+                      _showCancelDialog(widget.selectedAgenda);
+                    },
+                    child: Container(
+                      width: MediaQuery.of(context).size.width / 10,
+                      height: MediaQuery.of(context).size.width / 35,
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(MediaQuery.of(context).size.width / 100),
+                      ),
+                      child: Center(
+                        child: Text(
+                          "Cancel Meeting",
+                          style: TextStyle(
+                              fontSize: MediaQuery.of(context).size.width / 120,
+                              fontFamily: "SB",
+                              color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ).showCursorOnHover,
+              ],
             ),
             SizedBox(height: MediaQuery.of(context).size.height / 80),
             _buildDetailRow('Title:', agendaTitle),
@@ -154,6 +472,9 @@ class _DetailPageState extends State<DetailPage> {
             _buildDetailRow('Department:', department),
             _buildDetailRow('Date & Time:', schedule),
             _buildDetailRow('Status:', status),
+            // Show remark only if status is Cancelled
+            if (status == 'Cancelled')
+              _buildDetailRow('Remark:', remark),
             SizedBox(height: MediaQuery.of(context).size.height / 80),
             Container(
               color: Colors.transparent,
@@ -163,7 +484,8 @@ class _DetailPageState extends State<DetailPage> {
                 children: [
                   if (guests.isNotEmpty) ...[
                     Guest(
-                      selectedAgenda: widget.selectedAgenda, statusType: widget.statusType,
+                      selectedAgenda: widget.selectedAgenda,
+                      statusType: widget.statusType,
                     ),
                   ],
                   SizedBox(width: MediaQuery.of(context).size.width / 80),

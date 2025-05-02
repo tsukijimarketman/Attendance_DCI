@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/Manager_DB.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/UserMasterlist.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/departmentMasterlist.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/currentappointment.dart';
 import 'package:attendance_app/Appointment/add_client.dart';
 import 'package:attendance_app/Appointment/schedule_appointment.dart';
 import 'package:attendance_app/analytical_report/reports.dart';
@@ -583,9 +583,9 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
       case 4:
         return const AddClient();
       case 5:
-        return const Masterlist();
+        return const UserMasterlist();
       case 6:
-        return const DepartmentMasterlist();
+      return const AppointmentManager();
       case 7:
         return const ManagerDB();
       default:

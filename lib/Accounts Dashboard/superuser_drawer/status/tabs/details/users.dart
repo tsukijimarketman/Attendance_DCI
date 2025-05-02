@@ -299,7 +299,7 @@ class _InternalUsersState extends State<InternalUsers> {
                               snapshot.data!.docs.isEmpty) {
                             return Center(
                                 child: Text(
-                                    "No appointment found with this agenda"));
+                                    "No internal users found"));
                           }
 
                           // Extract the internal user data from the appointment document

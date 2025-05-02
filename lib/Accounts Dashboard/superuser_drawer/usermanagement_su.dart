@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:toastification/toastification.dart';
+import 'dart:async';
 
 class UserManagement extends StatefulWidget {
   const UserManagement({super.key});
@@ -15,7 +16,7 @@ class UserManagement extends StatefulWidget {
 }
 
 class _UserManagementState extends State<UserManagement> {
-  // Initialize Firestore and FirebaseAuth instances for database and authentication operations
+  Timer? _debounce;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -27,6 +28,15 @@ class _UserManagementState extends State<UserManagement> {
 
   // Holds the currently selected department from the dropdown
   String? selectedDepartment;
+
+  // Search and pagination variables
+  final TextEditingController _searchController = TextEditingController();
+  String _searchText = "";
+  int _currentPage = 1;
+  final int _itemsPerPage = 10;
+  List<DocumentSnapshot> _allUsers = [];
+  List<DocumentSnapshot> _filteredUsers = [];
+  bool _isLoading = true;
 
   // Map that defines the display name of roles and their corresponding internal role identifiers
 // Used to map the human-readable role names to the backend-recognized role keys
@@ -45,7 +55,43 @@ class _UserManagementState extends State<UserManagement> {
   @override
   void initState() {
     super.initState();
-    _fetchDepartments(); // Fetch departments when the screen loads
+    _fetchDepartments();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    // Cancel the previous timer if it's still active
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+    // Set a new timer
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      setState(() {
+        _searchText = _searchController.text;
+        _filterUsers();
+        _currentPage = 1; // Reset to first page when search changes
+      });
+    });
+  }
+
+  void _filterUsers() {
+    if (_searchText.isEmpty) {
+      _filteredUsers = List.from(_allUsers);
+    } else {
+      _filteredUsers = _allUsers.where((user) {
+        String fullName = "${user["first_name"]} ${user["last_name"]}";
+        String email = user["email"];
+        return fullName.toLowerCase().contains(_searchText.toLowerCase()) ||
+            email.toLowerCase().contains(_searchText.toLowerCase());
+      }).toList();
+    }
   }
 
   // This function fetches the list of available departments from Firestore.
@@ -82,71 +128,261 @@ class _UserManagementState extends State<UserManagement> {
     }
   }
 
+  List<DocumentSnapshot> _getCurrentPageItems() {
+    final startIndex = (_currentPage - 1) * _itemsPerPage;
+    final endIndex = startIndex + _itemsPerPage;
+
+    if (startIndex >= _filteredUsers.length) {
+      return [];
+    }
+
+    if (endIndex > _filteredUsers.length) {
+      return _filteredUsers.sublist(startIndex);
+    }
+
+    return _filteredUsers.sublist(startIndex, endIndex);
+  }
+
+  int get _totalPages {
+    return (_filteredUsers.length / _itemsPerPage).ceil();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: StreamBuilder(
-        // This StreamBuilder listens to the 'users' collection in Firestore in real-time.
-        // It fetches users whose 'status' is 'pending' and who are not marked as deleted ('isDeleted' is false).
-        // - While waiting for the data, it shows a loading spinner.
-        // - If there are no pending users, it displays a "No pending users" message.
-        // - If pending users are found, it builds a scrollable ListView displaying each pending user's information.
-        stream: _firestore
-            .collection("users")
-            .where("status", isEqualTo: "pending")
-            .where("isDeleted", isEqualTo: false)
-            .snapshots(),
-        builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(child: Text("No pending users."));
-          }
-
-          return ListView.builder(
-            itemCount: snapshot.data!.docs.length,
-            itemBuilder: (context, index) {
-              var user = snapshot.data!.docs[index];
-              return ListTile(
-                tileColor: Colors.grey.shade100
-                    .withOpacity(0.5), // 50% transparent grey
-                hoverColor: Colors.amber,
-                title: Text(
-                  "${user["first_name"]} ${user["last_name"]}",
-                  style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.black87,
-                      fontWeight: FontWeight.w400),
+    return Container(
+      width: MediaQuery.of(context).size.width,
+      height: MediaQuery.of(context).size.width / 2.30,
+      padding: EdgeInsets.symmetric(
+          horizontal: MediaQuery.of(context).size.width / 40,
+          vertical: MediaQuery.of(context).size.width / 180),
+      child: Column(children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("User Management",
+                style: TextStyle(
+                    fontSize: MediaQuery.of(context).size.width / 41,
+                    fontFamily: "BL",
+                    fontWeight: FontWeight.bold,
+                    color: Color.fromARGB(255, 11, 55, 99))),
+            Container(
+              decoration: BoxDecoration(
+                  border: Border(
+                      bottom: BorderSide(
+                          color: Color.fromARGB(255, 11, 55, 99), width: 2))),
+            ),
+            // Search bar
+            Container(
+              margin: EdgeInsets.symmetric(vertical: 16.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+              child: TextField(
+                controller: _searchController,
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: MediaQuery.of(context).size.width / 100,
+                  fontFamily: "R",
                 ),
-                subtitle: Text(user["email"],
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.black87,
-                    )),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.check, color: Colors.green),
-                      onPressed: () =>
-                          // This will triggered the _showDialog it will show the Dialog box for that
-                          _showDialog(context, user),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.delete, color: Colors.red),
-                      onPressed: () =>
-                          // This will triggered the _showDialogReject it will show the Dialog box for that
-                          _showDialogReject(user.id),
-                    ),
-                  ],
+                decoration: InputDecoration(
+                  hintStyle: TextStyle(
+                    fontSize: MediaQuery.of(context).size.width / 100,
+                    color: Colors.black54,
+                    fontFamily: "R",
+                  ),
+                  hintText: 'Search by name or email',
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  contentPadding: EdgeInsets.symmetric(vertical: 12.0),
                 ),
-              );
-            },
-          );
-        },
-      ),
+              ),
+            ),
+            Container(
+              width: MediaQuery.of(context).size.width,
+              height: MediaQuery.of(context).size.width / 3.05,
+              child: StreamBuilder(
+                stream: _firestore
+                    .collection("users")
+                    .where("status", isEqualTo: "pending")
+                    .where("isDeleted", isEqualTo: false)
+                    .snapshots(),
+                builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Center(
+                        child: Text(
+                      "No pending users.",
+                      style: TextStyle(
+                        fontSize: MediaQuery.of(context).size.width / 100,
+                        fontFamily: "R",
+                      ),
+                    ));
+                  }
+
+                  // Update all users when the data changes
+                  _allUsers = snapshot.data!.docs;
+                  if (_searchText.isEmpty) {
+                    _filteredUsers = _allUsers;
+                  } else {
+                    _filterUsers();
+                  }
+
+                  final currentPageItems = _getCurrentPageItems();
+
+                  return Column(
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(5),
+                              color: const Color.fromARGB(255, 216, 216, 216)),
+                          padding: EdgeInsets.all(8),
+                          child: ListView.builder(
+                            itemCount: currentPageItems.length,
+                            itemBuilder: (context, index) {
+                              var user = currentPageItems[index];
+                              return Column(
+                                children: [
+                                  Container(
+                                    margin: EdgeInsets.symmetric(vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                    child: ListTile(
+                                      tileColor: index % 2 == 0
+                                          ? Colors.grey.shade50
+                                          : Colors.white,
+                                      title: Text(
+                                          "${user["first_name"]} ${user["last_name"]}",
+                                          style: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                80,
+                                            fontFamily: "SB",
+                                            color: Colors.black,
+                                          )),
+                                      subtitle: Text(user["email"],
+                                          style: TextStyle(
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .width /
+                                                100,
+                                            fontFamily: "M",
+                                            color: Colors.black54,
+                                          )),
+                                      trailing: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: Icon(
+                                                Icons.check_circle_outline,
+                                                color: Colors.green),
+                                            onPressed: () =>
+                                                _showDialog(context, user),
+                                            tooltip: 'Approve User',
+                                          ),
+                                          IconButton(
+                                            icon: Icon(Icons.cancel_outlined,
+                                                color: Colors.red),
+                                            onPressed: () =>
+                                                _showDialogReject(user.id),
+                                            tooltip: 'Reject User',
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  if (index < currentPageItems.length - 1)
+                                    Divider(
+                                        color: Colors.black26,
+                                        height: 1,
+                                        thickness: 1,
+                                        indent: 16,
+                                        endIndent: 16),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+
+                      // Pagination controls
+                      Container(
+                        padding: EdgeInsets.symmetric(vertical: 16.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.first_page),
+                              onPressed: _currentPage > 1
+                                  ? () => setState(() => _currentPage = 1)
+                                  : null,
+                              tooltip: 'First Page',
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.chevron_left),
+                              onPressed: _currentPage > 1
+                                  ? () => setState(() => _currentPage--)
+                                  : null,
+                              tooltip: 'Previous Page',
+                            ),
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 16.0),
+                              child: Text(
+                                'Page $_currentPage of $_totalPages',
+                                style: TextStyle(
+                                  fontSize:
+                                      MediaQuery.of(context).size.width / 100,
+                                  fontFamily: "B",
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.chevron_right),
+                              onPressed: _currentPage < _totalPages
+                                  ? () => setState(() => _currentPage++)
+                                  : null,
+                              tooltip: 'Next Page',
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.last_page),
+                              onPressed: _currentPage < _totalPages
+                                  ? () =>
+                                      setState(() => _currentPage = _totalPages)
+                                  : null,
+                              tooltip: 'Last Page',
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Display item count information
+                      Text(
+                        'Showing ${_getCurrentPageItems().length} of ${_filteredUsers.length} pending users',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: MediaQuery.of(context).size.width / 100,
+                          fontFamily: "R",
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ]),
     );
   }
 
@@ -155,140 +391,215 @@ class _UserManagementState extends State<UserManagement> {
   // and the other Dropdown is for the Department
   // if you click the cancel it will close the showdialog box
   // if you click the confirm it will triggered the method for _approveUsers
+  // Updated to match new design style
   void _showDialog(BuildContext context, DocumentSnapshot user) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            return CupertinoAlertDialog(
-              title: Text(
-                'Assign Role',
-                style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87),
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.0),
               ),
-              content: Material(
-                color: Colors.transparent,
+              elevation: 8.0,
+              child: Container(
+                height: MediaQuery.of(context).size.width / 4.75,
+                width: MediaQuery.of(context).size.width / 3,
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16.0),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Colors.white, Color(0xFFF5F9FF)],
+                  ),
+                ),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: DropdownButtonFormField<String>(
-                        value: selectedRoles,
-                        onChanged: (String? newRole) {
-                          setState(() {
-                            selectedRoles = newRole!;
-                          });
-                        },
-                        isExpanded: true,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.black87,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.assignment_ind,
+                          color: Color(0xFF0e2643),
+                          size: 28,
                         ),
-                        decoration: InputDecoration(
-                          contentPadding: EdgeInsets.symmetric(
-                            vertical: 15,
-                            horizontal: 10,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.0),
-                            borderSide: BorderSide(color: Colors.grey),
+                        SizedBox(width: 10),
+                        Text(
+                          "Assign Role",
+                          style: TextStyle(
+                            fontFamily: "SB",
+                            color: Color(0xFF0e2643),
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        items: rolesMap.keys.map<DropdownMenuItem<String>>(
-                            (String displayValue) {
-                          return DropdownMenuItem<String>(
-                            value: displayValue,
-                            child: Text(displayValue),
-                          );
-                        }).toList(),
+                      ],
+                    ),
+                    SizedBox(height: 15),
+                    Container(
+                      padding: EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            spreadRadius: 0,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          // Role Dropdown
+                          DropdownButtonFormField<String>(
+                            value: selectedRoles,
+                            onChanged: (String? newRole) {
+                              setState(() {
+                                selectedRoles = newRole!;
+                              });
+                            },
+                            isExpanded: true,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.black87,
+                            ),
+                            decoration: InputDecoration(
+                              contentPadding: EdgeInsets.symmetric(
+                                vertical: 12,
+                                horizontal: 10,
+                              ),
+                              labelText: "Select Role",
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8.0),
+                                borderSide:
+                                    BorderSide(color: Colors.grey.shade300),
+                              ),
+                            ),
+                            items: rolesMap.keys.map<DropdownMenuItem<String>>(
+                                (String displayValue) {
+                              return DropdownMenuItem<String>(
+                                value: displayValue,
+                                child: Text(displayValue),
+                              );
+                            }).toList(),
+                          ),
+                          SizedBox(height: 12),
+
+                          // Department Dropdown
+                          DropdownButtonFormField<String>(
+                            value: selectedDepartment,
+                            decoration: InputDecoration(
+                              contentPadding: EdgeInsets.symmetric(
+                                vertical: 12,
+                                horizontal: 10,
+                              ),
+                              labelText: "Select Department",
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8.0),
+                                borderSide:
+                                    BorderSide(color: Colors.grey.shade300),
+                              ),
+                            ),
+                            items: departmentList.map((String department) {
+                              return DropdownMenuItem<String>(
+                                value: department,
+                                child: Text(department,
+                                    style: TextStyle(fontSize: 16)),
+                              );
+                            }).toList(),
+                            onChanged: (String? newValue) {
+                              setState(() {
+                                selectedDepartment = newValue;
+                              });
+                            },
+                            hint: Text("Select Department",
+                                style: TextStyle(
+                                    fontSize: 16, color: Colors.black54)),
+                          ),
+                        ],
                       ),
                     ),
-
-                    // ✅ Show department dropdown only if required
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: DropdownButtonFormField<String>(
-                        value: selectedDepartment,
-                        decoration: InputDecoration(
-                          contentPadding: EdgeInsets.symmetric(
-                            vertical: 15,
-                            horizontal: 10,
+                    SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Container(
+                          width: MediaQuery.of(context).size.width / 7,
+                          height: MediaQuery.of(context).size.width / 35,
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(
+                                MediaQuery.of(context).size.width / 170),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                spreadRadius: 0,
+                              ),
+                            ],
                           ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.0),
-                            borderSide: BorderSide(color: Colors.grey),
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text(
+                              "Cancel",
+                              style: TextStyle(
+                                fontFamily: "R",
+                                fontSize:
+                                    MediaQuery.of(context).size.width / 100,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
                         ),
-                        items: departmentList.map((String department) {
-                          return DropdownMenuItem<String>(
-                            value: department,
-                            child: Text(department,
-                                style: TextStyle(fontSize: 18)),
-                          );
-                        }).toList(),
-                        onChanged: (String? newValue) {
-                          setState(() {
-                            selectedDepartment = newValue;
-                          });
-                        },
-                        hint: Text("Select Department",
-                            style:
-                                TextStyle(fontSize: 18, color: Colors.black54)),
-                      ),
+                        Container(
+                          width: MediaQuery.of(context).size.width / 7,
+                          height: MediaQuery.of(context).size.width / 35,
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            borderRadius: BorderRadius.circular(
+                                MediaQuery.of(context).size.width / 170),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                spreadRadius: 0,
+                              ),
+                            ],
+                          ),
+                          child: TextButton(
+                            onPressed: () {
+                              // Prevent saving if a department is required but not selected
+                              if (selectedDepartment == null) {
+                                _showErrorDialog(
+                                    context, "Please select a department.");
+                                return;
+                              }
+
+                              // This will close the showDialog Box
+                              Navigator.pop(context);
+                              // This will trigger the _approveUser and passing the user
+                              _approveUser(user);
+                            },
+                            child: Text(
+                              "Confirm",
+                              style: TextStyle(
+                                fontFamily: "R",
+                                fontSize:
+                                    MediaQuery.of(context).size.width / 100,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-              actions: <Widget>[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ElevatedButton(
-                        onPressed: () =>
-                            // this will close the showdialog box
-                            Navigator.pop(context),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              Colors.red, // Set the background color to red
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: Text(
-                          'Cancel',
-                          style: TextStyle(color: Colors.white),
-                        )),
-                    ElevatedButton(
-                        onPressed: () {
-                          // ✅ Prevent saving if a department is required but not selected
-                          if (selectedDepartment == null) {
-                            _showErrorDialog(
-                                context, "Please select a department.");
-                            return;
-                          }
-
-                          // this will close the showDialog Box
-                          Navigator.pop(context);
-                          // This will triggered the _approveUser and passing the user
-                          _approveUser(user);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              Colors.blue, // Set the background color to red
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: Text(
-                          'Confirm',
-                          style: TextStyle(color: Colors.white),
-                        ))
-                  ],
-                ),
-              ],
             );
           },
         );
@@ -296,76 +607,249 @@ class _UserManagementState extends State<UserManagement> {
     );
   }
 
-// ✅ Helper function to show an error dialog
+// Helper function to show an error dialog with the updated design
   void _showErrorDialog(BuildContext context, String message) {
     showDialog(
       context: context,
       builder: (context) {
-        return CupertinoAlertDialog(
-          title: Text('Error'),
-          content: Text(message),
-          actions: [
-            TextButton(
-              onPressed: () =>
-                  // This will close the ShowErrorDialog
-                  Navigator.pop(context),
-              child: Text('OK'),
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0),
+          ),
+          elevation: 8.0,
+          child: Container(
+            width: MediaQuery.of(context).size.width / 4,
+            padding: EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16.0),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Colors.white, Color(0xFFF5F9FF)],
+              ),
             ),
-          ],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 28,
+                    ),
+                    SizedBox(width: 10),
+                    Text(
+                      "Error",
+                      style: TextStyle(
+                        fontFamily: "SB",
+                        color: Color(0xFF0e2643),
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 15),
+                Container(
+                  padding: EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        spreadRadius: 0,
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: "R",
+                      fontSize: 16,
+                      color: Color(0xFF555555),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 20),
+                Container(
+                  width: MediaQuery.of(context).size.width / 7,
+                  height: MediaQuery.of(context).size.width / 35,
+                  decoration: BoxDecoration(
+                    color: Colors.blue,
+                    borderRadius: BorderRadius.circular(
+                        MediaQuery.of(context).size.width / 170),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        spreadRadius: 0,
+                      ),
+                    ],
+                  ),
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      "OK",
+                      style: TextStyle(
+                        fontFamily: "R",
+                        fontSize: MediaQuery.of(context).size.width / 100,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
   }
 
-  // This is a showdialog Box for rejecting a registere user
+// This is a showdialog Box for rejecting a registered user with the updated design
   void _showDialogReject(String userId) {
     showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Reject this User?'),
-            content: Text('Do you want to reject this user?'),
-            actions: [
-              Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-                ElevatedButton(
-                  onPressed: () =>
-                      // This will close the ShowDialogBox
-                      Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        Colors.red, // Set the background color to red
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0),
+          ),
+          elevation: 8.0,
+          child: Container(
+            width: MediaQuery.of(context).size.width / 3,
+            padding: EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16.0),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Colors.white, Color(0xFFF5F9FF)],
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.cancel_rounded,
+                      color: Colors.red,
+                      size: 28,
                     ),
+                    SizedBox(width: 10),
+                    Text(
+                      "Reject User",
+                      style: TextStyle(
+                        fontFamily: "SB",
+                        color: Color(0xFF0e2643),
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 15),
+                Container(
+                  padding: EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        spreadRadius: 0,
+                      ),
+                    ],
                   ),
                   child: Text(
-                    'Cancel',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    // This will triggered the _rejectUser and it passing the userID
-                    _rejectUser(userId);
-                    // This is closing the showdialogbox
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        Colors.blue, // Set the background color to red
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                    "Do you want to reject this user?",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: "R",
+                      fontSize: 16,
+                      color: Color(0xFF555555),
                     ),
                   ),
-                  child: Text(
-                    'Confirm',
-                    style: TextStyle(color: Colors.white),
-                  ),
                 ),
-              ])
-            ],
-          );
-        });
+                SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Container(
+                      width: MediaQuery.of(context).size.width / 7,
+                      height: MediaQuery.of(context).size.width / 35,
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+                        borderRadius: BorderRadius.circular(
+                            MediaQuery.of(context).size.width / 170),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            spreadRadius: 0,
+                          ),
+                        ],
+                      ),
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          "Cancel",
+                          style: TextStyle(
+                            fontFamily: "R",
+                            fontSize: MediaQuery.of(context).size.width / 100,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: MediaQuery.of(context).size.width / 7,
+                      height: MediaQuery.of(context).size.width / 35,
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(
+                            MediaQuery.of(context).size.width / 170),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            spreadRadius: 0,
+                          ),
+                        ],
+                      ),
+                      child: TextButton(
+                        onPressed: () {
+                          // This will triggered the _rejectUser and it passing the userID
+                          _rejectUser(userId);
+                          // This is closing the showdialogbox
+                          Navigator.pop(context);
+                        },
+                        child: Text(
+                          "Confirm",
+                          style: TextStyle(
+                            fontFamily: "R",
+                            fontSize: MediaQuery.of(context).size.width / 100,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   // This function handles the approval process for a pending user registration.
