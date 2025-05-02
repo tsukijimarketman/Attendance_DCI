@@ -3,6 +3,7 @@ import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/caddress.da
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/profile.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/su_address_provider.dart';
 import 'package:attendance_app/Animation/loader.dart';
+import 'package:attendance_app/Auth/audit_function.dart';
 import 'package:attendance_app/edit_mode_provider.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
@@ -543,8 +544,11 @@ class _SettingsSUState extends State<SettingsSU> {
         .limit(1)
         .get();
 
-    if (querySnapshot.docs.isNotEmpty) {
-      String docId = querySnapshot.docs.first.id; // Get Firestore document ID
+     if (querySnapshot.docs.isNotEmpty) {
+    String docId = querySnapshot.docs.first.id;
+    DocumentSnapshot userDoc = querySnapshot.docs.first;
+
+      Map<String, dynamic> currentData = userDoc.data() as Map<String, dynamic>;
 
       // Create a map of updated values
       Map<String, dynamic> updatedData = {
@@ -587,11 +591,31 @@ class _SettingsSUState extends State<SettingsSU> {
         "by_naturalized": byNaturalizedChecked,
       };
 
+      Map<String, dynamic> changedFields = {};
+    updatedData.forEach((key, newValue) {
+      var oldValue = currentData[key];
+      if (oldValue != newValue) {
+        changedFields[key] = {
+          "from": oldValue,
+          "to": newValue,
+        };
+      }
+    });
+
+
       try {
         await FirebaseFirestore.instance
             .collection("users")
             .doc(docId)
             .update(updatedData);
+
+            if (changedFields.isNotEmpty) {
+        await logAuditTrail(
+          "Update Profile",
+          "Updated fields: ${changedFields.entries.map((e) => "${e.key}: '${e.value['from']}' change to --> '${e.value['to']}'").join(", ")}",
+        );
+      }
+
 
         setState(() {
           isEditing = false; // Disable editing mode after saving

@@ -44,7 +44,7 @@ void main() async {
       create: (context) => EditModeProvider(),
     ),
     ChangeNotifierProvider(create: (_) => AddressProvider()),
-    ChangeNotifierProvider(create: (_) => SidebarProvider()),
+    ChangeNotifierProvider(create: (_) => SidebarProvider()), 
   ], child: MyApp())
   );
   

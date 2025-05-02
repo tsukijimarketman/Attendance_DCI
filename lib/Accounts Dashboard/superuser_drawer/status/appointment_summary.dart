@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/appointment_view.dart';
+import 'package:attendance_app/Auth/audit_function.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -145,8 +146,7 @@ class _AppointmentStatusState extends State<AppointmentStatus> {
                   .update({'status': 'In Progress'});
 
               // Log the automatic status change
-              await _logAuditTrail(doc.id, "Auto Status Update",
-                  "Appointment with agenda: ${doc.data()['agenda'] ?? 'Unknown'} automatically changed to In Progress");
+                  await logAuditTrail("Auto Status Update", "Appointment with agenda: ${doc.data()['agenda'] ?? 'Unknown'} automatically changed to In Progress");
 
               updatedCount++;
             }
@@ -165,20 +165,6 @@ class _AppointmentStatusState extends State<AppointmentStatus> {
     }
   }
 
-  // Log audit trail entry
-  Future<void> _logAuditTrail(
-      String appointmentId, String action, String description) async {
-    try {
-      await _firestore.collection('audit_trail').add({
-        'appointmentId': appointmentId,
-        'action': action,
-        'description': description,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
-      print('Error logging audit trail: $e');
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
