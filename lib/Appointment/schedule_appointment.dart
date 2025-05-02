@@ -436,7 +436,7 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                   suffix: null,
                   readOnly: false,
                   obscureText: false,
-                ),
+                ),  
               ),
               SizedBox(height: 8),
               Container(
@@ -496,8 +496,10 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                         'contactNum': contactNum.text,
                         'emailAdd': emailAdd.text,
                         'companyName': companyName.text,
+                        'isDeleted' : false
                       });
-
+                      
+                      await logAuditTrail("Client Added", "Client Added with a name of ${fullName.text} Contact No: ${contactNum.text} Email Address: ${emailAdd.text} and Company of: ${companyName.text}");
                       clearAddnewguest();
 
                       Navigator.pop(context);

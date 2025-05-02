@@ -83,17 +83,6 @@ class _AttendanceFormState extends State<AttendanceForm> {
 
     int now = DateTime.now().millisecondsSinceEpoch;
 
-    // Check if QR Code expired (30 minutes limit)
-    int qrExpiryTime = widget.expiryTime - (30 * 60 * 1000);
-    if (now > qrExpiryTime) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const NotFoundPage()),
-        );
-      });
-      return;
-    }
-
     // Check if form expired (1-hour limit)
     if (widget.expiryTime < now) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -327,6 +316,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Form submitted successfully!")),
     );
+    
 
     // Clear fields after submission
     nameController.clear();

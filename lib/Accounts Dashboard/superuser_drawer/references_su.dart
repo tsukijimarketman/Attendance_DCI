@@ -1073,27 +1073,42 @@ class _ReferencesState extends State<References> {
     }
   }
 
-  Future<void> _deleteData(String id) async {
-    if (selectedCategoryId == null) return;
+ Future<void> _deleteData(String id) async {
+  if (selectedCategoryId == null) return;
 
-    try {
-      await _firestore
-          .collection("categories")
-          .doc(selectedCategoryId)
-          .collection("references")
-          .doc(id)
-          .update({
-        "isDeleted": true,
-      });
+  try {
+    // Step 1: Fetch the document to get the name
+    DocumentSnapshot doc = await _firestore
+        .collection("categories")
+        .doc(selectedCategoryId)
+        .collection("references")
+        .doc(id)
+        .get();
 
-      await logAuditTrail("Department Deleted", "Deleted department '$id'");
+    String name = doc.exists && doc.data() != null
+        ? (doc.data() as Map<String, dynamic>)['name'] ?? 'Unknown'
+        : 'Unknown';
 
-      setState(() => _selectedDataId = null); // Deselect after deleting
-      _showSuccessToast('Department deleted successfully');
-    } catch (e) {
-      _showErrorToast('Error deleting department: $e');
-    }
+    // Step 2: Mark as deleted
+    await _firestore
+        .collection("categories")
+        .doc(selectedCategoryId)
+        .collection("references")
+        .doc(id)
+        .update({
+      "isDeleted": true,
+    });
+
+    // Step 3: Log the action with ID and name
+    await logAuditTrail("Department Deleted", "Deleted department '$id' with name: $name");
+
+    setState(() => _selectedDataId = null); // Deselect after deleting
+    _showSuccessToast('Department deleted successfully');
+  } catch (e) {
+    _showErrorToast('Error deleting department: $e');
   }
+}
+
 
   // Toast notifications
   void _showSuccessToast(String message) {
