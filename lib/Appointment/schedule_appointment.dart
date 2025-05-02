@@ -406,7 +406,7 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                   suffix: null,
                   readOnly: false,
                   obscureText: false,
-                ),
+                ),  
               ),
               SizedBox(height: 8),
               Container(

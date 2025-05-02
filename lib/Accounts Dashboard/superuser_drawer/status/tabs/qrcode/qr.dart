@@ -13,7 +13,13 @@ class QrCode extends StatefulWidget {
   State<QrCode> createState() => _QrCodeState();
 }
 
-class _QrCodeState extends State<QrCode> {
+class _QrCodeState extends State<QrCode> with AutomaticKeepAliveClientMixin {
+   static bool _isQrGenerated = false;
+  static bool _isFormCreated = false;
+  static String _qrUrl = "";
+  static String _lastAgenda = ""; // ✅ Tracks which agenda QR was made for
+
+
   final TextEditingController agendaController = TextEditingController();
   final TextEditingController departmentController = TextEditingController();
 
@@ -28,9 +34,23 @@ class _QrCodeState extends State<QrCode> {
   @override
   void initState() {
     super.initState();
+     if (_lastAgenda != widget.selectedAgenda) {
+    _isQrGenerated = false;
+    _isFormCreated = false;
+    _qrUrl = "";
+    _lastAgenda = widget.selectedAgenda;
+  }
+
+  isQrGenerated = _isQrGenerated;
+  isFormCreated = _isFormCreated;
+  qrUrl = _qrUrl;
+
     agendaController.text = widget.selectedAgenda;
     fetchUserData();
   }
+
+   @override
+  bool get wantKeepAlive => true;
 
   // This function is responsible for fetching the current user's data from Firebase Firestore.
   // It first checks if the user is logged in by retrieving the current user from FirebaseAuth.
@@ -76,6 +96,8 @@ class _QrCodeState extends State<QrCode> {
   void generateQrCode() {
     setState(() {
       isQrGenerated = true;
+            _isQrGenerated = true;
+
     });
   }
 
@@ -111,6 +133,11 @@ class _QrCodeState extends State<QrCode> {
 
       setState(() {
         isFormCreated = true;
+  isQrGenerated = true;
+  _isFormCreated = true;
+  _isQrGenerated = true;
+  _qrUrl = qrUrl;
+  _lastAgenda = widget.selectedAgenda; // ✅ Track agenda used
       });
     } catch (e) {
       ScaffoldMessenger.of(context)
@@ -123,6 +150,7 @@ class _QrCodeState extends State<QrCode> {
  
   @override
   Widget build(BuildContext context) {
+        super.build(context); // Required when using AutomaticKeepAliveClientMixin
     return Container(
       child: isFormCreated
           ? _buildQRCodeView()
@@ -347,7 +375,6 @@ class _QrCodeState extends State<QrCode> {
                       data: qrUrl,
                       size: 240,
                       backgroundColor: Colors.white,
-                      embeddedImage: AssetImage('assets/dci.jpg'),
                       embeddedImageStyle: QrEmbeddedImageStyle(
                         size: Size(60, 60),
                       ),

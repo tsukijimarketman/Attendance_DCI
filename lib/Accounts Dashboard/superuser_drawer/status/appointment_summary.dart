@@ -249,7 +249,7 @@ class _AppointmentStatusState extends State<AppointmentStatus> {
                           ],
                         ),
                       ),
-                    ).showCursorOnHover,
+                    ).showCursorOnHover.moveUpOnHover,
 
                     // Ongoing status card
                     GestureDetector(
@@ -308,7 +308,7 @@ class _AppointmentStatusState extends State<AppointmentStatus> {
                           ],
                         ),
                       ),
-                    ).showCursorOnHover,
+                    ).showCursorOnHover.moveUpOnHover,
 
                     // Completed status card
                     GestureDetector(
@@ -367,7 +367,7 @@ class _AppointmentStatusState extends State<AppointmentStatus> {
                           ],
                         ),
                       ),
-                    ).showCursorOnHover,
+                    ).showCursorOnHover.moveUpOnHover,
 
                     // Cancelled status card
                     GestureDetector(
@@ -426,7 +426,7 @@ class _AppointmentStatusState extends State<AppointmentStatus> {
                           ],
                         ),
                       ),
-                    ).showCursorOnHover,
+                    ).showCursorOnHover.moveUpOnHover,
                   ],
                 ),
               ),

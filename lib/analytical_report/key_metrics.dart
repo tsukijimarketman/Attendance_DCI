@@ -105,7 +105,7 @@ class _KeyMetricsState extends State<KeyMetrics> {
                   )
                 ],
               ),
-            );
+            ).moveUpOnHover;
           },
         ),
         
@@ -260,7 +260,7 @@ class _KeyMetricsState extends State<KeyMetrics> {
                   )
                 ],
               ),
-            );
+            ).moveUpOnHover;
           },
         ),
         StreamBuilder<QuerySnapshot>(
@@ -326,7 +326,7 @@ class _KeyMetricsState extends State<KeyMetrics> {
                   )
                 ],
               ),
-            );
+            ).moveUpOnHover;
           },
         ),
         StreamBuilder<QuerySnapshot>(
@@ -486,7 +486,7 @@ class _KeyMetricsState extends State<KeyMetrics> {
                   )
                 ],
               ),
-            );
+            ).moveUpOnHover;
           },
         ),
       ],

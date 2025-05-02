@@ -86,12 +86,19 @@ class _MeetingTabsState extends State<MeetingTabs> with TickerProviderStateMixin
     super.didUpdateWidget(oldWidget);
     // Check if selectedAgenda or statusType has changed
     if (oldWidget.selectedAgenda != widget.selectedAgenda || 
-        oldWidget.statusType != widget.statusType) {
-      setState(() {
-        currentAgenda = widget.selectedAgenda;
-        _updateAvailableTabs();
-      });
+    oldWidget.statusType != widget.statusType) {
+  setState(() {
+    currentAgenda = widget.selectedAgenda;
+    _updateAvailableTabs();
+    
+    // Restore current index if valid
+    if (!_availableTabs[_currentIndex]!) {
+      _currentIndex = 0;
     }
+    _tabController.index = _currentIndex;
+  });
+}
+
   }
 
   @override
