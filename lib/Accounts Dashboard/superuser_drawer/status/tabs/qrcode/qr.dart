@@ -19,13 +19,9 @@ class _QrCodeState extends State<QrCode> {
 
   bool isQrGenerated = false;
   bool isFormCreated = false;
-  String qrUrl = "";
-  int qrExpiryTime = 0;
   String firstName = "";
   String lastName = "";
-  int remainingTime = 0;
-  Timer? _timer;
-
+  String qrUrl = "";
   // The initState method is called when the widget is first created. It initializes the state of the widget by setting the agendaController's text to the selected agenda passed via the widget's constructor.
   // It also triggers the fetchUserData method to fetch and load the current user's data from Firebase into the state.
   // This ensures that the necessary data is available when the widget is displayed.
@@ -34,13 +30,6 @@ class _QrCodeState extends State<QrCode> {
     super.initState();
     agendaController.text = widget.selectedAgenda;
     fetchUserData();
-  }
-
-  // Preventing memory Leaks
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
   }
 
   // This function is responsible for fetching the current user's data from Firebase Firestore.
@@ -106,12 +95,11 @@ class _QrCodeState extends State<QrCode> {
 
     int now = DateTime.now().millisecondsSinceEpoch;
 
-    qrExpiryTime = now + (30 * 60 * 1000); // QR expires in 30 minutes
     int formExpiryTime = now + (60 * 60 * 1000); // Form expires in 1 hour
 
-    qrUrl = "https://attendance-dci.web.app//#/attendance_form"
+     qrUrl = "https://attendance-dci.web.app//#/attendance_form"
         "?agenda=${Uri.encodeComponent(agendaController.text)}"
-        "?department=${Uri.encodeComponent(departmentController.text)}"
+        "&department=${Uri.encodeComponent(departmentController.text)}"
         "&first_name=${Uri.encodeComponent(firstName)}"
         "&last_name=${Uri.encodeComponent(lastName)}"
         "&expiryTime=${formExpiryTime}";
@@ -123,7 +111,6 @@ class _QrCodeState extends State<QrCode> {
 
       setState(() {
         isFormCreated = true;
-        _startCountdown();
       });
     } catch (e) {
       ScaffoldMessenger.of(context)
@@ -131,59 +118,9 @@ class _QrCodeState extends State<QrCode> {
     }
   }
 
-  // This will Start the Countdown for the Expiration Date
-  void _startCountdown() {
-    int now = DateTime.now().millisecondsSinceEpoch;
-    remainingTime = ((qrExpiryTime - now) / 1000).round();
 
-    if (remainingTime > 0) {
-      _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-        if (mounted) {
-          setState(() {
-            remainingTime--;
-          });
 
-          if (remainingTime <= 0) {
-            _timer?.cancel();
-            _showExpiredDialog();
-          }
-        }
-      });
-    } else {
-      _showExpiredDialog();
-    }
-  }
-
-  // This is a Show Dialog Box where it will show
-  // that the Qr Is Expired
-  void _showExpiredDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text("QR Code Expired"),
-        content: Text("The QR Code has expired. Please generate a new one."),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              setState(() {
-                isFormCreated = false;
-              });
-            },
-            child: Text("OK"),
-          )
-        ],
-      ),
-    );
-  }
-
-  String _formatTime(int seconds) {
-    int minutes = seconds ~/ 60;
-    int secs = seconds % 60;
-    return "$minutes:${secs.toString().padLeft(2, '0')}";
-  }
-
+ 
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -417,21 +354,6 @@ class _QrCodeState extends State<QrCode> {
                     ),
                   ),
                   SizedBox(height: 24),
-                  remainingTime > 0
-                      ? Text(
-                          "Expires in: ${_formatTime(remainingTime)} minutes",
-                          style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red),
-                        )
-                      : Text(
-                          "QR Code Expired",
-                          style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red),
-                        ),
                 ],
               ),
             ),

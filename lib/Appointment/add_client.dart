@@ -57,7 +57,7 @@ class _AddClientState extends State<AddClient> {
           backgroundColor: Colors.green,
         ),
       );
-
+    await logAuditTrail("Client Added", "Client Added with a name of ${fullName.text} Contact No: ${contactNum.text} Email Address: ${emailAdd.text} and Company of: ${companyName.text}");
       _clearFields();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -69,53 +69,113 @@ class _AddClientState extends State<AddClient> {
     }
   }
 
-  void _updateGuest(String docId, String fullName, String contactNum,
-      String emailAdd, String companyName) async {
-    try {
-      await _firestore.collection('clients').doc(docId).update({
-        'fullName': fullName,
-        'contactNum': contactNum,
-        'emailAdd': emailAdd,
-        'companyName': companyName,
-      });
+ void _updateGuest(String docId, String fullName, String contactNum,
+    String emailAdd, String companyName) async {
+  try {
+    // Step 1: Fetch the existing document
+    DocumentSnapshot doc = await _firestore.collection('clients').doc(docId).get();
 
+    if (!doc.exists) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Client updated successfully."),
-          backgroundColor: Colors.green,
+          content: Text("Client not found."),
+          backgroundColor: Colors.orange,
         ),
       );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Failed to update client: $e"),
-          backgroundColor: Colors.red,
-        ),
+      return;
+    }
+
+    Map<String, dynamic> oldData = doc.data() as Map<String, dynamic>;
+
+    // Step 2: Prepare new data
+    Map<String, dynamic> newData = {
+      'fullName': fullName,
+      'contactNum': contactNum,
+      'emailAdd': emailAdd,
+      'companyName': companyName,
+    };
+
+    // Step 3: Compare and build a list of changes
+    List<String> changes = [];
+    newData.forEach((key, newValue) {
+      var oldValue = oldData[key] ?? '';
+      if (oldValue != newValue) {
+        changes.add("$key: '$oldValue' → '$newValue'");
+      }
+    });
+
+    // Step 4: Perform the update
+    await _firestore.collection('clients').doc(docId).update(newData);
+
+    // Step 5: Log the audit trail only if there are changes
+    if (changes.isNotEmpty) {
+      await logAuditTrail(
+        "Client Updated",
+        "Updated client '$docId' with changes: ${changes.join(', ')}",
       );
     }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Client updated successfully."),
+        backgroundColor: Colors.green,
+      ),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Failed to update client: $e"),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
+}
 
-  void _deleteGuest(String docId, String guestName, String guestEmail) async {
-    try {
-      await _firestore.collection('clients').doc(docId).update({
-        'isDeleted': true,
-      });
+ void _deleteGuest(String docId) async {
+  try {
+    // Step 1: Fetch the full client document
+    DocumentSnapshot doc = await _firestore.collection('clients').doc(docId).get();
 
+    if (!doc.exists) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Client deleted successfully."),
-          backgroundColor: Colors.green,
+          content: Text("Client not found."),
+          backgroundColor: Colors.orange,
         ),
       );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Failed to delete client: $e"),
-          backgroundColor: Colors.red,
-        ),
-      );
+      return;
     }
+
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+
+    // Step 2: Soft delete the document
+    await _firestore.collection('clients').doc(docId).update({
+      'isDeleted': true,
+    });
+
+    // Step 3: Log with actual data from the document
+    await logAuditTrail(
+      "Client Deleted",
+      "Client deleted with Name: ${data['fullName'] ?? 'N/A'}, Contact No: ${data['contactNum'] ?? 'N/A'}, "
+      "Email: ${data['emailAdd'] ?? 'N/A'}, Company: ${data['companyName'] ?? 'N/A'}",
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Client deleted successfully."),
+        backgroundColor: Colors.green,
+      ),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Failed to delete client: $e"),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
+}
+
 
   void _showdialogDelete(String docId, String guestName, String guestEmail) {
     showDialog(
@@ -131,7 +191,7 @@ class _AddClientState extends State<AddClient> {
             ),
             TextButton(
               onPressed: () {
-                _deleteGuest(docId, guestName, guestEmail);
+                _deleteGuest(docId);
                 Navigator.pop(context);
               },
               child: Text("Delete"),

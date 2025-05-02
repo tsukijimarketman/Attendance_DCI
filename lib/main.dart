@@ -87,14 +87,8 @@ class MyApp extends StatelessWidget {
   MaterialPageRoute _handleAttendanceFormRoute(Uri uri) {
     /// - Extracts and validates important parameters like `expiryTime` and `selectedScheduleTime`.
     int expiryTime = int.tryParse(uri.queryParameters['expiryTime'] ?? "") ?? 0;
-    int currentTime = DateTime.now().millisecondsSinceEpoch;
     int selectedScheduleTime =
         int.tryParse(uri.queryParameters['selectedScheduleTime'] ?? "") ?? 0;
-
-    /// - If the form link is expired (expiryTime < currentTime), redirects to NotFoundPage.
-    if (expiryTime == 0 || expiryTime < currentTime) {
-      return MaterialPageRoute(builder: (context) => const NotFoundPage());
-    }
 
     /// - If valid, passes all query parameters to the AttendanceForm widget.
     return MaterialPageRoute(
