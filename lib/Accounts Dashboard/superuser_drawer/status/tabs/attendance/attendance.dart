@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/tabs/attendance/attendance_export_utils.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +16,8 @@ class Attendance extends StatefulWidget {
 
 class _AttendanceState extends State<Attendance> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  String appointmentStatus = "";
+  StreamSubscription? _attendanceSubscription;
   bool isLoading = true;
   String userDepartment = "";
   String fullName = "";
@@ -51,7 +55,8 @@ class _AttendanceState extends State<Attendance> {
     itemsPerPageController.text = itemsPerPage.toString();
     fetchUserDepartment().then((_) {
       fetchAppointmentData();
-      fetchAttendanceData();
+      // Replace fetchAttendanceData() with setupAttendanceStream()
+      setupAttendanceStream();
     });
   }
 
@@ -60,7 +65,63 @@ class _AttendanceState extends State<Attendance> {
   void dispose() {
     searchController.dispose();
     itemsPerPageController.dispose();
+    // Cancel the subscription when disposing the widget
+    _attendanceSubscription?.cancel();
     super.dispose();
+  }
+
+  void setupAttendanceStream() {
+    _attendanceSubscription = _firestore
+        .collection('attendance')
+        .where('agenda', isEqualTo: widget.selectedAgenda)
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.docs.isNotEmpty) {
+        setState(() {
+          attendanceList = snapshot.docs
+              .map((doc) => doc.data() as Map<String, dynamic>)
+              .toList();
+
+          // Also listen for changes in appointment status
+          _firestore
+              .collection('appointment')
+              .where('agenda', isEqualTo: widget.selectedAgenda)
+              .limit(1)
+              .get()
+              .then((querySnapshot) {
+            if (querySnapshot.docs.isNotEmpty) {
+              var data =
+                  querySnapshot.docs.first.data() as Map<String, dynamic>;
+              if (data.containsKey('status')) {
+                appointmentStatus = data['status'] ?? "In Progress";
+              }
+              // Update the consolidated list with the new status and attendance data
+              updateConsolidatedList();
+            }
+          });
+        });
+      } else {
+        // Still update consolidated list with proper status
+        _firestore
+            .collection('appointment')
+            .where('agenda', isEqualTo: widget.selectedAgenda)
+            .limit(1)
+            .get()
+            .then((querySnapshot) {
+          if (querySnapshot.docs.isNotEmpty) {
+            var data = querySnapshot.docs.first.data() as Map<String, dynamic>;
+            if (data.containsKey('status')) {
+              appointmentStatus = data['status'] ?? "In Progress";
+            }
+            // Update consolidated list with everyone marked based on appointment status
+            updateConsolidatedList();
+          }
+        });
+      }
+    }, onError: (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error fetching attendance data: $e")));
+    });
   }
 
   // The fetchUserDepartment method retrieves the department information of the currently logged-in user.
@@ -114,6 +175,11 @@ class _AttendanceState extends State<Attendance> {
       if (querySnapshot.docs.isNotEmpty) {
         var data = querySnapshot.docs.first.data() as Map<String, dynamic>;
 
+        // Extract status
+        if (data.containsKey('status')) {
+          appointmentStatus = data['status'] ?? "In Progress";
+        }
+
         // Fetch external guests array from Firestore
         if (data.containsKey('guest') && data['guest'] is List) {
           invitedGuests = List<Map<String, dynamic>>.from(data['guest']);
@@ -165,8 +231,6 @@ class _AttendanceState extends State<Attendance> {
           updateConsolidatedList();
         });
       } else {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text("No attendance data found.")));
         // Still update consolidated list with everyone marked as absent
         updateConsolidatedList();
       }
@@ -206,6 +270,16 @@ class _AttendanceState extends State<Attendance> {
       String email = (user['email'] ?? '').toLowerCase();
       bool isPresent = email.isNotEmpty && attendanceByEmail.containsKey(email);
 
+      // Different attendance status logic based on appointment status
+      bool? presentStatus;
+      if (appointmentStatus == "Completed") {
+        // For Completed meetings, people are either Present or Absent (no Waiting)
+        presentStatus = isPresent;
+      } else {
+        // For In Progress meetings, people are either Present or Waiting (no Absent)
+        presentStatus = isPresent ? true : null; // null means waiting
+      }
+
       // Use the actual name from attendance if present, otherwise use invited name
       String displayName = isPresent && attendeeNameByEmail.containsKey(email)
           ? attendeeNameByEmail[email]!
@@ -215,7 +289,7 @@ class _AttendanceState extends State<Attendance> {
         'name': displayName,
         'position': user['department'] ?? 'N/A',
         'email': email,
-        'present': isPresent,
+        'present': presentStatus, // Based on appointment status
         'type': 'Internal'
       });
     }
@@ -224,6 +298,16 @@ class _AttendanceState extends State<Attendance> {
     for (var guest in invitedGuests) {
       String email = (guest['emailAdd'] ?? '').toLowerCase();
       bool isPresent = email.isNotEmpty && attendanceByEmail.containsKey(email);
+
+      // Different attendance status logic based on appointment status
+      bool? presentStatus;
+      if (appointmentStatus == "Completed") {
+        // For Completed meetings, people are either Present or Absent (no Waiting)
+        presentStatus = isPresent;
+      } else {
+        // For In Progress meetings, people are either Present or Waiting (no Absent)
+        presentStatus = isPresent ? true : null; // null means waiting
+      }
 
       // Use the actual name from attendance if present, otherwise use invited name
       String displayName = isPresent && attendeeNameByEmail.containsKey(email)
@@ -234,7 +318,7 @@ class _AttendanceState extends State<Attendance> {
         'name': displayName,
         'position': guest['companyName'] ?? 'N/A',
         'email': email,
-        'present': isPresent,
+        'present': presentStatus, // Based on appointment status
         'type': 'External'
       });
     }
@@ -261,7 +345,7 @@ class _AttendanceState extends State<Attendance> {
         'name': attendee['name'] ?? '',
         'position': attendee['company'] ?? 'Additional Attendee',
         'email': email,
-        'present': true,
+        'present': true, // Additional attendees are always present
         'type': 'Additional'
       });
 
@@ -274,6 +358,14 @@ class _AttendanceState extends State<Attendance> {
       filterAttendees();
     });
   }
+
+  int get totalCount => consolidatedAttendees.length;
+  int get presentCount =>
+      consolidatedAttendees.where((p) => p['present'] == true).length;
+  int get absentCount =>
+      consolidatedAttendees.where((p) => p['present'] == false).length;
+  int get waitingCount =>
+      consolidatedAttendees.where((p) => p['present'] == null).length;
 
   // Filter attendees based on search query
   void filterAttendees() {
@@ -361,13 +453,6 @@ class _AttendanceState extends State<Attendance> {
       ),
     );
   }
-
-  // Count statistics
-  int get totalCount => consolidatedAttendees.length;
-  int get presentCount =>
-      consolidatedAttendees.where((p) => p['present'] == true).length;
-  int get absentCount =>
-      consolidatedAttendees.where((p) => p['present'] == false).length;
 
   // This will generate/download a PDF
   void _generatePDF() async {
@@ -596,7 +681,7 @@ class _AttendanceState extends State<Attendance> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Total: $totalCount | Present: $presentCount | Absent: $absentCount',
+                      'Total: $totalCount | Present: $presentCount | Waiting: $waitingCount | Absent: $absentCount',
                       style: TextStyle(
                           fontFamily: "R",
                           fontSize: screenWidth / 100,
@@ -903,90 +988,119 @@ class _AttendanceState extends State<Attendance> {
   }
 
   Widget _buildAttendeeCard(
-      String name, String position, bool present, String type, String email) {
-    double screenWidth = MediaQuery.of(context).size.width;
+    String name, String position, bool? present, String type, String email) {
+  double screenWidth = MediaQuery.of(context).size.width;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      color: type == 'Additional' ? Colors.blue.shade50 : Colors.white,
-      elevation: 2,
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: _getAvatarColor(type),
-          child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?'),
-        ),
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            textWithTooltip(
-              name,
-              TextStyle(
-                fontFamily: "SB",
-                fontSize: MediaQuery.of(context).size.width / 100,
-              ),
-              maxWidth: screenWidth / 3,
+  return Card(
+    margin: const EdgeInsets.only(bottom: 10),
+    color: type == 'Additional' ? Colors.blue.shade50 : Colors.white,
+    elevation: 2,
+    child: ListTile(
+      leading: CircleAvatar(
+        backgroundColor: _getAvatarColor(type),
+        child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?'),
+      ),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          textWithTooltip(
+            name,
+            TextStyle(
+              fontFamily: "SB",
+              fontSize: MediaQuery.of(context).size.width / 100,
             ),
-          ],
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            textWithTooltip(
-              position,
-              TextStyle(fontSize: 12),
-              maxWidth: screenWidth / 3,
-            ),
-            if (email.isNotEmpty)
-              textWithTooltip(
-                email,
-                TextStyle(fontSize: 12, color: Colors.grey),
-                maxWidth: screenWidth / 3,
-              ),
-            Text(
-              type,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: _getTypeColor(type),
-              ),
-            ),
-          ],
-        ),
-        trailing: Chip(
-          label: Text(present ? 'Present' : 'Absent'),
-          backgroundColor:
-              present ? Colors.green.shade100 : Colors.red.shade100,
-          labelStyle: TextStyle(
-            color: present ? Colors.green.shade800 : Colors.red.shade800,
+            maxWidth: screenWidth / 3,
           ),
+        ],
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          textWithTooltip(
+            position,
+            TextStyle(fontSize: 12),
+            maxWidth: screenWidth / 3,
+          ),
+          if (email.isNotEmpty)
+            textWithTooltip(
+              email,
+              TextStyle(fontSize: 12, color: Colors.grey),
+              maxWidth: screenWidth / 3,
+            ),
+          Text(
+            type,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: _getTypeColor(type),
+            ),
+          ),
+        ],
+      ),
+      trailing: Chip(
+        label: Text(_getAttendanceStatusText(present)),
+        backgroundColor: _getAttendanceStatusColor(present),
+        labelStyle: TextStyle(
+          color: _getAttendanceStatusTextColor(present),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
-  Color _getAvatarColor(String type) {
-    switch (type) {
-      case 'Internal':
-        return Colors.blue;
-      case 'External':
-        return Colors.orange;
-      case 'Additional':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
+String _getAttendanceStatusText(bool? present) {
+  if (appointmentStatus == "Completed") {
+    // For completed meetings: only Present or Absent
+    return present == true ? 'Present' : 'Absent';
+  } else {
+    // For in-progress meetings: only Present or Waiting
+    return present == true ? 'Present' : 'Waiting';
   }
+}
 
-  Color _getTypeColor(String type) {
-    switch (type) {
-      case 'Internal':
-        return Colors.blue;
-      case 'External':
-        return Colors.orange;
-      case 'Additional':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
+Color _getAttendanceStatusColor(bool? present) {
+  if (appointmentStatus == "Completed") {
+    // For completed meetings
+    return present == true ? Colors.green.shade100 : Colors.red.shade100;
+  } else {
+    // For in-progress meetings
+    return present == true ? Colors.green.shade100 : Colors.amber.shade100;
   }
+}
+
+Color _getAttendanceStatusTextColor(bool? present) {
+  if (appointmentStatus == "Completed") {
+    // For completed meetings
+    return present == true ? Colors.green.shade800 : Colors.red.shade800;
+  } else {
+    // For in-progress meetings
+    return present == true ? Colors.green.shade800 : Colors.amber.shade800;
+  }
+}
+
+Color _getAvatarColor(String type) {
+  switch (type) {
+    case 'Internal':
+      return Colors.blue;
+    case 'External':
+      return Colors.orange;
+    case 'Additional':
+      return Colors.green;
+    default:
+      return Colors.grey;
+  }
+}
+
+Color _getTypeColor(String type) {
+  switch (type) {
+    case 'Internal':
+      return Colors.blue;
+    case 'External':
+      return Colors.orange;
+    case 'Additional':
+      return Colors.green;
+    default:
+      return Colors.grey;
+  }
+}
 }

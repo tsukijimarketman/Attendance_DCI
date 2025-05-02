@@ -42,16 +42,16 @@ class _MeetingTabsState extends State<MeetingTabs> with TickerProviderStateMixin
         _availableTabs = {0: true, 1: false, 2: false, 3: false};
         break;
       case 'In Progress':
-        _availableTabs = {0: true, 1: false, 2: false, 3: true}; // Attendance set to false
+        _availableTabs = {0: true, 1: true, 2: false, 3: true}; 
         break;
       case 'Completed':
         _availableTabs = {0: true, 1: true, 2: true, 3: false};
         break;
       case 'Cancelled':
-        _availableTabs = {0: true, 1: false, 2: false, 3: false}; // Attendance set to false
+        _availableTabs = {0: true, 1: false, 2: false, 3: false};
         break;
       default:
-        _availableTabs = {0: true, 1: true, 2: true, 3: true}; // All available as fallback
+        _availableTabs = {0: true, 1: true, 2: true, 3: true}; 
     }
     
     // Make sure current tab is available, otherwise switch to the first available tab

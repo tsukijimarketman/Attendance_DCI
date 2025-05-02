@@ -4,8 +4,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class InternalUsers extends StatefulWidget {
+  final String organizer;
+  final String organizerEmail;
   final String selectedAgenda;
-  const InternalUsers({super.key, required this.selectedAgenda});
+  const InternalUsers(
+      {super.key,
+      required this.selectedAgenda,
+      required this.organizer,
+      required this.organizerEmail});
 
   @override
   State<InternalUsers> createState() => _InternalUsersState();
@@ -40,26 +46,43 @@ class _InternalUsersState extends State<InternalUsers> {
     super.dispose();
   }
 
-  // Filter users based on search query
+  // Filter users based on search query and exclude the organizer
   void filterUsers() {
+    if (allUsers.isEmpty) {
+      filteredUsers = [];
+      return;
+    }
+
+    // Normalize organizer's email for comparison
+    String normalizedOrganizerEmail = widget.organizerEmail.toLowerCase();
+
+    // Filter users based solely on email match
+    List<Map<String, dynamic>> usersExcludingOrganizer = allUsers.where((user) {
+      String userEmail = (user['email'] ?? '').toString().toLowerCase();
+
+      // Exclude users whose email matches the organizer's email
+      return userEmail != normalizedOrganizerEmail;
+    }).toList();
+
+    // Apply search filter if needed
     if (searchQuery.isEmpty) {
-      filteredUsers = List.from(allUsers);
+      filteredUsers = List.from(usersExcludingOrganizer);
     } else {
-      filteredUsers = allUsers.where((user) {
+      String normalizedSearchQuery = searchQuery.toLowerCase();
+      filteredUsers = usersExcludingOrganizer.where((user) {
         String fullName = (user['fullName'] ?? '').toString().toLowerCase();
         String department = (user['department'] ?? '').toString().toLowerCase();
         String email = (user['email'] ?? '').toString().toLowerCase();
-        return fullName.contains(searchQuery.toLowerCase()) ||
-            department.contains(searchQuery.toLowerCase()) ||
-            email.contains(searchQuery.toLowerCase());
+
+        return fullName.contains(normalizedSearchQuery) ||
+            department.contains(normalizedSearchQuery) ||
+            email.contains(normalizedSearchQuery);
       }).toList();
     }
 
-    // Update total pages
+    // Update pagination logic
     totalPages = (filteredUsers.length / itemsPerPage).ceil();
     if (totalPages == 0) totalPages = 1;
-
-    // Ensure current page is within bounds
     if (currentPage > totalPages) {
       currentPage = totalPages;
     }
@@ -270,19 +293,6 @@ class _InternalUsersState extends State<InternalUsers> {
                 padding: EdgeInsets.symmetric(horizontal: screenWidth / 90),
                 child: widget.selectedAgenda.isEmpty
                     ? Center(child: Text("No appointment selected"))
-                    // This StreamBuilder listens to real-time updates from the 'appointment' collection in Firestore. 
-// It filters appointments by the selected agenda (from `widget.selectedAgenda`) and by a status of "Completed".
-// If the snapshot does not contain any data or the list of documents is empty, a message is displayed stating that 
-// no appointments matching the given agenda are found.
-// Once data is available, the code retrieves the first document from the snapshot and extracts the appointment data 
-// into a Map<String, dynamic> for easier handling.
-// It checks whether the 'internal_users' field exists and is a list. If this condition is met, 
-// it assigns the list of internal users to the `allUsers` variable. The `filterUsers()` function is called to
-// If no internal users are found in the appointment, the UI displays a message indicating that no users exist for 
-// this appointment.
-// Next, the code retrieves the items to be displayed on the current page using the `getCurrentPageItems()` function.
-// If the current page has no items and the search query is not empty, a message is shown to indicate that no users 
-// match the search. If there are no items but no search query is entered, a message is displayed saying "No users on this page".
                     : StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance
                             .collection('appointment')
@@ -297,8 +307,7 @@ class _InternalUsersState extends State<InternalUsers> {
                           if (!snapshot.hasData ||
                               snapshot.data!.docs.isEmpty) {
                             return Center(
-                                child: Text(
-                                    "No internal users found"));
+                                child: Text("No internal users found"));
                           }
 
                           // Extract the internal user data from the appointment document
@@ -308,11 +317,12 @@ class _InternalUsersState extends State<InternalUsers> {
 
                           // Check if the internal_users field exists and is a list
                           if (appointmentData.containsKey('internal_users') &&
-                              appointmentData['internal_users'] is List &&
-                              allUsers.isEmpty) {
+                              appointmentData['internal_users'] is List) {
                             // Extract all internal users from the appointment
                             List<dynamic> userList =
                                 appointmentData['internal_users'];
+
+                            // Convert to List<Map<String, dynamic>>
                             allUsers = userList.map((user) {
                               if (user is Map<String, dynamic>) {
                                 return user;
@@ -320,15 +330,20 @@ class _InternalUsersState extends State<InternalUsers> {
                               return <String, dynamic>{};
                             }).toList();
 
-                            // Initial filtering
+                            // Apply filtering to exclude organizer and handle search
                             filterUsers();
-                          }
-
-                          // If we have no users
-                          if (allUsers.isEmpty) {
+                          } else if (allUsers.isEmpty) {
+                            // No internal users in the appointment
                             return Center(
                                 child: Text(
                                     "No internal users found for this appointment"));
+                          }
+
+                          // If we have no users after filtering
+                          if (filteredUsers.isEmpty && searchQuery.isEmpty) {
+                            return Center(
+                                child: Text(
+                                    "No other internal users found for this appointment"));
                           }
 
                           var currentItems = getCurrentPageItems();
@@ -454,11 +469,11 @@ class _InternalUsersState extends State<InternalUsers> {
                                       IconButton(
                                         icon: Icon(Icons.chevron_left),
                                         onPressed:
-                                        // This is Pagination
-                                         currentPage > 1
-                                            ? () =>
-                                                setState(() => currentPage--)
-                                            : null,
+                                            // This is Pagination
+                                            currentPage > 1
+                                                ? () => setState(
+                                                    () => currentPage--)
+                                                : null,
                                         iconSize: screenWidth / 50,
                                         color: currentPage > 1
                                             ? Colors.green
@@ -543,12 +558,12 @@ class _InternalUsersState extends State<InternalUsers> {
                                       // Next page button
                                       IconButton(
                                         icon: Icon(Icons.chevron_right),
-                                        onPressed: 
-                                        // This is Pagination
-                                        currentPage < totalPages
-                                            ? () =>
-                                                setState(() => currentPage++)
-                                            : null,
+                                        onPressed:
+                                            // This is Pagination
+                                            currentPage < totalPages
+                                                ? () => setState(
+                                                    () => currentPage++)
+                                                : null,
                                         iconSize: screenWidth / 50,
                                         color: currentPage < totalPages
                                             ? Colors.green

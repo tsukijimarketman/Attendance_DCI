@@ -25,11 +25,14 @@ class _DetailPageState extends State<DetailPage> {
   String schedule = "N/A";
   String status = "N/A";
   String organizer = "N/A";
+  String organizerEmail = "N/A";
+  
   String remark = ""; // To store cancellation remark
   List<Map<String, dynamic>> guests = [];
   List<Map<String, dynamic>> users = [];
   String fullName = ""; // This should be set with the current user's name
-  String userDepartment = ""; // This should be set with the current user's department
+  String userDepartment =
+      ""; // This should be set with the current user's department
   bool isLoading = true;
 
   String formatSchedule(String scheduleString) {
@@ -62,7 +65,8 @@ class _DetailPageState extends State<DetailPage> {
             .get();
 
         if (querySnapshot.docs.isNotEmpty) {
-          var userData = querySnapshot.docs.first.data() as Map<String, dynamic>;
+          var userData =
+              querySnapshot.docs.first.data() as Map<String, dynamic>;
 
           setState(() {
             fullName = "${userData['first_name']} ${userData['last_name']}";
@@ -82,12 +86,11 @@ class _DetailPageState extends State<DetailPage> {
     }
   }
 
-  // Fetches appointment data by agenda from Firestore. Updates state with the appointment details 
+  // Fetches appointment data by agenda from Firestore. Updates state with the appointment details
 // such as title, description, department, schedule, and status. Also populates guest and user lists.
 // If no data is found or an error occurs, it sets `isLoading` to false.
   Future<void> fetchAppointmentData() async {
     try {
-
       // First query - just find by agenda
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection('appointment')
@@ -104,6 +107,7 @@ class _DetailPageState extends State<DetailPage> {
           schedule = formatSchedule(data['schedule'] ?? "N/A");
           status = data['status'] ?? "N/A";
           organizer = data['createdBy'] ?? fullName;
+          organizerEmail = data['createdByEmail'] ?? "N/A";
           remark = data['remark'] ?? "No remarks provided";
 
           // Fetch guests and users arrays
@@ -209,7 +213,8 @@ class _DetailPageState extends State<DetailPage> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          contentPadding:
+                              EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         ),
                       ),
                     ],
@@ -273,7 +278,8 @@ class _DetailPageState extends State<DetailPage> {
 
                           Navigator.of(context).pop(); // Close dialog
                           deleteEvent(agenda); // Call delete here
-                          updateAppointmentStatus('Cancelled', remark: remark); // Update status
+                          updateAppointmentStatus('Cancelled',
+                              remark: remark); // Update status
                         },
                         child: Text(
                           "Confirm",
@@ -295,6 +301,145 @@ class _DetailPageState extends State<DetailPage> {
     );
   }
 
+  void _showCompleteDialog(String agenda) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        elevation: 8.0,
+        child: Container(
+          height: MediaQuery.of(context).size.width / 6.5,
+          width: MediaQuery.of(context).size.width / 3,
+          padding: EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16.0),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.white, Color(0xFFF5F9FF)],
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.check_circle_rounded,
+                    color: Colors.green,
+                    size: 28,
+                  ),
+                  SizedBox(width: 10),
+                  Text(
+                    "Complete Appointment",
+                    style: TextStyle(
+                      fontFamily: "SB",
+                      color: Color(0xFF0e2643),
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 15),
+              Container(
+                padding: EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      spreadRadius: 0,
+                    ),
+                  ],
+                ),
+                child: Text(
+                  "Confirm finishing the appointment?",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: "R",
+                    fontSize: 16,
+                    color: Color(0xFF555555),
+                  ),
+                ),
+              ),
+              SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Container(
+                    width: MediaQuery.of(context).size.width / 7,
+                    height: MediaQuery.of(context).size.width / 35,
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      borderRadius: BorderRadius.circular(
+                          MediaQuery.of(context).size.width / 170),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          spreadRadius: 0,
+                        ),
+                      ],
+                    ),
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text(
+                        "Dismiss",
+                        style: TextStyle(
+                          fontFamily: "R",
+                          fontSize: MediaQuery.of(context).size.width / 100,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    width: MediaQuery.of(context).size.width / 7,
+                    height: MediaQuery.of(context).size.width / 35,
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      borderRadius: BorderRadius.circular(
+                          MediaQuery.of(context).size.width / 170),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          spreadRadius: 0,
+                        ),
+                      ],
+                    ),
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop(); // Close dialog
+                        updateAppointmentStatus('Completed'); // Update status
+                      },
+                      child: Text(
+                        "Confirm",
+                        style: TextStyle(
+                          fontFamily: "R",
+                          fontSize: MediaQuery.of(context).size.width / 100,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
   Future<void> deleteEvent(String agenda) async {
     try {
       // Step 1: Get the document and the Google eventId
@@ -310,7 +455,8 @@ class _DetailPageState extends State<DetailPage> {
       }
 
       var appointmentData = snapshot.docs.first.data() as Map<String, dynamic>;
-      String eventId = appointmentData['googleEventId']; // Get the Google event ID
+      String eventId =
+          appointmentData['googleEventId']; // Get the Google event ID
 
       // Step 2: Authenticate with Google
       GoogleCalendarService googleCalendarService = GoogleCalendarService();
@@ -336,7 +482,8 @@ class _DetailPageState extends State<DetailPage> {
     }
   }
 
-  Future<void> updateAppointmentStatus(String newStatus, {String? remark}) async {
+  Future<void> updateAppointmentStatus(String newStatus,
+      {String? remark}) async {
     try {
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection('appointment')
@@ -384,9 +531,8 @@ class _DetailPageState extends State<DetailPage> {
     }
   }
 
-
   // `didUpdateWidget` is called when the parent widget rebuilds. It checks if the `selectedAgenda` has changed,
-// and if so, it resets the state (e.g., setting values to "N/A" and clearing lists) and triggers a new data fetch 
+// and if so, it resets the state (e.g., setting values to "N/A" and clearing lists) and triggers a new data fetch
 // by calling `fetchAppointmentData()` to update the widget with the latest data.
   @override
   void didUpdateWidget(DetailPage oldWidget) {
@@ -403,6 +549,7 @@ class _DetailPageState extends State<DetailPage> {
         schedule = "N/A";
         status = "N/A";
         organizer = "N/A";
+        organizerEmail = "N/A";
         remark = ""; // Reset remark as well
         guests = [];
         users = [];
@@ -440,7 +587,7 @@ class _DetailPageState extends State<DetailPage> {
                       color: Colors.white),
                 ),
                 // Only show cancel button if statusType is "Scheduled" or "In Progress"
-                if (widget.statusType == "Scheduled" || widget.statusType == "In Progress")
+                if (widget.statusType == "Scheduled")
                   GestureDetector(
                     onTap: () {
                       _showCancelDialog(widget.selectedAgenda);
@@ -450,7 +597,8 @@ class _DetailPageState extends State<DetailPage> {
                       height: MediaQuery.of(context).size.width / 35,
                       decoration: BoxDecoration(
                         color: Colors.red,
-                        borderRadius: BorderRadius.circular(MediaQuery.of(context).size.width / 100),
+                        borderRadius: BorderRadius.circular(
+                            MediaQuery.of(context).size.width / 100),
                       ),
                       child: Center(
                         child: Text(
@@ -463,18 +611,69 @@ class _DetailPageState extends State<DetailPage> {
                       ),
                     ),
                   ).showCursorOnHover,
+                  if (widget.statusType == "In Progress")
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          _showCompleteDialog(widget.selectedAgenda);
+                        },
+                        child: Container(
+                          width: MediaQuery.of(context).size.width / 10,
+                          height: MediaQuery.of(context).size.width / 35,
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            borderRadius: BorderRadius.circular(
+                                MediaQuery.of(context).size.width / 100),
+                          ),
+                          child: Center(
+                            child: Text(
+                              "Finish Meeting",
+                              style: TextStyle(
+                                  fontSize: MediaQuery.of(context).size.width / 120,
+                                  fontFamily: "SB",
+                                  color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ).showCursorOnHover,
+                      SizedBox(width: MediaQuery.of(context).size.width/120,),
+                      GestureDetector(
+                        onTap: () {
+                          _showCancelDialog(widget.selectedAgenda);
+                        },
+                        child: Container(
+                          width: MediaQuery.of(context).size.width / 10,
+                          height: MediaQuery.of(context).size.width / 35,
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(
+                                MediaQuery.of(context).size.width / 100),
+                          ),
+                          child: Center(
+                            child: Text(
+                              "Cancel Meeting",
+                              style: TextStyle(
+                                  fontSize: MediaQuery.of(context).size.width / 120,
+                                  fontFamily: "SB",
+                                  color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ).showCursorOnHover,
+                    ],
+                  ),
               ],
             ),
             SizedBox(height: MediaQuery.of(context).size.height / 80),
             _buildDetailRow('Title:', agendaTitle),
             _buildDetailRow('Description:', agendaDescription),
-            _buildDetailRow('Organizer:', organizer),
+            _buildOrgRow('Organizer:', organizer, organizerEmail),
             _buildDetailRow('Department:', department),
             _buildDetailRow('Date & Time:', schedule),
             _buildDetailRow('Status:', status),
             // Show remark only if status is Cancelled
-            if (status == 'Cancelled')
-              _buildDetailRow('Remark:', remark),
+            if (status == 'Cancelled') _buildDetailRow('Remark:', remark),
             SizedBox(height: MediaQuery.of(context).size.height / 80),
             Container(
               color: Colors.transparent,
@@ -492,6 +691,8 @@ class _DetailPageState extends State<DetailPage> {
                   if (users.isNotEmpty) ...[
                     InternalUsers(
                       selectedAgenda: widget.selectedAgenda,
+                      organizerEmail: organizerEmail,
+                      organizer: organizer,
                     ),
                   ],
                 ],
@@ -526,6 +727,42 @@ class _DetailPageState extends State<DetailPage> {
               Expanded(
                 child: Text(
                   value,
+                  style: TextStyle(
+                      fontSize: MediaQuery.of(context).size.width / 90,
+                      fontFamily: "SB",
+                      color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrgRow(String label, String value, String email) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: MediaQuery.of(context).size.width / 12,
+                child: Text(
+                  label,
+                  style: TextStyle(
+                      fontSize: MediaQuery.of(context).size.width / 90,
+                      fontFamily: "R",
+                      color: Colors.white),
+                ),
+              ),
+              SizedBox(width: MediaQuery.of(context).size.width / 100),
+              Expanded(
+                child: Text("$value\n$email"
+                  ,
                   style: TextStyle(
                       fontSize: MediaQuery.of(context).size.width / 90,
                       fontFamily: "SB",
