@@ -15,6 +15,7 @@ class Attendance extends StatefulWidget {
 }
 
 class _AttendanceState extends State<Attendance> {
+  bool visibleReports = false;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   String appointmentStatus = "";
   StreamSubscription? _attendanceSubscription;
@@ -94,6 +95,11 @@ class _AttendanceState extends State<Attendance> {
                   querySnapshot.docs.first.data() as Map<String, dynamic>;
               if (data.containsKey('status')) {
                 appointmentStatus = data['status'] ?? "In Progress";
+                if(appointmentStatus!="In Progress"){
+                  setState(() {
+                    visibleReports = true;
+                  });
+                }
               }
               // Update the consolidated list with the new status and attendance data
               updateConsolidatedList();
@@ -112,6 +118,11 @@ class _AttendanceState extends State<Attendance> {
             var data = querySnapshot.docs.first.data() as Map<String, dynamic>;
             if (data.containsKey('status')) {
               appointmentStatus = data['status'] ?? "In Progress";
+              if(appointmentStatus!="In Progress"){
+                  setState(() {
+                    visibleReports = true;
+                  });
+                }
             }
             // Update consolidated list with everyone marked based on appointment status
             updateConsolidatedList();
@@ -178,6 +189,11 @@ class _AttendanceState extends State<Attendance> {
         // Extract status
         if (data.containsKey('status')) {
           appointmentStatus = data['status'] ?? "In Progress";
+          if(appointmentStatus!="In Progress"){
+                  setState(() {
+                    visibleReports = true;
+                  });
+                }
         }
 
         // Fetch external guests array from Firestore
@@ -798,28 +814,31 @@ class _AttendanceState extends State<Attendance> {
                   ],
                 ),
 
-                GestureDetector(
-                  // This will show the show Dialog Box for Downloading a pdf or csv of the attendance
-                  onTap: showcsvpdfdialog,
-                  child: Container(
-                    width: screenWidth / 12,
-                    height: screenWidth / 33,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(screenWidth / 120),
-                      color: Colors.yellow,
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Generate Report',
-                        style: TextStyle(
-                          fontSize: screenWidth / 140,
-                          fontFamily: "SB",
-                          color: Colors.black,
+                Visibility(
+                  visible: visibleReports,
+                  child: GestureDetector(
+                    // This will show the show Dialog Box for Downloading a pdf or csv of the attendance
+                    onTap: showcsvpdfdialog,
+                    child: Container(
+                      width: screenWidth / 12,
+                      height: screenWidth / 33,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(screenWidth / 120),
+                        color: Colors.yellow,
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Generate Report',
+                          style: TextStyle(
+                            fontSize: screenWidth / 140,
+                            fontFamily: "SB",
+                            color: Colors.black,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ).showCursorOnHover,
+                  ).showCursorOnHover,
+                ),
               ],
             ),
 

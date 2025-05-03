@@ -16,6 +16,7 @@ class MeetingTabs extends StatefulWidget {
 }
 
 class _MeetingTabsState extends State<MeetingTabs> with TickerProviderStateMixin {
+  
   late TextTheme textTheme;
   late String currentAgenda;
   late TabController _tabController;

@@ -105,66 +105,74 @@ class _MinutesOfMeetingState extends State<MinutesOfMeeting> {
   /// the email content is populated in both the message and HTML editor controllers, 
   /// preparing the email for sending.
   Future<void> _fetchMeetingData() async {
-    setState(() => isLoading = true);
+  setState(() => isLoading = true);
 
-    if (_messageController.text.isEmpty) {
-      String emailContent = _getEmailContent();
-      _messageController.text = emailContent;
-      _htmlEditorController.text = emailContent;
-    }
-
-    try {
-      // Fetch appointment data to get meeting date
-      QuerySnapshot appointmentSnapshot = await _firestore
-          .collection('appointment')
-          .where('agenda', isEqualTo: widget.selectedAgenda)
-          .limit(1)
-          .get();
-
-      if (appointmentSnapshot.docs.isNotEmpty) {
-        var appointmentData =
-            appointmentSnapshot.docs.first.data() as Map<String, dynamic>;
-        if (appointmentData.containsKey('schedule')) {
-          // Format the date nicely
-          DateTime scheduleDate = DateTime.parse(appointmentData['schedule']);
-          _meetingDate = DateFormat('yyyy-MM-dd, h:mm a').format(scheduleDate);
-        }
-      }
-
-      // Fetch attendance data to get attendees who were present
-      QuerySnapshot attendanceSnapshot = await _firestore
-          .collection('attendance')
-          .where('agenda', isEqualTo: widget.selectedAgenda)
-          .get();
-
-      if (attendanceSnapshot.docs.isNotEmpty) {
-        attendeesList = attendanceSnapshot.docs
-            .map((doc) => doc.data() as Map<String, dynamic>)
-            .toList();
-
-        // Create recipient list for the email
-        String recipients = attendeesList
-            .map((attendee) => attendee['email_address'] ?? '')
-            .where((email) => email.isNotEmpty)
-            .join(', ');
-
-        _recipientsController.text = recipients;
-      }
-
-      // Set up email subject with the agenda and date
-      _subjectController.text =
-          "Meeting Summary – ${widget.selectedAgenda} – $_meetingDate";
-
-      // Set up email body for the editable version
-      String emailContent = _getEmailContent();
-      _messageController.text = emailContent;
-      _htmlEditorController.text = emailContent;
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
-    } finally {
-      setState(() => isLoading = false);
-    }
+  if (_messageController.text.isEmpty) {
+    String emailContent = _getEmailContent();
+    _messageController.text = emailContent;
+    _htmlEditorController.text = emailContent;
   }
+
+  try {
+    // Fetch appointment data to get meeting date and creator email
+    QuerySnapshot appointmentSnapshot = await _firestore
+        .collection('appointment')
+        .where('agenda', isEqualTo: widget.selectedAgenda)
+        .limit(1)
+        .get();
+
+    String creatorEmail = ''; // Initialize creator email
+    
+    if (appointmentSnapshot.docs.isNotEmpty) {
+      var appointmentData =
+          appointmentSnapshot.docs.first.data() as Map<String, dynamic>;
+      
+      // Get creator's email
+      if (appointmentData.containsKey('createdByEmail')) {
+        creatorEmail = appointmentData['createdByEmail'];
+      }
+      
+      if (appointmentData.containsKey('schedule')) {
+        // Format the date nicely
+        DateTime scheduleDate = DateTime.parse(appointmentData['schedule']);
+        _meetingDate = DateFormat('yyyy-MM-dd, h:mm a').format(scheduleDate);
+      }
+    }
+
+    // Fetch attendance data to get attendees who were present
+    QuerySnapshot attendanceSnapshot = await _firestore
+        .collection('attendance')
+        .where('agenda', isEqualTo: widget.selectedAgenda)
+        .get();
+
+    if (attendanceSnapshot.docs.isNotEmpty) {
+      attendeesList = attendanceSnapshot.docs
+          .map((doc) => doc.data() as Map<String, dynamic>)
+          .toList();
+
+      // Create recipient list for the email - exclude creator's email
+      String recipients = attendeesList
+          .map((attendee) => attendee['email_address'] ?? '')
+          .where((email) => email.isNotEmpty && email != creatorEmail)
+          .join(', ');
+
+      _recipientsController.text = recipients;
+    }
+
+    // Set up email subject with the agenda and date
+    _subjectController.text =
+        "Meeting Summary – ${widget.selectedAgenda} – $_meetingDate";
+
+    // Set up email body for the editable version
+    String emailContent = _getEmailContent();
+    _messageController.text = emailContent;
+    _htmlEditorController.text = emailContent;
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+  } finally {
+    setState(() => isLoading = false);
+  }
+}
 
   // Generates the plain-text email content with meeting details.
 // - Includes the meeting agenda, date, and a placeholder for the download link.
