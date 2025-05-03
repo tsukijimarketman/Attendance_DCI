@@ -1,5 +1,6 @@
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/tabs/details/guest.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/tabs/details/users.dart';
+import 'package:attendance_app/Auth/audit_function.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -19,6 +20,11 @@ class DetailPage extends StatefulWidget {
 }
 
 class _DetailPageState extends State<DetailPage> {
+  // Variables for controllers and schedule functionality
+  TextEditingController agendaController = TextEditingController();
+  TextEditingController scheduleController = TextEditingController();
+  TextEditingController descriptionAgendaController = TextEditingController();
+  DateTime? selectedScheduleTime;
   String agendaTitle = "N/A";
   String agendaDescription = "N/A";
   String department = "N/A";
@@ -26,7 +32,7 @@ class _DetailPageState extends State<DetailPage> {
   String status = "N/A";
   String organizer = "N/A";
   String organizerEmail = "N/A";
-  
+
   String remark = ""; // To store cancellation remark
   List<Map<String, dynamic>> guests = [];
   List<Map<String, dynamic>> users = [];
@@ -302,143 +308,143 @@ class _DetailPageState extends State<DetailPage> {
   }
 
   void _showCompleteDialog(String agenda) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.0),
-        ),
-        elevation: 8.0,
-        child: Container(
-          height: MediaQuery.of(context).size.width / 6.5,
-          width: MediaQuery.of(context).size.width / 3,
-          padding: EdgeInsets.all(20),
-          decoration: BoxDecoration(
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16.0),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Colors.white, Color(0xFFF5F9FF)],
-            ),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.check_circle_rounded,
-                    color: Colors.green,
-                    size: 28,
-                  ),
-                  SizedBox(width: 10),
-                  Text(
-                    "Complete Appointment",
-                    style: TextStyle(
-                      fontFamily: "SB",
-                      color: Color(0xFF0e2643),
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+          elevation: 8.0,
+          child: Container(
+            height: MediaQuery.of(context).size.width / 6.5,
+            width: MediaQuery.of(context).size.width / 3,
+            padding: EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16.0),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Colors.white, Color(0xFFF5F9FF)],
               ),
-              SizedBox(height: 15),
-              Container(
-                padding: EdgeInsets.all(15),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      spreadRadius: 0,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.check_circle_rounded,
+                      color: Colors.green,
+                      size: 28,
+                    ),
+                    SizedBox(width: 10),
+                    Text(
+                      "Complete Appointment",
+                      style: TextStyle(
+                        fontFamily: "SB",
+                        color: Color(0xFF0e2643),
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
-                child: Text(
-                  "Confirm finishing the appointment?",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: "R",
-                    fontSize: 16,
-                    color: Color(0xFF555555),
+                SizedBox(height: 15),
+                Container(
+                  padding: EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        spreadRadius: 0,
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    "Confirm finishing the appointment?",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: "R",
+                      fontSize: 16,
+                      color: Color(0xFF555555),
+                    ),
                   ),
                 ),
-              ),
-              SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  Container(
-                    width: MediaQuery.of(context).size.width / 7,
-                    height: MediaQuery.of(context).size.width / 35,
-                    decoration: BoxDecoration(
-                      color: Colors.blue,
-                      borderRadius: BorderRadius.circular(
-                          MediaQuery.of(context).size.width / 170),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          spreadRadius: 0,
-                        ),
-                      ],
-                    ),
-                    child: TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: Text(
-                        "Dismiss",
-                        style: TextStyle(
-                          fontFamily: "R",
-                          fontSize: MediaQuery.of(context).size.width / 100,
-                          color: Colors.white,
+                SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Container(
+                      width: MediaQuery.of(context).size.width / 7,
+                      height: MediaQuery.of(context).size.width / 35,
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+                        borderRadius: BorderRadius.circular(
+                            MediaQuery.of(context).size.width / 170),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            spreadRadius: 0,
+                          ),
+                        ],
+                      ),
+                      child: TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: Text(
+                          "Dismiss",
+                          style: TextStyle(
+                            fontFamily: "R",
+                            fontSize: MediaQuery.of(context).size.width / 100,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  Container(
-                    width: MediaQuery.of(context).size.width / 7,
-                    height: MediaQuery.of(context).size.width / 35,
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(
-                          MediaQuery.of(context).size.width / 170),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          spreadRadius: 0,
-                        ),
-                      ],
-                    ),
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop(); // Close dialog
-                        updateAppointmentStatus('Completed'); // Update status
-                      },
-                      child: Text(
-                        "Confirm",
-                        style: TextStyle(
-                          fontFamily: "R",
-                          fontSize: MediaQuery.of(context).size.width / 100,
-                          color: Colors.white,
+                    Container(
+                      width: MediaQuery.of(context).size.width / 7,
+                      height: MediaQuery.of(context).size.width / 35,
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(
+                            MediaQuery.of(context).size.width / 170),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            spreadRadius: 0,
+                          ),
+                        ],
+                      ),
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(); // Close dialog
+                          updateAppointmentStatus('Completed'); // Update status
+                        },
+                        child: Text(
+                          "Confirm",
+                          style: TextStyle(
+                            fontFamily: "R",
+                            fontSize: MediaQuery.of(context).size.width / 100,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
 
   Future<void> deleteEvent(String agenda) async {
     try {
@@ -531,6 +537,485 @@ class _DetailPageState extends State<DetailPage> {
     }
   }
 
+  Future<void> _fetchAndEditAppointment() async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      // Query for the document matching the agenda
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('appointment')
+          .where('agenda', isEqualTo: widget.selectedAgenda)
+          .limit(1)
+          .get();
+
+      // Close loading dialog
+      Navigator.of(context, rootNavigator: true).pop();
+
+      // Check if any documents were returned
+      if (snapshot.docs.isNotEmpty) {
+        var appointmentData =
+            snapshot.docs.first.data() as Map<String, dynamic>;
+
+        // Update the controllers with the current data
+        agendaController.text = appointmentData['agenda'] ?? "";
+        scheduleController.text = appointmentData['schedule'] ?? "";
+        descriptionAgendaController.text =
+            appointmentData['agendaDescript'] ?? "";
+
+        // Now show the edit dialog with the populated data
+        _showEditDetailsDialog(appointmentData);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Appointment not found")),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog
+      Navigator.of(context, rootNavigator: true).pop();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error fetching appointment: ${e.toString()}")),
+      );
+    }
+  }
+
+  void pickScheduleDateTime() async {
+    DateTime now = DateTime.now();
+
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now,
+      lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Color.fromARGB(255, 11, 55, 99),
+              onPrimary: Colors.white,
+              onSurface: Color.fromARGB(255, 11, 55, 99),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Color.fromARGB(255, 11, 55, 99),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedDate == null) return;
+
+    TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Color.fromARGB(255, 11, 55, 99),
+              onPrimary: Colors.white,
+              onSurface: Color.fromARGB(255, 11, 55, 99),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Color.fromARGB(255, 11, 55, 99),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedTime == null) return;
+
+    DateTime fullDateTime = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+
+    setState(() {
+      selectedScheduleTime = fullDateTime;
+      scheduleController.text = fullDateTime.toIso8601String();
+    });
+  }
+
+  String formatDateTime(DateTime dateTime) {
+    return "${_monthName(dateTime.month)} ${dateTime.day} ${dateTime.year} at "
+        "${_formatHour(dateTime.hour)}:${_formatMinute(dateTime.minute)} "
+        "${dateTime.hour >= 12 ? 'PM' : 'AM'}";
+  }
+
+  String _monthName(int month) {
+    List<String> months = [
+      "",
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+    ];
+    return months[month];
+  }
+
+  String _formatHour(int hour) {
+    int formattedHour = hour % 12 == 0 ? 12 : hour % 12;
+    return formattedHour.toString();
+  }
+
+  String _formatMinute(int minute) {
+    return minute.toString().padLeft(2, '0');
+  }
+
+// Dialog for editing details
+  void _showEditDetailsDialog(Map<String, dynamic> appointmentData) {
+    // Get document ID for later use
+    String docId = appointmentData['id'] ?? "";
+    String eventId = appointmentData['googleEventId'] ?? "";
+
+    // Parse the initial schedule value to display formatted
+    if (appointmentData['schedule'] != null) {
+      try {
+        selectedScheduleTime = DateTime.parse(appointmentData['schedule']);
+      } catch (e) {
+        print("Error parsing date: $e");
+        selectedScheduleTime = DateTime.now();
+      }
+    }
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0),
+          ),
+          elevation: 8.0,
+          child: Container(
+            height: MediaQuery.of(context).size.width / 3.5,
+            width: MediaQuery.of(context).size.width / 3,
+            padding: EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16.0),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Colors.white, Color(0xFFF5F9FF)],
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.edit_calendar_rounded,
+                      color: Colors.blue,
+                      size: 28,
+                    ),
+                    SizedBox(width: 10),
+                    Text(
+                      "Edit Appointment",
+                      style: TextStyle(
+                        fontFamily: "SB",
+                        color: Color(0xFF0e2643),
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 15),
+                Container(
+                  padding: EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        spreadRadius: 0,
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      // Agenda Field
+                      TextField(
+                        controller: agendaController,
+                        decoration: InputDecoration(
+                          labelText: "Agenda Title",
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          contentPadding:
+                              EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        ),
+                      ),
+                      SizedBox(height: 12),
+
+                      // Schedule Picker Button
+                      InkWell(
+                        onTap: pickScheduleDateTime,
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 15),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                selectedScheduleTime != null
+                                    ? formatDateTime(selectedScheduleTime!)
+                                    : "Select Schedule Date & Time",
+                                style: TextStyle(
+                                  fontFamily: "R",
+                                  color: selectedScheduleTime != null
+                                      ? Colors.black
+                                      : Colors.grey,
+                                ),
+                              ),
+                              Icon(Icons.calendar_today, color: Colors.blue),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 12),
+
+                      // Description Field
+                      TextField(
+                        controller: descriptionAgendaController,
+                        maxLines: 3,
+                        decoration: InputDecoration(
+                          labelText: "Description",
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          contentPadding:
+                              EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Container(
+                      width: MediaQuery.of(context).size.width / 7,
+                      height: MediaQuery.of(context).size.width / 35,
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+                        borderRadius: BorderRadius.circular(
+                          MediaQuery.of(context).size.width / 170,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            spreadRadius: 0,
+                          ),
+                        ],
+                      ),
+                      child: TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: Text(
+                          "Cancel",
+                          style: TextStyle(
+                            fontFamily: "R",
+                            fontSize: MediaQuery.of(context).size.width / 100,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: MediaQuery.of(context).size.width / 7,
+                      height: MediaQuery.of(context).size.width / 35,
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(
+                          MediaQuery.of(context).size.width / 170,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            spreadRadius: 0,
+                          ),
+                        ],
+                      ),
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(); // Close dialog
+                          saveDataToFirestore(docId, eventId); // Save the data
+                        },
+                        child: Text(
+                          "Save Changes",
+                          style: TextStyle(
+                            fontFamily: "R",
+                            fontSize: MediaQuery.of(context).size.width / 100,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+// Modified saveDataToFirestore function
+  Future<void> saveDataToFirestore(String docId, String eventId) async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      // Query for the document matching the agenda
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('appointment')
+          .where('agenda', isEqualTo: widget.selectedAgenda)
+          .limit(1)
+          .get();
+
+      // Check if any documents were returned
+      if (snapshot.docs.isNotEmpty) {
+        // Get the first document
+        String docId = snapshot.docs.first.id;
+        var appointmentData =
+            snapshot.docs.first.data() as Map<String, dynamic>;
+        String eventId = appointmentData['googleEventId'] ?? "";
+
+        // Update the appointment data in Firestore
+        await FirebaseFirestore.instance
+            .collection('appointment')
+            .doc(docId)
+            .update({
+          'agenda': agendaController.text,
+          'schedule': scheduleController.text,
+          'agendaDescript': descriptionAgendaController.text,
+        });
+
+        // Log the audit trail
+        await logAuditTrail("Updated Appointment",
+            "User $fullName updated the appointment with agenda: ${agendaController.text}");
+
+        // Authenticate with Google Calendar
+        GoogleCalendarService googleCalendarService = GoogleCalendarService();
+        String? accessToken = await googleCalendarService.authenticateUser();
+
+        // Close loading dialog
+        Navigator.of(context, rootNavigator: true).pop();
+
+        if (accessToken == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Google authentication required!")),
+          );
+          return;
+        }
+
+        // Parse schedule to DateTime
+        DateTime startDateTime = DateTime.parse(scheduleController.text);
+        DateTime endDateTime = startDateTime.add(const Duration(hours: 1));
+
+        // Get guest emails
+        List<String> guestEmails = guests
+            .map((guest) => guest['emailAdd'] as String?)
+            .whereType<String>()
+            .toList();
+
+        // Update Google Calendar Event
+        await googleCalendarService.updateCalendarEvent(
+          accessToken,
+          eventId,
+          agendaController.text,
+          startDateTime,
+          endDateTime,
+          guestEmails,
+        );
+
+        // Success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Appointment updated successfully")),
+        );
+
+        // Refresh the data displayed in the widget
+        if (mounted) {
+          // Store old agenda to be able to fetch updated data
+          String oldAgenda = widget.selectedAgenda;
+
+          // Reset state and fetch new data in didUpdateWidget
+          setState(() {
+            isLoading = true;
+            agendaTitle = "N/A";
+            agendaDescription = "N/A";
+            department = "N/A";
+            schedule = "N/A";
+            status = "N/A";
+            organizer = "N/A";
+            organizerEmail = "N/A";
+            remark = "";
+            guests = [];
+            users = [];
+          });
+
+          // Fetch updated data with the new agenda title
+          fetchAppointmentData();
+        }
+      } else {
+        // Close loading dialog
+        Navigator.of(context, rootNavigator: true).pop();
+
+        // No matching document found
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("No matching appointment found.")),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog
+      Navigator.of(context, rootNavigator: true).pop();
+
+      // Handle errors
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text("Failed to update appointment: ${e.toString()}")),
+      );
+    }
+  }
+
   // `didUpdateWidget` is called when the parent widget rebuilds. It checks if the `selectedAgenda` has changed,
 // and if so, it resets the state (e.g., setting values to "N/A" and clearing lists) and triggers a new data fetch
 // by calling `fetchAppointmentData()` to update the widget with the latest data.
@@ -588,30 +1073,73 @@ class _DetailPageState extends State<DetailPage> {
                 ),
                 // Only show cancel button if statusType is "Scheduled" or "In Progress"
                 if (widget.statusType == "Scheduled")
-                  GestureDetector(
-                    onTap: () {
-                      _showCancelDialog(widget.selectedAgenda);
-                    },
-                    child: Container(
-                      width: MediaQuery.of(context).size.width / 10,
-                      height: MediaQuery.of(context).size.width / 35,
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(
-                            MediaQuery.of(context).size.width / 100),
-                      ),
-                      child: Center(
-                        child: Text(
-                          "Cancel Meeting",
-                          style: TextStyle(
-                              fontSize: MediaQuery.of(context).size.width / 120,
-                              fontFamily: "SB",
-                              color: Colors.white),
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          // Check if the status is "Scheduled"
+                          if (status == "Scheduled") {
+                            // First fetch the data, then show edit dialog
+                            _fetchAndEditAppointment();
+                          } else {
+                            // Show message that editing is only available for scheduled appointments
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text(
+                                      "Only scheduled appointments can be edited")),
+                            );
+                          }
+                        },
+                        child: Container(
+                          width: MediaQuery.of(context).size.width / 10,
+                          height: MediaQuery.of(context).size.width / 35,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(
+                                MediaQuery.of(context).size.width / 100),
+                          ),
+                          child: Center(
+                            child: Text(
+                              "Edit Meeting",
+                              style: TextStyle(
+                                  fontSize:
+                                      MediaQuery.of(context).size.width / 120,
+                                  fontFamily: "SB",
+                                  color: Colors.black),
+                            ),
+                          ),
                         ),
+                      ).showCursorOnHover,
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width / 120,
                       ),
-                    ),
-                  ).showCursorOnHover,
-                  if (widget.statusType == "In Progress")
+                      GestureDetector(
+                        onTap: () {
+                          _showCancelDialog(widget.selectedAgenda);
+                        },
+                        child: Container(
+                          width: MediaQuery.of(context).size.width / 10,
+                          height: MediaQuery.of(context).size.width / 35,
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(
+                                MediaQuery.of(context).size.width / 100),
+                          ),
+                          child: Center(
+                            child: Text(
+                              "Cancel Meeting",
+                              style: TextStyle(
+                                  fontSize:
+                                      MediaQuery.of(context).size.width / 120,
+                                  fontFamily: "SB",
+                                  color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ).showCursorOnHover,
+                    ],
+                  ),
+                if (widget.statusType == "In Progress")
                   Row(
                     children: [
                       GestureDetector(
@@ -630,14 +1158,17 @@ class _DetailPageState extends State<DetailPage> {
                             child: Text(
                               "Finish Meeting",
                               style: TextStyle(
-                                  fontSize: MediaQuery.of(context).size.width / 120,
+                                  fontSize:
+                                      MediaQuery.of(context).size.width / 120,
                                   fontFamily: "SB",
                                   color: Colors.white),
                             ),
                           ),
                         ),
                       ).showCursorOnHover,
-                      SizedBox(width: MediaQuery.of(context).size.width/120,),
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width / 120,
+                      ),
                       GestureDetector(
                         onTap: () {
                           _showCancelDialog(widget.selectedAgenda);
@@ -654,7 +1185,8 @@ class _DetailPageState extends State<DetailPage> {
                             child: Text(
                               "Cancel Meeting",
                               style: TextStyle(
-                                  fontSize: MediaQuery.of(context).size.width / 120,
+                                  fontSize:
+                                      MediaQuery.of(context).size.width / 120,
                                   fontFamily: "SB",
                                   color: Colors.white),
                             ),
@@ -761,8 +1293,8 @@ class _DetailPageState extends State<DetailPage> {
               ),
               SizedBox(width: MediaQuery.of(context).size.width / 100),
               Expanded(
-                child: Text("$value\n$email"
-                  ,
+                child: Text(
+                  "$value\n$email",
                   style: TextStyle(
                       fontSize: MediaQuery.of(context).size.width / 90,
                       fontFamily: "SB",

@@ -104,14 +104,31 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
 
     super.initState();
     Future.delayed(Duration(milliseconds: 1000), () {
-      controllerLogo.forward();
+      if (mounted) controllerLogo.forward();
     });
     Future.delayed(Duration(milliseconds: 1600), () {
-      controllerHeading.forward();
+      if (mounted) controllerHeading.forward();
     });
     Future.delayed(Duration(milliseconds: 1700), () {
-      controllerSignin.forward();
+      if (mounted) controllerSignin.forward();
     });
+  }
+
+  // Clean up resources when widget is disposed
+  @override
+  void dispose() {
+    // Dispose all animation controllers
+    controllerLogo.dispose();
+    controllerHeading.dispose();
+    controllerSignin.dispose();
+    
+    // Dispose all text controllers
+    passwordController.dispose();
+    emailController.dispose();
+    firstNameController.dispose();
+    lastNameController.dispose();
+    
+    super.dispose();
   }
 
   // Password validation logic
@@ -415,18 +432,29 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
 
       // Check if the user is not null after login
       if (userCredential.user != null) {
-        // Log the user in and navigate to the home page
-        await logAuditTrail(
-            "User Logged In", "User with email $email logged in.");
+        // First hide loading before any operations that might cause navigation
+        hideLoading();
+        
+        // Log the user in and log audit trail
+        // Important: We don't need to await this since we're about to navigate
+        // This prevents setState being called after navigation
+        logAuditTrail(
+            "User Logged In", "User with email $email logged in.")
+            .catchError((error) {
+              // Silent error handling since we're already navigating
+              print("Error logging audit trail: $error");
+            });
 
-        // it will Authenticate the user and make it persistent
-        // and navigate to the designated ui for every roles
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => AuthPersistent()),
-        );
+        // Navigate to the home page
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => AuthPersistent()),
+          );
+        }
       } else {
         // If user is null, show an error message
+        hideLoading();
         throw FirebaseAuthException(
           code: "null-user",
           message: "User is null after login.",
@@ -437,21 +465,25 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
       // Hide loading animation
       hideLoading();
       // Set the password error message based on the error code
-      setState(() {
-        if (e.code == 'user-not-found') {
-          passwordError = "No user found with this email.";
-        } else if (e.code == 'wrong-password') {
-          passwordError = "Incorrect password.";
-        } else {
-          passwordError = "Authentication failed: ${e.message}";
-        }
-      });
+      if (mounted) {
+        setState(() {
+          if (e.code == 'user-not-found') {
+            passwordError = "No user found with this email.";
+          } else if (e.code == 'wrong-password') {
+            passwordError = "Incorrect password.";
+          } else {
+            passwordError = "Authentication failed: ${e.message}";
+          }
+        });
+      }
     } catch (e) {
-      hideLoading();
-      // Handle any other unexpected errors
-      setState(() {
-        passwordError = "An unexpected error occurred: ${e.toString()}";
-      });
+      // Handle any unexpected errors and ensure loading is hidden
+      if (mounted) {
+        hideLoading();
+        setState(() {
+          passwordError = "An unexpected error occurred: ${e.toString()}";
+        });
+      }
     }
   }
 
@@ -578,6 +610,7 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
               // this will trigger the _validator function when the user clicks on the button
               onTap: () async {
                 String password = passwordController.text;
+                if (!mounted) return;
                 setState(() {
                   showLoading(); // Show the loading animation when clicked
                 });
@@ -586,6 +619,7 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
                   // Simulate some delay to show the loading animation
                   await Future.delayed(Duration(seconds: 2));
 
+                  if (!mounted) return;
                   setState(() {
                     hideLoading(); // Hide the loading animation when finished
                   });
@@ -593,6 +627,7 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
                   // Proceed with registration logic here
                   _validator();
                 } else {
+                  if (!mounted) return;
                   setState(() {
                     hideLoading(); // Hide the loading animation on error
                     passwordError =
@@ -658,6 +693,8 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
 
   // This is the function that will validate the email and password fields
   void _validator() {
+    if (!mounted) return;
+    
     // Check if the email and password fields are empty
     if (emailController.text.isEmpty || passwordController.text.isEmpty) {
       // Show a dialog if any field is empty
@@ -670,6 +707,8 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
 
   // This is the function that will store the user in the database
   Future<void> _storePendingUser() async {
+    if (!mounted) return;
+    
     try {
       String email = emailController.text.trim();
 
@@ -678,6 +717,8 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
           .collection('users')
           .where('email', isEqualTo: email)
           .get();
+
+      if (!mounted) return;
 
       // Check if the email already exists in the database
       // If it does, show an error message and return
@@ -691,10 +732,8 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
       // **Step 2: Encrypt password and store the new user**
       String encryptedPassword =
           EncryptionHelper.encryptPassword(passwordController.text.trim());
+      
       // Store the new user in Firestore with status 'pending'
-      // and isDeleted set to false
-      // and the password is encrypted using the EncryptionHelper class
-      // and the status is set to pending
       await FirebaseFirestore.instance.collection('users').add({
         'first_name': firstNameController.text.trim(),
         'last_name': lastNameController.text.trim(),
@@ -704,11 +743,15 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
         'isDeleted': false,
       });
 
+      if (!mounted) return;
+
       // **Step 3: Show success message and clear fields**
       _showDialog('Pending Approval',
           'Your account request has been sent for approval.');
       _clearFields();
     } catch (error) {
+      if (!mounted) return;
+      
       // **Step 4: Handle errors gracefully**
       _showDialog('Error', error.toString());
     }
@@ -716,6 +759,8 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
 
   // This is will show the dialog
   void _showDialog(String title, String message) {
+    if (!mounted) return;
+    
     showCupertinoDialog(
       context: context,
       builder: (context) => CupertinoAlertDialog(
