@@ -21,8 +21,6 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
   final TextEditingController descriptionAgendaController =
       TextEditingController();
 
-  User? user = FirebaseAuth.instance.currentUser;
-
   String firstName = "";
   String lastName = "";
 
@@ -58,82 +56,16 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
 
       List<Map<String, dynamic>> localSelectedGuests =
           List.from(selectedGuests);
+
       List<Map<String, dynamic>> localSelectedUsers = List.from(selectedUsers);
-
-      // First parse the date to make sure it works before proceeding with user fetching
-      DateTime startDateTime;
-      try {
-        startDateTime = DateTime.parse(scheduleController.text);
-      } catch (e) {
-        // If parsing fails, show a helpful error message and return early
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-                "Invalid date format. Please use YYYY-MM-DDTHH:MM:SS format.")));
-        return;
-      }
-
-      DateTime endDateTime = startDateTime.add(Duration(hours: 1));
-
-      // Now get current user information
-      User? currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser == null) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text("User not logged in!")));
-        return;
-      }
-
-      // Fetch current user's data from Firestore
-      try {
-        QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .where('uid', isEqualTo: currentUser.uid)
-            .limit(1)
-            .get();
-
-        if (querySnapshot.docs.isNotEmpty) {
-          Map<String, dynamic> userData =
-              querySnapshot.docs.first.data() as Map<String, dynamic>;
-
-          // Prepare current user data
-          Map<String, dynamic> currentUserData = {
-            "fullName":
-                "${userData['first_name'] ?? ''} ${userData['last_name'] ?? ''}"
-                    .trim(),
-            "email": userData['email'] ?? currentUser.email ?? '',
-            "department": userData['department'] ?? "Unknown",
-            "schedule": scheduleText,
-            "status": "Scheduled",
-          };
-
-          // Add current user to localSelectedUsers
-          localSelectedUsers.add(currentUserData);
-        } else {
-          // If user data isn't found, add minimal information
-          localSelectedUsers.add({
-            "fullName": currentUser.displayName ?? "Current User",
-            "email": currentUser.email ?? "",
-            "department": "Unknown",
-            "schedule": scheduleText,
-            "status": "Scheduled",
-          });
-        }
-      } catch (userError) {
-        // If there's an error fetching user data, log it but continue with form submission
-        print("Error fetching user data: $userError");
-        // Add minimal current user info
-        localSelectedUsers.add({
-          "fullName": currentUser.displayName ?? "Current User",
-          "email": currentUser.email ?? "",
-          "department": "Unknown",
-          "schedule": scheduleText,
-          "status": "Scheduled",
-        });
-      }
 
       List<String> guestEmails = localSelectedGuests
           .map((guest) => guest['emailAdd'] as String?)
           .whereType<String>()
           .toList();
+
+      DateTime startDateTime = DateTime.parse(scheduleController.text);
+      DateTime endDateTime = startDateTime.add(Duration(hours: 1));
 
       GoogleCalendarService googleCalendarService = GoogleCalendarService();
       String? accessToken = await googleCalendarService.authenticateUser();
@@ -164,10 +96,9 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
         'schedule': scheduleText,
         'agendaDescript': descriptionText,
         'guest': localSelectedGuests,
-        'internal_users': localSelectedUsers, 
+        'internal_users': localSelectedUsers,
         'status': 'Scheduled',
         'createdBy': fullName,
-        'createdByEmail': currentUser.email,
         'googleEventId': eventId,
       });
 
@@ -436,7 +367,7 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                   suffix: null,
                   readOnly: false,
                   obscureText: false,
-                ),  
+                ),
               ),
               SizedBox(height: 8),
               Container(
@@ -496,10 +427,8 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                         'contactNum': contactNum.text,
                         'emailAdd': emailAdd.text,
                         'companyName': companyName.text,
-                        'isDeleted' : false
                       });
-                      
-                      await logAuditTrail("Client Added", "Client Added with a name of ${fullName.text} Contact No: ${contactNum.text} Email Address: ${emailAdd.text} and Company of: ${companyName.text}");
+
                       clearAddnewguest();
 
                       Navigator.pop(context);
@@ -625,8 +554,8 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                       fontSize: bodySize,
                                     ),
                                     decoration: InputDecoration(
-                                      contentPadding:
-                                          EdgeInsets.symmetric(horizontal: 16),
+                                      contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 16),
                                       border: InputBorder.none,
                                       hintText: 'Enter agenda title',
                                       hintStyle: TextStyle(
@@ -637,7 +566,7 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                   ),
                                 ),
                                 SizedBox(height: screenHeight * 0.02),
-
+    
                                 // Description field
                                 Text(
                                   "Description",
@@ -678,7 +607,7 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                   ),
                                 ),
                                 SizedBox(height: screenHeight * 0.02),
-
+    
                                 // Department field
                                 Text(
                                   "Department",
@@ -714,7 +643,7 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                   ),
                                 ),
                                 SizedBox(height: screenHeight * 0.02),
-
+    
                                 // Date & Time picker
                                 Text(
                                   "Date & Time",
@@ -735,7 +664,8 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                       borderRadius: BorderRadius.circular(8),
                                       color: Colors.white,
                                       border: Border.all(
-                                        color: Color.fromARGB(255, 11, 55, 99),
+                                        color:
+                                            Color.fromARGB(255, 11, 55, 99),
                                         width: 1,
                                       ),
                                     ),
@@ -752,9 +682,10 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                           style: TextStyle(
                                             fontSize: bodySize,
                                             fontFamily: "R",
-                                            color: selectedScheduleTime != null
-                                                ? Colors.black87
-                                                : Colors.grey,
+                                            color:
+                                                selectedScheduleTime != null
+                                                    ? Colors.black87
+                                                    : Colors.grey,
                                           ),
                                         ),
                                         Icon(
@@ -836,7 +767,8 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                           child: Text(
                             "Meeting Participants",
                             style: TextStyle(
-                              fontSize: MediaQuery.of(context).size.width / 70,
+                              fontSize:
+                                  MediaQuery.of(context).size.width / 70,
                               fontFamily: "SB",
                               color: Colors.white,
                             ),
@@ -855,7 +787,8 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                 leading: Icon(
                                   Icons.search,
                                   color: Color.fromARGB(255, 11, 55, 99),
-                                  size: MediaQuery.of(context).size.width / 90,
+                                  size:
+                                      MediaQuery.of(context).size.width / 90,
                                 ),
                                 controller: controller,
                                 hintText: "Search participants...",
@@ -863,7 +796,8 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                   TextStyle(
                                     fontFamily: "R",
                                     fontSize:
-                                        MediaQuery.of(context).size.width / 90,
+                                        MediaQuery.of(context).size.width /
+                                            90,
                                     color: Colors.grey,
                                   ),
                                 ),
@@ -871,7 +805,8 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                   TextStyle(
                                     fontFamily: "R",
                                     fontSize:
-                                        MediaQuery.of(context).size.width / 90,
+                                        MediaQuery.of(context).size.width /
+                                            90,
                                   ),
                                 ),
                                 onChanged: (query) {
@@ -881,58 +816,33 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                             },
                             suggestionsBuilder: (BuildContext context,
                                 SearchController controller) async {
-                              User? currentUser =
-                                  FirebaseAuth.instance.currentUser;
-                              String? currentUserUid = currentUser?.uid;
-                              String? currentUserEmail = user?.email
-                                  ?.toLowerCase(); // Normalize email for comparison
-
                               // Fetch external guests
                               QuerySnapshot guestSnapshot =
                                   await FirebaseFirestore.instance
                                       .collection("clients")
                                       .get();
-
+    
                               List<Map<String, dynamic>> allGuests =
-                                  guestSnapshot.docs
-                                      .map((doc) {
-                                        return {
-                                          "type": "external",
-                                          "fullName":
-                                              doc["fullName"] ?? "No Name",
-                                          "emailAdd":
-                                              doc["emailAdd"] ?? "No Email",
-                                          "companyName": doc["companyName"] ??
-                                              "No Company",
-                                          "contactNum":
-                                              doc["contactNum"] ?? "No Contact",
-                                        };
-                                      })
-                                      .where((guest) =>
-                                          guest["emailAdd"]
-                                              .toString()
-                                              .toLowerCase() !=
-                                          currentUserEmail)
-                                      .toList();
-
-                              // For internal users, first try to get the user with the UID
+                                  guestSnapshot.docs.map((doc) {
+                                return {
+                                  "type": "external",
+                                  "fullName": doc["fullName"] ?? "No Name",
+                                  "emailAdd": doc["emailAdd"] ?? "No Email",
+                                  "companyName":
+                                      doc["companyName"] ?? "No Company",
+                                  "contactNum":
+                                      doc["contactNum"] ?? "No Contact",
+                                };
+                              }).toList();
+    
+                              // Fetch internal users
                               QuerySnapshot userSnapshot =
                                   await FirebaseFirestore.instance
                                       .collection("users")
                                       .get();
-
-                              // Filter out current user after fetching
+    
                               List<Map<String, dynamic>> allInternalUsers =
-                                  userSnapshot.docs.where((doc) {
-                                // Check both UID and email to be safe
-                                String docEmail = (doc["email"] ?? "")
-                                    .toString()
-                                    .toLowerCase();
-                                String docUid = (doc["uid"] ?? "").toString();
-
-                                return docEmail != currentUserEmail &&
-                                    docUid != currentUserUid;
-                              }).map((doc) {
+                                  userSnapshot.docs.map((doc) {
                                 return {
                                   "type": "internal",
                                   "fullName":
@@ -943,16 +853,15 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                       doc["department"] ?? "No Department",
                                 };
                               }).toList();
-
-                              // Combine both lists
+    
+                              // Combine and filter both lists
                               List<Map<String, dynamic>> allParticipants = [
                                 ...allGuests,
                                 ...allInternalUsers
                               ];
-
-                              // Filter based on search text
-                              List<Map<String, dynamic>> filteredParticipants =
-                                  allParticipants
+    
+                              List<Map<String, dynamic>>
+                                  filteredParticipants = allParticipants
                                       .where((participant) =>
                                           participant["fullName"]
                                               .toString()
@@ -972,7 +881,7 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                                   .contains(
                                                       controller.text.toLowerCase())))
                                       .toList();
-
+    
                               if (filteredParticipants.isEmpty) {
                                 return [
                                   ListTile(
@@ -980,9 +889,10 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                       "No participants found",
                                       style: TextStyle(
                                         fontFamily: "R",
-                                        fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                90,
+                                        fontSize: MediaQuery.of(context)
+                                                .size
+                                                .width /
+                                            90,
                                       ),
                                     ),
                                     subtitle: Padding(
@@ -1016,10 +926,10 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                   )
                                 ];
                               }
-
+    
                               return filteredParticipants.map((participant) {
                                 bool isSelected = false;
-
+    
                                 if (participant["type"] == "external") {
                                   isSelected = selectedGuests.any((g) =>
                                       g["fullName"] ==
@@ -1038,7 +948,7 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                       u["department"] ==
                                           participant["department"]);
                                 }
-
+    
                                 return ListTile(
                                   leading: CircleAvatar(
                                     backgroundColor:
@@ -1051,10 +961,12 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                           : "?",
                                       style: TextStyle(
                                         fontFamily: "B",
-                                        fontSize:
-                                            MediaQuery.of(context).size.width /
-                                                110,
-                                        color: Color.fromARGB(255, 11, 55, 99),
+                                        fontSize: MediaQuery.of(context)
+                                                .size
+                                                .width /
+                                            110,
+                                        color:
+                                            Color.fromARGB(255, 11, 55, 99),
                                       ),
                                     ),
                                   ),
@@ -1127,13 +1039,16 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                               g["emailAdd"] ==
                                                   participant["emailAdd"] &&
                                               g["companyName"] ==
-                                                  participant["companyName"] &&
+                                                  participant[
+                                                      "companyName"] &&
                                               g["contactNum"] ==
                                                   participant["contactNum"]);
                                         } else {
                                           selectedGuests.add({
-                                            "fullName": participant["fullName"],
-                                            "emailAdd": participant["emailAdd"],
+                                            "fullName":
+                                                participant["fullName"],
+                                            "emailAdd":
+                                                participant["emailAdd"],
                                             "companyName":
                                                 participant["companyName"],
                                             "contactNum":
@@ -1151,7 +1066,8 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                                   participant["department"]);
                                         } else {
                                           selectedUsers.add({
-                                            "fullName": participant["fullName"],
+                                            "fullName":
+                                                participant["fullName"],
                                             "email": participant["email"],
                                             "department":
                                                 participant["department"],
@@ -1186,7 +1102,8 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                   ),
                                 ),
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
                                   children: [
                                     Container(
                                       height:
@@ -1201,10 +1118,11 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                             Text(
                                               "External Guests",
                                               style: TextStyle(
-                                                fontSize: MediaQuery.of(context)
-                                                        .size
-                                                        .width /
-                                                    80,
+                                                fontSize:
+                                                    MediaQuery.of(context)
+                                                            .size
+                                                            .width /
+                                                        80,
                                                 fontFamily: "SB",
                                                 color: Color.fromARGB(
                                                     255, 11, 55, 99),
@@ -1233,13 +1151,16 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                               ),
                                               onPressed: _showAddGuestDialog,
                                               style: ElevatedButton.styleFrom(
-                                                backgroundColor: Color.fromARGB(
-                                                    255, 11, 55, 99),
+                                                backgroundColor:
+                                                    Color.fromARGB(
+                                                        255, 11, 55, 99),
                                                 padding: EdgeInsets.symmetric(
-                                                    horizontal: 8, vertical: 4),
+                                                    horizontal: 8,
+                                                    vertical: 4),
                                                 shape: RoundedRectangleBorder(
                                                   borderRadius:
-                                                      BorderRadius.circular(6),
+                                                      BorderRadius.circular(
+                                                          6),
                                                 ),
                                               ),
                                             ),
@@ -1260,10 +1181,11 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                                 children: [
                                                   Icon(
                                                     Icons.people_outline,
-                                                    size: MediaQuery.of(context)
-                                                            .size
-                                                            .width /
-                                                        40,
+                                                    size:
+                                                        MediaQuery.of(context)
+                                                                .size
+                                                                .width /
+                                                            40,
                                                     color: Colors.grey,
                                                   ),
                                                   SizedBox(height: 8),
@@ -1271,11 +1193,11 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                                     "No external guests selected",
                                                     style: TextStyle(
                                                       fontFamily: "R",
-                                                      fontSize:
-                                                          MediaQuery.of(context)
-                                                                  .size
-                                                                  .width /
-                                                              90,
+                                                      fontSize: MediaQuery.of(
+                                                                  context)
+                                                              .size
+                                                              .width /
+                                                          90,
                                                       color: Colors.grey,
                                                     ),
                                                   ),
@@ -1285,7 +1207,8 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                           : ListView.builder(
                                               padding: EdgeInsets.symmetric(
                                                   horizontal: 8, vertical: 4),
-                                              itemCount: selectedGuests.length,
+                                              itemCount:
+                                                  selectedGuests.length,
                                               itemBuilder: (context, index) {
                                                 var guest =
                                                     selectedGuests[index];
@@ -1293,7 +1216,8 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                                   margin: EdgeInsets.only(
                                                       bottom: 6),
                                                   elevation: 1,
-                                                  shape: RoundedRectangleBorder(
+                                                  shape:
+                                                      RoundedRectangleBorder(
                                                     borderRadius:
                                                         BorderRadius.circular(
                                                             8),
@@ -1363,8 +1287,7 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                                                     TextStyle(
                                                                   fontFamily:
                                                                       "SB",
-                                                                  fontSize: MediaQuery.of(
-                                                                              context)
+                                                                  fontSize: MediaQuery.of(context)
                                                                           .size
                                                                           .width /
                                                                       90,
@@ -1385,9 +1308,11 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                                                         .grey,
                                                                   ),
                                                                   SizedBox(
-                                                                      width: 2),
+                                                                      width:
+                                                                          2),
                                                                   Expanded(
-                                                                    child: Text(
+                                                                    child:
+                                                                        Text(
                                                                       guest[
                                                                           "emailAdd"],
                                                                       style:
@@ -1395,10 +1320,9 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                                                         fontFamily:
                                                                             "R",
                                                                         fontSize:
-                                                                            MediaQuery.of(context).size.width /
-                                                                                110,
-                                                                        color: Colors
-                                                                            .grey[700],
+                                                                            MediaQuery.of(context).size.width / 110,
+                                                                        color:
+                                                                            Colors.grey[700],
                                                                         overflow:
                                                                             TextOverflow.ellipsis,
                                                                       ),
@@ -1421,9 +1345,11 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                                                         .grey,
                                                                   ),
                                                                   SizedBox(
-                                                                      width: 2),
+                                                                      width:
+                                                                          2),
                                                                   Expanded(
-                                                                    child: Text(
+                                                                    child:
+                                                                        Text(
                                                                       guest[
                                                                           "companyName"],
                                                                       style:
@@ -1431,10 +1357,9 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                                                         fontFamily:
                                                                             "R",
                                                                         fontSize:
-                                                                            MediaQuery.of(context).size.width /
-                                                                                110,
-                                                                        color: Colors
-                                                                            .grey[700],
+                                                                            MediaQuery.of(context).size.width / 110,
+                                                                        color:
+                                                                            Colors.grey[700],
                                                                         overflow:
                                                                             TextOverflow.ellipsis,
                                                                       ),
@@ -1449,8 +1374,8 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                                           icon: Icon(
                                                             Icons
                                                                 .delete_outline,
-                                                            color:
-                                                                Colors.red[400],
+                                                            color: Colors
+                                                                .red[400],
                                                             size: MediaQuery.of(
                                                                         context)
                                                                     .size
@@ -1496,7 +1421,8 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                   color: Color.fromARGB(255, 250, 250, 250),
                                 ),
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
                                   children: [
                                     Container(
                                       height:
@@ -1533,10 +1459,11 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                                 children: [
                                                   Icon(
                                                     Icons.group_outlined,
-                                                    size: MediaQuery.of(context)
-                                                            .size
-                                                            .width /
-                                                        40,
+                                                    size:
+                                                        MediaQuery.of(context)
+                                                                .size
+                                                                .width /
+                                                            40,
                                                     color: Colors.grey,
                                                   ),
                                                   SizedBox(height: 8),
@@ -1544,11 +1471,11 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                                     "No internal participants selected",
                                                     style: TextStyle(
                                                       fontFamily: "R",
-                                                      fontSize:
-                                                          MediaQuery.of(context)
-                                                                  .size
-                                                                  .width /
-                                                              90,
+                                                      fontSize: MediaQuery.of(
+                                                                  context)
+                                                              .size
+                                                              .width /
+                                                          90,
                                                       color: Colors.grey,
                                                     ),
                                                   ),
@@ -1560,12 +1487,14 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                                   horizontal: 8, vertical: 4),
                                               itemCount: selectedUsers.length,
                                               itemBuilder: (context, index) {
-                                                var user = selectedUsers[index];
+                                                var user =
+                                                    selectedUsers[index];
                                                 return Card(
                                                   margin: EdgeInsets.only(
                                                       bottom: 6),
                                                   elevation: 1,
-                                                  shape: RoundedRectangleBorder(
+                                                  shape:
+                                                      RoundedRectangleBorder(
                                                     borderRadius:
                                                         BorderRadius.circular(
                                                             8),
@@ -1635,8 +1564,7 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                                                     TextStyle(
                                                                   fontFamily:
                                                                       "SB",
-                                                                  fontSize: MediaQuery.of(
-                                                                              context)
+                                                                  fontSize: MediaQuery.of(context)
                                                                           .size
                                                                           .width /
                                                                       90,
@@ -1657,9 +1585,11 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                                                         .grey,
                                                                   ),
                                                                   SizedBox(
-                                                                      width: 2),
+                                                                      width:
+                                                                          2),
                                                                   Expanded(
-                                                                    child: Text(
+                                                                    child:
+                                                                        Text(
                                                                       user[
                                                                           "email"],
                                                                       style:
@@ -1667,10 +1597,9 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                                                         fontFamily:
                                                                             "R",
                                                                         fontSize:
-                                                                            MediaQuery.of(context).size.width /
-                                                                                110,
-                                                                        color: Colors
-                                                                            .grey[700],
+                                                                            MediaQuery.of(context).size.width / 110,
+                                                                        color:
+                                                                            Colors.grey[700],
                                                                         overflow:
                                                                             TextOverflow.ellipsis,
                                                                       ),
@@ -1693,9 +1622,11 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                                                         .grey,
                                                                   ),
                                                                   SizedBox(
-                                                                      width: 2),
+                                                                      width:
+                                                                          2),
                                                                   Expanded(
-                                                                    child: Text(
+                                                                    child:
+                                                                        Text(
                                                                       user[
                                                                           "department"],
                                                                       style:
@@ -1703,10 +1634,9 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                                                         fontFamily:
                                                                             "R",
                                                                         fontSize:
-                                                                            MediaQuery.of(context).size.width /
-                                                                                110,
-                                                                        color: Colors
-                                                                            .grey[700],
+                                                                            MediaQuery.of(context).size.width / 110,
+                                                                        color:
+                                                                            Colors.grey[700],
                                                                         overflow:
                                                                             TextOverflow.ellipsis,
                                                                       ),
@@ -1721,8 +1651,8 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                                           icon: Icon(
                                                             Icons
                                                                 .delete_outline,
-                                                            color:
-                                                                Colors.red[400],
+                                                            color: Colors
+                                                                .red[400],
                                                             size: MediaQuery.of(
                                                                         context)
                                                                     .size
@@ -1736,9 +1666,7 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                                           onPressed: () {
                                                             setState(() {
                                                               selectedUsers.removeWhere((u) =>
-                                                                  u["fullName"] ==
-                                                                      user[
-                                                                          "fullName"] &&
+                                                                  u["fullName"] == user["fullName"] &&
                                                                   u["email"] ==
                                                                       user[
                                                                           "email"] &&
