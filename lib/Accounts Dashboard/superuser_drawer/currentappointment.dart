@@ -552,7 +552,7 @@ class _AppointmentManagerState extends State<AppointmentManager> {
         List<dynamic> internalUsers = data['internal_users'] ?? [];
 
         // If user created the appointment, include it
-        if (data['createdBy'] == currentUserEmail) {
+        if (data['createdByEmail'] == currentUserEmail) {
           return true;
         }
 
