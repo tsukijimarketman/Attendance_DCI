@@ -1,20 +1,24 @@
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/references_su.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/maintenance/manage_users.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:ui';
+import 'package:flutter/rendering.dart';
 
 /// UserMasterlist - A comprehensive view of all users organized by roles and departments
 ///
 /// This widget provides a unified view of the organization's user structure with two main tabs:
 /// 1. Role-based view - Shows users grouped by their roles (Admin, Manager, etc.)
 /// 2. Department-based view - Shows users grouped by their departments
-class UserMasterlist extends StatefulWidget {
-  const UserMasterlist({super.key});
+class Maintenance extends StatefulWidget {
+  const Maintenance({super.key});
 
   @override
-  State<UserMasterlist> createState() => _UserMasterlistState();
+  State<Maintenance> createState() => _MaintenanceState();
 }
 
-class _UserMasterlistState extends State<UserMasterlist>
+class _MaintenanceState extends State<Maintenance>
     with SingleTickerProviderStateMixin {
   // Primary color theme for the application
   final Color primaryColor = const Color.fromARGB(255, 20, 94, 155);
@@ -33,13 +37,15 @@ class _UserMasterlistState extends State<UserMasterlist>
   String _searchQuery = '';
   Timer? _debounce;
 
+  bool _showRoleView = true;
+
   // State management variables
   bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
 
     // Add listener to search controller with debounce
     _searchController.addListener(_onSearchChanged);
@@ -82,7 +88,7 @@ class _UserMasterlistState extends State<UserMasterlist>
                   border: Border(
                       bottom: BorderSide(
                           color: Color.fromARGB(255, 11, 55, 99), width: 2))),
-              child: Text("Users Masterlist",
+              child: Text("Maintenance",
                   style: TextStyle(
                       fontSize: MediaQuery.of(context).size.width / 41,
                       fontFamily: "BL",
@@ -98,43 +104,16 @@ class _UserMasterlistState extends State<UserMasterlist>
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildRoleMasterlistContent(),
-                  _buildDepartmentMasterlistContent(),
+                  _buildSortedUsersContent(),
+                  ManageUsers(
+                    searchQuery: _searchQuery,
+                  ),
+                  References(searchQuery: _searchController),
                 ],
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  /// Builds the header section with title and any additional UI elements
-  Widget _buildHeaderSection() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'User Directory',
-            style: TextStyle(
-              fontFamily: "BL",
-              fontSize: 28,
-              color: primaryColor,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Manage and view all users organized by roles and departments',
-            style: TextStyle(
-              fontFamily: "R",
-              fontSize: 16,
-              color: Colors.grey[600],
-            ),
-          ),
-          const SizedBox(height: 16),
-        ],
       ),
     );
   }
@@ -152,49 +131,137 @@ class _UserMasterlistState extends State<UserMasterlist>
         ),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.max,
         children: [
           // Search Bar
-          Expanded(
-            flex: 2,
-            child: Container(
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search users...',
-                  hintStyle: TextStyle(
-                    fontFamily: "R",
-                    fontSize: 14,
-                    color: Colors.grey[500],
-                  ),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey[500]),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                ),
-                style: TextStyle(
-                  fontFamily: "M",
+          Container(
+            height: 40,
+            width: 500,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search....',
+                hintStyle: TextStyle(
+                  fontFamily: "R",
                   fontSize: 14,
+                  color: Colors.grey[500],
                 ),
+                prefixIcon: Icon(Icons.search, color: Colors.grey[500]),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+              ),
+              style: TextStyle(
+                fontFamily: "M",
+                fontSize: 14,
               ),
             ),
           ),
 
-          // Space between search and tabs
-          const SizedBox(width: 24),
-
           // Tabs
-          Expanded(
-            flex: 3,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildTabButton(0, 'Sort Users', Icons.people_outline),
+              _buildTabButton(1, 'Manage Users', Icons.settings),
+              _buildTabButton(2, 'Manage Departments', Icons.workspaces)
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSortedUsersContent() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24.0),
+      child: Column(
+        children: [
+          // Toggle switch at the top
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _buildTabButton(0, 'By Roles', Icons.people_outline),
-                const SizedBox(width: 24),
-                _buildTabButton(1, 'By Departments', Icons.business),
+                // By Roles button
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _showRoleView = true;
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        _showRoleView ? primaryColor : Colors.grey.shade200,
+                    foregroundColor:
+                        _showRoleView ? Colors.white : Colors.black87,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.horizontal(
+                        left: Radius.circular(8),
+                        right: Radius.zero,
+                      ),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    child: Text(
+                      'By Roles',
+                      style: TextStyle(
+                        fontFamily: _showRoleView ? "B" : "M",
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // By Departments button
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _showRoleView = false;
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        !_showRoleView ? primaryColor : Colors.grey.shade200,
+                    foregroundColor:
+                        !_showRoleView ? Colors.white : Colors.black87,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.horizontal(
+                        left: Radius.zero,
+                        right: Radius.circular(8),
+                      ),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    child: Text(
+                      'By Departments',
+                      style: TextStyle(
+                        fontFamily: !_showRoleView ? "B" : "M",
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
               ],
+            ),
+          ),
+
+          // Show the appropriate content based on toggle state with scrollbar
+          Expanded(
+            child: Container(
+              color: Colors.blueGrey[100],
+              child: _showRoleView
+                  ? _buildScrollableRoleView()
+                  : _buildScrollableDepartmentView(),
             ),
           ),
         ],
@@ -242,7 +309,7 @@ class _UserMasterlistState extends State<UserMasterlist>
   }
 
   /// Builds the content for the role-based masterlist tab
-  Widget _buildRoleMasterlistContent() {
+  Widget _buildScrollableRoleView() {
     // Predefined role categories
     final List<Map<String, String>> roleCategories = [
       {"title": "Internal Users", "role": "User"},
@@ -254,26 +321,54 @@ class _UserMasterlistState extends State<UserMasterlist>
 
     return Padding(
       padding: const EdgeInsets.all(24.0),
-      child: GridView.builder(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 1.2,
+      child: Theme(
+        // This ensures the scrollbar has the right colors
+        data: Theme.of(context).copyWith(
+          scrollbarTheme: ScrollbarThemeData(
+            thumbColor:
+                MaterialStateProperty.all(primaryColor.withOpacity(0.7)),
+            trackColor: MaterialStateProperty.all(Colors.grey.withOpacity(0.2)),
+            thickness: MaterialStateProperty.all(10.0),
+            radius: const Radius.circular(10.0),
+            thumbVisibility: MaterialStateProperty.all(true),
+            trackVisibility: MaterialStateProperty.all(true),
+            trackBorderColor:
+                MaterialStateProperty.all(Colors.grey.withOpacity(0.5)),
+          ),
         ),
-        itemCount: roleCategories.length,
-        itemBuilder: (context, index) {
-          return _buildRoleCard(
-            roleCategories[index]["title"]!,
-            roleCategories[index]["role"]!,
-          );
-        },
+        child: ScrollConfiguration(
+          // This enables scrollbars on all platforms
+          behavior: ScrollConfiguration.of(context).copyWith(
+            dragDevices: {
+              PointerDeviceKind.touch,
+              PointerDeviceKind.mouse,
+            },
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: roleCategories.map((category) {
+                return Container(
+                  width: 320, // Fixed width for each card
+                  margin: const EdgeInsets.only(right: 16),
+                  child: _buildRoleCard(
+                    category["title"]!,
+                    category["role"]!,
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
       ),
     );
   }
 
   /// Builds the content for the department-based masterlist tab
-  Widget _buildDepartmentMasterlistContent() {
+  // Similarly, modify _buildDepartmentMasterlistContent
+  Widget _buildScrollableDepartmentView() {
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: FutureBuilder<Map<String, List<Map<String, dynamic>>>>(
@@ -299,32 +394,60 @@ class _UserMasterlistState extends State<UserMasterlist>
           final grouped = snapshot.data!;
           final departments = grouped.entries.toList();
 
-          return GridView.builder(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 1.2,
+          return Theme(
+            // This ensures the scrollbar has the right colors
+            data: Theme.of(context).copyWith(
+              scrollbarTheme: ScrollbarThemeData(
+                thumbColor:
+                    MaterialStateProperty.all(primaryColor.withOpacity(0.7)),
+                trackColor:
+                    MaterialStateProperty.all(Colors.grey.withOpacity(0.2)),
+                thickness: MaterialStateProperty.all(10.0),
+                radius: const Radius.circular(10.0),
+                thumbVisibility: MaterialStateProperty.all(true),
+                trackVisibility: MaterialStateProperty.all(true),
+                trackBorderColor:
+                    MaterialStateProperty.all(Colors.grey.withOpacity(0.5)),
+              ),
             ),
-            itemCount: departments.length,
-            itemBuilder: (context, index) {
-              final department = departments[index].key;
-              final users = departments[index].value;
+            child: ScrollConfiguration(
+              // This enables scrollbars on all platforms
+              behavior: ScrollConfiguration.of(context).copyWith(
+                dragDevices: {
+                  PointerDeviceKind.touch,
+                  PointerDeviceKind.mouse,
+                },
+              ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: departments.map((entry) {
+                    final department = entry.key;
+                    final users = entry.value;
 
-              // Filter users based on search query
-              final filteredUsers = _searchQuery.isEmpty
-                  ? users
-                  : users.where((user) {
-                      final name =
-                          "${user['first_name'] ?? ''} ${user['last_name'] ?? ''}"
-                              .toLowerCase();
-                      final email = (user['email'] ?? '').toLowerCase();
-                      return name.contains(_searchQuery) ||
-                          email.contains(_searchQuery);
-                    }).toList();
+                    // Filter users based on search query
+                    final filteredUsers = _searchQuery.isEmpty
+                        ? users
+                        : users.where((user) {
+                            final name =
+                                "${user['first_name'] ?? ''} ${user['last_name'] ?? ''}"
+                                    .toLowerCase();
+                            final email = (user['email'] ?? '').toLowerCase();
+                            return name.contains(_searchQuery) ||
+                                email.contains(_searchQuery);
+                          }).toList();
 
-              return _buildDepartmentCard(department, filteredUsers);
-            },
+                    return Container(
+                      width: 320, // Fixed width for each card
+                      margin: const EdgeInsets.only(right: 16),
+                      child: _buildDepartmentCard(department, filteredUsers),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
           );
         },
       ),

@@ -38,10 +38,9 @@ class SideBarXUsage extends StatelessWidget {
       items: [
         SidebarXItem(icon: Icons.dashboard, label: 'Dashboard'),
         SidebarXItem(icon: Icons.person_2, label: 'User Management'),
-        SidebarXItem(icon: Icons.workspaces, label: 'Departments'),
         SidebarXItem(icon: Icons.event, label: 'Appointment Creation'),
         SidebarXItem(icon: Icons.group, label: 'Clients'),
-        SidebarXItem(icon: Icons.list_alt, label: 'Master List of Users'),
+        SidebarXItem(icon: Icons.build, label: 'Maintenance'),
         SidebarXItem(icon: Icons.event_note, label: 'Current Appointments'),
         SidebarXItem(icon: Icons.lock_reset, label: 'Backup & Clean'),
 

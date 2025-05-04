@@ -1,5 +1,6 @@
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/tabs/details/guest.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/tabs/details/users.dart';
+import 'package:attendance_app/Animation/loader.dart';
 import 'package:attendance_app/Auth/audit_function.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:flutter/material.dart';
@@ -24,6 +25,7 @@ class _DetailPageState extends State<DetailPage> {
   TextEditingController agendaController = TextEditingController();
   TextEditingController scheduleController = TextEditingController();
   TextEditingController descriptionAgendaController = TextEditingController();
+  String currentUserEmail = "";
   DateTime? selectedScheduleTime;
   String agendaTitle = "N/A";
   String agendaDescription = "N/A";
@@ -77,6 +79,8 @@ class _DetailPageState extends State<DetailPage> {
           setState(() {
             fullName = "${userData['first_name']} ${userData['last_name']}";
             userDepartment = userData['department'] ?? "";
+            currentUserEmail =
+                userData['email'] ?? user.email ?? ""; // Store user's email
           });
         } else {
           print("No user document found.");
@@ -89,6 +93,7 @@ class _DetailPageState extends State<DetailPage> {
       // Set placeholder values for testing
       fullName = "John Doe";
       userDepartment = "Quality Management System";
+      currentUserEmail = "john.doe@example.com";
     }
   }
 
@@ -542,7 +547,7 @@ class _DetailPageState extends State<DetailPage> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+      builder: (context) => const Center(child: CustomLoader()),
     );
 
     try {
@@ -1072,46 +1077,52 @@ class _DetailPageState extends State<DetailPage> {
                       color: Colors.white),
                 ),
                 // Only show cancel button if statusType is "Scheduled" or "In Progress"
+                // Replace the if statement for the Edit button with this:
                 if (widget.statusType == "Scheduled")
                   Row(
                     children: [
-                      GestureDetector(
-                        onTap: () {
-                          // Check if the status is "Scheduled"
-                          if (status == "Scheduled") {
-                            // First fetch the data, then show edit dialog
-                            _fetchAndEditAppointment();
-                          } else {
-                            // Show message that editing is only available for scheduled appointments
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text(
-                                      "Only scheduled appointments can be edited")),
-                            );
-                          }
-                        },
-                        child: Container(
-                          width: MediaQuery.of(context).size.width / 10,
-                          height: MediaQuery.of(context).size.width / 35,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(
-                                MediaQuery.of(context).size.width / 100),
-                          ),
-                          child: Center(
-                            child: Text(
-                              "Edit Meeting",
-                              style: TextStyle(
-                                  fontSize:
-                                      MediaQuery.of(context).size.width / 120,
-                                  fontFamily: "SB",
-                                  color: Colors.black),
+                      // Only show Edit Meeting button if current user is the creator
+                      if (currentUserEmail.toLowerCase() == organizerEmail.toLowerCase())
+                        GestureDetector(
+                          onTap: () {
+                            // Check if the status is "Scheduled"
+                            if (status == "Scheduled") {
+                              // First fetch the data, then show edit dialog
+                              _fetchAndEditAppointment();
+                            } else {
+                              // Show message that editing is only available for scheduled appointments
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text(
+                                        "Only scheduled appointments can be edited")),
+                              );
+                            }
+                          },
+                          child: Container(
+                            width: MediaQuery.of(context).size.width / 10,
+                            height: MediaQuery.of(context).size.width / 35,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(
+                                  MediaQuery.of(context).size.width / 100),
+                            ),
+                            child: Center(
+                              child: Text(
+                                "Edit Meeting",
+                                style: TextStyle(
+                                    fontSize:
+                                        MediaQuery.of(context).size.width / 120,
+                                    fontFamily: "SB",
+                                    color: Colors.black),
+                              ),
                             ),
                           ),
-                        ),
-                      ).showCursorOnHover,
+                        ).showCursorOnHover,
+                      // Always show the cancel button regardless of who created the meeting
                       SizedBox(
-                        width: MediaQuery.of(context).size.width / 120,
+                        width: currentUserEmail.toLowerCase() == organizerEmail.toLowerCase()
+                            ? MediaQuery.of(context).size.width / 120
+                            : 0,
                       ),
                       GestureDetector(
                         onTap: () {
@@ -1139,6 +1150,8 @@ class _DetailPageState extends State<DetailPage> {
                       ).showCursorOnHover,
                     ],
                   ),
+
+// Also modify the In Progress section in the same way:
                 if (widget.statusType == "In Progress")
                   Row(
                     children: [

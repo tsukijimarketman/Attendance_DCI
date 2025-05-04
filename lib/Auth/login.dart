@@ -732,6 +732,7 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
       // **Step 2: Encrypt password and store the new user**
       String encryptedPassword =
           EncryptionHelper.encryptPassword(passwordController.text.trim());
+
       
       // Store the new user in Firestore with status 'pending'
       await FirebaseFirestore.instance.collection('users').add({
