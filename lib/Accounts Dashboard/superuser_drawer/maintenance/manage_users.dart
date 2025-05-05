@@ -57,6 +57,7 @@ class _ManageUsersState extends State<ManageUsers> {
 
   // Reverse mapping for search functionality
   late Map<String, String> _reverseDepartmentMap;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
@@ -152,7 +153,11 @@ class _ManageUsersState extends State<ManageUsers> {
           ],
         ),
         StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('users').snapshots(),
+          stream: FirebaseFirestore.instance
+          .collection('users')        
+          .where('isDeleted', isEqualTo: false)
+          .snapshots(),
+
           builder: (context, snapshot) {
             int count = snapshot.hasData ? snapshot.data!.docs.length : 0;
             _totalUsers = count;
@@ -207,6 +212,8 @@ class _ManageUsersState extends State<ManageUsers> {
           }
 
           var users = snapshot.data!.docs;
+            print("Users data: ${users.length}"); // Add this line to debug
+
 
           // Filter users based on search query
           if (widget.searchQuery.isNotEmpty) {
@@ -267,6 +274,7 @@ class _ManageUsersState extends State<ManageUsers> {
 
           // Slice users for current page
           final displayUsers = users.sublist(startIndex, endIndex);
+          print("Displaying users: ${displayUsers.length}");  // Check how many users are being displayed
 
           return SingleChildScrollView(
             scrollDirection: Axis.vertical,
@@ -612,12 +620,13 @@ class _ManageUsersState extends State<ManageUsers> {
   }
 
   /// Get users stream with sorting
-  Stream<QuerySnapshot> _getUsersStream() {
-    return FirebaseFirestore.instance
-        .collection('users')
-        .orderBy(_sortColumn, descending: !_sortAscending)
-        .snapshots();
-  }
+Stream<QuerySnapshot> _getUsersStream() {
+  return FirebaseFirestore.instance
+      .collection('users')
+      .where('isDeleted', isEqualTo: false)  // Ensure no extra spaces
+      .orderBy(_sortColumn, descending: !_sortAscending)  // Ensure _sortColumn is a valid field
+      .snapshots();
+}
 
   /// View user details (placeholder)
   void _viewUser(String userId) {
@@ -778,11 +787,21 @@ class _ManageUsersState extends State<ManageUsers> {
             TextButton(
               child:
                   const Text('Deactivate', style: TextStyle(color: Colors.red)),
-              onPressed: () {
-                // TODO: Implement actual deactivation
-                print('Deactivate user: $userId');
-                Navigator.of(context).pop();
-              },
+              onPressed: () async {
+              Navigator.of(context).pop();
+
+              try {
+                await _firestore.collection("users").doc(userId).update({
+                  "isDeleted": true,
+                  "status": "inactive",
+                  "deletedAt": FieldValue.serverTimestamp(),
+                });
+
+                print('User $userId marked as deleted.');
+              } catch (e) {
+                print('Error marking user as deleted: $e');
+              }
+              }
             ),
           ],
         );

@@ -979,19 +979,6 @@ class _UserManagementState extends State<UserManagement> {
 
       String email = userSnapshot["email"]; // Get email from Firestore
 
-      // Find user in Firebase Auth
-      List<String> signInMethods =
-          await _auth.fetchSignInMethodsForEmail(email);
-
-      if (signInMethods.isNotEmpty) {
-        // Get the Firebase user by email
-        User? firebaseUser = _auth.currentUser;
-
-        if (firebaseUser != null && firebaseUser.email == email) {
-          await firebaseUser.delete(); // Delete from Firebase Auth
-        }
-      }
-
       // Delete from Firestore
       await _firestore.collection("users").doc(userId).update({
         "isDeleted": true, // Mark user as deleted

@@ -426,6 +426,32 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
     showLoading();
 
     try {
+        // Step 1: Check status in Firestore first (BEFORE signing in)
+    final QuerySnapshot userDocs = await FirebaseFirestore.instance
+        .collection('users')
+        .where('email', isEqualTo: email)
+        .limit(1)
+        .get();
+
+    if (userDocs.docs.isEmpty) {
+      hideLoading();
+      _showDialog('Login Failed', 'No user record found.');
+      return;
+    }
+
+    final userData = userDocs.docs.first.data() as Map<String, dynamic>?;
+    final status = userData?['status']?.toString()?.toLowerCase();
+
+    if (status != 'active') {
+      hideLoading();
+      _showDialog(
+        'Access Denied',
+        'Your account is not active. Please contact the administrator.',
+      );
+      return;
+    }
+
+
       // Check if email and password are not empty
       UserCredential userCredential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: email, password: password);
