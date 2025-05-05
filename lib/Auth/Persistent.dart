@@ -1,7 +1,7 @@
 import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_dashboard.dart';
 import 'package:attendance_app/Accounts%20Dashboard/head_drawer/department_head_dashboard.dart';
 import 'package:attendance_app/Accounts%20Dashboard/internal_user/internal_user_dashboard.dart';
-import 'package:attendance_app/Accounts%20Dashboard/manager_drawerz/manager_dashoard.dart';
+import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_dashboard.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/super_user_dashboard.dart';
 import 'package:attendance_app/Animation/loader.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -79,7 +79,7 @@ class AuthPersistent extends StatelessWidget {
     // Navigate to the corresponding dashboard based on the user's role
     switch (role) {
       case "Manager":
-        return Manager_Dashboard();
+        return ManagerDashboard();
       case "DepartmentHead":
         return Deparment_Head_Dashboard();
       case "Admin":

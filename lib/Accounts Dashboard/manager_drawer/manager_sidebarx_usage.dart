@@ -1,14 +1,14 @@
-import 'package:attendance_app/Accounts%20Dashboard/head_drawer/depthead_sidebar_provider.dart';
+import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_sidebar_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sidebarx/sidebarx.dart';
 
-class DeptHeadSideBarXUsage extends StatelessWidget {
-  const DeptHeadSideBarXUsage({super.key});
+class ManagerSideBarXUsage extends StatelessWidget {
+  const ManagerSideBarXUsage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final sidebarProvider = Provider.of<DeptHeadSidebarProvider>(context);
+    final sidebarProvider = Provider.of<ManagerSidebarProvider>(context);
 
     return SidebarX(
       controller: sidebarProvider.controller,

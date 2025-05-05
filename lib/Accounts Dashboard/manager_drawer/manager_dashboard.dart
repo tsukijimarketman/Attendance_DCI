@@ -1,20 +1,16 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/Manager_DB.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/currentappointment.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/maintenance/maintenance.dart';
+import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_sidebar_provider.dart';
+import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_sidebarx_usage.dart';
+import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_currentappointment.dart';
+import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_auditSU.dart';
+import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_settings_su.dart';
 import 'package:attendance_app/Appointment/add_client.dart';
 import 'package:attendance_app/Appointment/schedule_appointment.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/superuser_analytical_report/reports.dart';
+import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_analytical_report/reports.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/auditSU.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/settings_su.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/sidebar_provider.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/sidebarx_usage.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/references_su.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/usermanagement_su.dart';
 import 'package:attendance_app/Auth/showDialogSignOut.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -22,14 +18,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:toastification/toastification.dart';
 
-class SuperUserDashboard extends StatefulWidget {
-  const SuperUserDashboard({super.key});
+class ManagerDashboard extends StatefulWidget {
+  const ManagerDashboard({super.key});
 
   @override
-  State<SuperUserDashboard> createState() => _SuperUserDashboardState();
+  State<ManagerDashboard> createState() => _ManagerDashboardState();
 }
 
-class _SuperUserDashboardState extends State<SuperUserDashboard> {
+class _ManagerDashboardState extends State<ManagerDashboard> {
   // Start with Dashboard
 
   // Color variables are initialized for various UI elements. These colors will likely be dynamically updated based on
@@ -308,7 +304,7 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
   @override
   Widget build(BuildContext context) {
     final String? currentUserUid = FirebaseAuth.instance.currentUser?.uid;
-    final sidebarProvider = Provider.of<SidebarProvider>(context);
+    final sidebarProvider = Provider.of<ManagerSidebarProvider>(context);
     return Scaffold(
         backgroundColor: Color(0xFFf2edf3),
         appBar: AppBar(
@@ -320,7 +316,7 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => SuperUserDashboard(),
+                    builder: (context) => ManagerDashboard(),
                   ),
                 );
               },
@@ -541,7 +537,7 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
         ),
         body: Row(
           children: [
-            SideBarXUsage(),
+            ManagerSideBarXUsage(),
 
             /// Page Content Area
             Expanded(
@@ -549,9 +545,9 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
                   ? Row(
                       children: [
                         selectedOption == "Settings"
-                            ? SettingsSU()
+                            ? ManagerSettingsSU()
                             : selectedOption == "Audit Logs"
-                                ? AuditSU()
+                                ? ManagerAuditSU()
                                 : Container(
                                     child: Center(
                                       child: Text("Unexpected Error"),
@@ -569,19 +565,13 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
   Widget _buildPageContent(int index) {
     switch (index) {
       case 0:
-        return Reports();
+        return ManagerReports();
       case 1:
-        return const UserManagement();
-      case 2:
         return const ScheduleAppointment();
-      case 3:
+      case 2:
         return const AddClient();
-      case 4:
-        return const Maintenance();
-      case 5:
-      return const AppointmentManager();
-      case 6:
-        return const ManagerDB();
+      case 3:
+      return const ManagerAppointmentManager();
       default:
         return const Text('Select an option from the menu.',
             style: TextStyle(fontSize: 20));

@@ -1,4 +1,4 @@
-import 'package:attendance_app/Accounts%20Dashboard/head_drawer/depthead_analytical_report/util/app_helper.dart';
+import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_analytical_report/util/app_helper.dart';
 
 class AppAssets {
   static String getChartIcon(ChartType type) {
