@@ -14,14 +14,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-class SettingsSU extends StatefulWidget {
-  const SettingsSU({super.key});
+class DeptHeadSettingsSU extends StatefulWidget {
+  const DeptHeadSettingsSU({super.key});
 
   @override
-  State<SettingsSU> createState() => _SettingsSUState();
+  State<DeptHeadSettingsSU> createState() => _DeptHeadSettingsSUState();
 }
 
-class _SettingsSUState extends State<SettingsSU> {
+class _DeptHeadSettingsSUState extends State<DeptHeadSettingsSU> {
   bool isEditing = false; //Controls read only state
 
   // Controllers for TextFields

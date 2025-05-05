@@ -1,7 +1,7 @@
 
 
-import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_analytical_report/presentation/resources/app_assets.dart';
-import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_analytical_report/urls.dart';
+import 'package:attendance_app/Accounts%20Dashboard/head_drawer/depthead_analytical_report/presentation/resources/app_assets.dart';
+import 'package:attendance_app/Accounts%20Dashboard/head_drawer/depthead_analytical_report/urls.dart';
 
 enum ChartType { line, bar, pie, scatter, radar }
 

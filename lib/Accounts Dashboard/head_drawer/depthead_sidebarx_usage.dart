@@ -1,7 +1,7 @@
+import 'package:attendance_app/Accounts%20Dashboard/head_drawer/depthead_sidebar_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sidebarx/sidebarx.dart';
-import 'sidebar_provider.dart'; // Import the provider
 
 class DeptHeadSideBarXUsage extends StatelessWidget {
   const DeptHeadSideBarXUsage({super.key});

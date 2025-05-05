@@ -2,21 +2,20 @@ import 'dart:async';
 import 'dart:io';
 import 'package:attendance_app/Accounts%20Dashboard/head_drawer/depthead_analytical_report/reports.dart';
 import 'package:attendance_app/Accounts%20Dashboard/head_drawer/depthead_currentappointment.dart';
-import 'package:attendance_app/Accounts%20Dashboard/head_drawer/settings_su.dart';
+import 'package:attendance_app/Accounts%20Dashboard/head_drawer/depthead_settings_su.dart';
+import 'package:attendance_app/Accounts%20Dashboard/head_drawer/depthead_sidebar_provider.dart';
 import 'package:attendance_app/Appointment/add_client.dart';
 import 'package:attendance_app/Appointment/schedule_appointment.dart';
-import 'package:attendance_app/analytical_report/reports.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:attendance_app/Accounts%20Dashboard/head_drawer/depthead_auditSU.dart';
-import 'package:attendance_app/Accounts%20Dashboard/head_drawer/sidebar_provider.dart';
 import 'package:attendance_app/Accounts%20Dashboard/head_drawer/depthead_sidebarx_usage.dart';
 import 'package:attendance_app/Auth/showDialogSignOut.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:provider/provider.dart';
 import 'package:toastification/toastification.dart';
 
 class Deparment_Head_Dashboard extends StatefulWidget {       
@@ -550,9 +549,9 @@ class _Deparment_Head_DashboardState extends State<Deparment_Head_Dashboard> {
                   ? Row(
                       children: [
                         selectedOption == "Settings"
-                            ? SettingsSU()
+                            ? DeptHeadSettingsSU()
                             : selectedOption == "Audit Logs"
-                                ? AuditSU()
+                                ? DeptHeadAuditSU()
                                 : Container(
                                     child: Center(
                                       child: Text("Unexpected Error"),

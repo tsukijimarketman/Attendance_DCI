@@ -6,14 +6,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
-class AuditSU extends StatefulWidget {
-  const AuditSU({super.key});
+class DeptHeadAuditSU extends StatefulWidget {
+  const DeptHeadAuditSU({super.key});
 
   @override
-  State<AuditSU> createState() => _AuditSUState();
+  State<DeptHeadAuditSU> createState() => _DeptHeadAuditSUState();
 }
 
-class _AuditSUState extends State<AuditSU> {
+class _DeptHeadAuditSUState extends State<DeptHeadAuditSU> {
   Future<List<Map<String, dynamic>>>? _userAuditLogs;
   String? userId;
   String? fullName;
