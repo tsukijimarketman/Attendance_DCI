@@ -1,4 +1,4 @@
-import 'package:attendance_app/Accounts%20Dashboard/head_drawer/all_dept_attendee.dart';
+import 'package:attendance_app/Accounts%20Dashboard/head_drawerz/all_dept_attendee.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';

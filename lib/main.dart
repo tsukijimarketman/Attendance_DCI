@@ -1,4 +1,5 @@
 import 'package:attendance_app/404.dart';
+import 'package:attendance_app/Accounts%20Dashboard/head_drawer/sidebar_provider.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/sidebar_provider.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/su_address_provider.dart';
 import 'package:attendance_app/edit_mode_provider.dart';
@@ -6,6 +7,7 @@ import 'package:attendance_app/firebase_options.dart';
 import 'package:attendance_app/form/form.dart';
 import 'package:attendance_app/Auth/Persistent.dart';
 import 'package:attendance_app/Auth/login.dart';
+import 'package:attendance_app/secrets.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -25,9 +27,8 @@ void main() async {
 
   // Initialize Supabase services.
   await Supabase.initialize(
-      url: 'https://yvzrahtqpzwzawbzdeym.supabase.co',
-      anonKey:
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2enJhaHRxcHp3emF3YnpkZXltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NTAwNDAsImV4cCI6MjA1NzQyNjA0MH0.UOxsh2Zif4Fq72MJhWfS1MAtGqg_w8w5c8DsmkaP8DI');
+      url: AppSecrets.supaUrl,
+      anonKey: AppSecrets.supaAnon);
 
   // Set Firebase authentication persistence to LOCAL.
   // This means that the user's authentication state will be persisted even after the app is closed.
@@ -45,6 +46,8 @@ void main() async {
     ),
     ChangeNotifierProvider(create: (_) => AddressProvider()),
     ChangeNotifierProvider(create: (_) => SidebarProvider()), 
+    ChangeNotifierProvider(create: (_) => DeptHeadSidebarProvider()), 
+
   ], child: MyApp())
   );
   
