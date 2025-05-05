@@ -1,6 +1,8 @@
 import 'package:attendance_app/404.dart';
 import 'package:attendance_app/Accounts%20Dashboard/head_drawer/depthead_address_provider.dart';
 import 'package:attendance_app/Accounts%20Dashboard/head_drawer/depthead_sidebar_provider.dart';
+import 'package:attendance_app/Accounts%20Dashboard/internaluser_drawer/sidebar_provider.dart';
+import 'package:attendance_app/Accounts%20Dashboard/internaluser_drawer/su_address_provider.dart';
 import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_address_provider.dart';
 import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_sidebar_provider.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/sidebar_provider.dart';
@@ -57,6 +59,8 @@ void main() async {
     ChangeNotifierProvider(create: (_) => AdminSidebarProvider()),
     ChangeNotifierProvider(create: (_) => ManagerAddressProvider()), 
     ChangeNotifierProvider(create: (_) => ManagerSidebarProvider()),  
+     ChangeNotifierProvider(create: (_) => InternalSidebarProvider()), 
+    ChangeNotifierProvider(create: (_) => InternalAddressProvider()),  
   ], child: MyApp())
   );
   

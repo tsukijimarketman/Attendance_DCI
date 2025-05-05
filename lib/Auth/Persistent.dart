@@ -1,6 +1,6 @@
 import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_dashboard.dart';
 import 'package:attendance_app/Accounts%20Dashboard/head_drawer/department_head_dashboard.dart';
-import 'package:attendance_app/Accounts%20Dashboard/internal_user/internal_user_dashboard.dart';
+import 'package:attendance_app/Accounts%20Dashboard/internaluser_drawer/inernal_user_dashboard.dart';
 import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_dashboard.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/super_user_dashboard.dart';
 import 'package:attendance_app/Animation/loader.dart';
