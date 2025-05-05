@@ -427,15 +427,6 @@ class _ManageUsersState extends State<ManageUsers> {
                               ),
                               const SizedBox(width: 8),
                               _buildActionButton(
-                                icon: Icons.edit,
-                                color: Colors.orange,
-                                onPressed: () {
-                                  // Edit user
-                                  _editUser(userId);
-                                },
-                              ),
-                              const SizedBox(width: 8),
-                              _buildActionButton(
                                 icon: Icons.delete,
                                 color: Colors.red,
                                 onPressed: () {

@@ -37,7 +37,6 @@ class SideBarXUsage extends StatelessWidget {
       headerDivider: const Divider(thickness: 2, color: Colors.black12),
       items: [
         SidebarXItem(icon: Icons.dashboard, label: 'Dashboard'),
-        SidebarXItem(icon: Icons.person_2, label: 'User Management'),
         SidebarXItem(icon: Icons.event, label: 'Appointment Creation'),
         SidebarXItem(icon: Icons.group, label: 'Clients'),
         SidebarXItem(icon: Icons.build, label: 'Maintenance'),

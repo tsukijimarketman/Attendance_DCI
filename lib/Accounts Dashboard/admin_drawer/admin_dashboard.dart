@@ -571,14 +571,12 @@ class _Admin_DashboardState extends State<Admin_Dashboard> {
       case 0:
         return Reports();
       case 1:
-        return const AdminUserManagement();
-      case 2:
         return const ScheduleAppointment();
-      case 3:
+      case 2:
         return const AddClient();
-      case 4:
+      case 3:
         return const Maintenance();
-      case 5:
+      case 4:
       return const AppointmentManager();
       default:
         return const Text('Select an option from the menu.',
