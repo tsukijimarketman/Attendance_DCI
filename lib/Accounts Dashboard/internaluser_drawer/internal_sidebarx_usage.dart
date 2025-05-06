@@ -34,6 +34,7 @@ class SideBarXUsage extends StatelessWidget {
             color: Color.fromARGB(255, 255, 76, 63), size: 26),
         selectedItemTextPadding: const EdgeInsets.symmetric(horizontal: 20),
       ),
+      
       headerDivider: const Divider(thickness: 2, color: Colors.black12),
       items: [
         SidebarXItem(icon: Icons.event_note, label: 'Current Appointments'),

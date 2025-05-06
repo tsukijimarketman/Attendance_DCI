@@ -22,7 +22,6 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
       TextEditingController();
 
   User? user = FirebaseAuth.instance.currentUser;
-  
 
   String firstName = "";
   String lastName = "";
@@ -85,6 +84,7 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
         startDateTime,
         endDateTime,
         guestEmails,
+        descriptionText,
       );
 
       if (eventId == null) {
@@ -839,19 +839,20 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                               QuerySnapshot userSnapshot =
                                   await FirebaseFirestore.instance
                                       .collection("users")
-                                      .where('email', isNotEqualTo: currentuseremail)
                                       .get();
 
                               List<Map<String, dynamic>> allInternalUsers =
                                   userSnapshot.docs.map((doc) {
+                                final data = doc.data() as Map<String, dynamic>;
+
                                 return {
                                   "type": "internal",
                                   "fullName":
-                                      "${doc["first_name"] ?? ""} ${doc["last_name"] ?? ""}"
+                                      "${data["first_name"] ?? ""} ${data["last_name"] ?? ""}"
                                           .trim(),
-                                  "email": doc["email"] ?? "No Email",
+                                  "email": data["email"] ?? "No Email",
                                   "department":
-                                      doc["department"] ?? "No Department",
+                                      data["department"] ?? "No Department",
                                 };
                               }).toList();
 

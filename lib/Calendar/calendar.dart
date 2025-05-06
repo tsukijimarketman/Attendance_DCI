@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:attendance_app/secrets.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -14,11 +15,10 @@ import 'dart:html' as html; // Only for web (ensure this runs only on web)
 // Define a service class for handling Google Calendar operations
 class GoogleCalendarService {
   // OAuth 2.0 credentials
-  final String clientId =
-      "794795546739-gerc0clp04h1qbg5gfphjmsjcvgq6jga.apps.googleusercontent.com";
-  final String clientSecret = "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";
-  final String redirectUri = "https://attendance-dci.web.app";
-  final String scopes = "https://www.googleapis.com/auth/calendar.events";
+  final String clientId = AppSecrets.clientID;
+  final String clientSecret = AppSecrets.clientSecret;
+  final String redirectUri = AppSecrets.redirectUri;
+  final String scopes = AppSecrets.scopes;
 
   // Secure storage instance for mobile (Android/iOS)
   final _secureStorage = FlutterSecureStorage(); // For mobile
@@ -176,7 +176,7 @@ class GoogleCalendarService {
 
   // Create a new event in Google Calendar
   Future<String?> createCalendarEvent(String accessToken, String title,
-      DateTime start, DateTime end, List<String> attendees) async {
+      DateTime start, DateTime end, List<String> attendees, String description) async {
     // Build URL for creating new event
     final url = Uri.parse(
         "https://www.googleapis.com/calendar/v3/calendars/primary/events");
@@ -193,6 +193,7 @@ class GoogleCalendarService {
         "timeZone": "Asia/Manila",
       },
       "attendees": attendees.map((email) => {"email": email}).toList(),
+      "description": description, // Add agenda description here
     };
 
     // Send POST request to create event

@@ -27,6 +27,7 @@ class _ManagerDBState extends State<ManagerDB> {
       'appointment',
       'attendance',
       'audit_logs',
+      'email_logs',
       'categories',
       'clients',
       'users'
@@ -37,7 +38,7 @@ class _ManagerDBState extends State<ManagerDB> {
     for (String collectionName in collections) {
       Query query = firestore.collection(collectionName);
       if (lastSync != null &&
-          ['appointment', 'attendance', 'audit_logs']
+          ['appointment', 'attendance', 'audit_logs', 'email_logs']
               .contains(collectionName)) {
         query = query.where('updatedAt',
             isGreaterThan: Timestamp.fromDate(lastSync));
@@ -106,6 +107,69 @@ class _ManagerDBState extends State<ManagerDB> {
   }
   }
 
+  void showConfirmDialogBox(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        backgroundColor: Colors.white,
+        title: Text(
+          "Back Up & Transfer",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            color: Colors.black87,
+          ),
+        ),
+        content: Text(
+          "Are you sure you want to back up and transfer the database to MongoDB?",
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.black54,
+          ),
+        ),
+        actionsPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        actionsAlignment: MainAxisAlignment.end,
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.redAccent,
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); // Optional: close dialog before syncing
+              syncToMongoDB();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blueAccent,
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              "Confirm",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
+
   @override
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
@@ -156,7 +220,7 @@ class _ManagerDBState extends State<ManagerDB> {
                 ),
                 onPressed: () {
                   // This will Triggered the syncToMongoDB it will reset the firestore and backup the data in the MongoDb
-                  syncToMongoDB();
+                  showConfirmDialogBox(context);                 
                 },
                 child: Text('Delete & Transfer to MongoDB',style: TextStyle(
                     fontSize: width / 90,
