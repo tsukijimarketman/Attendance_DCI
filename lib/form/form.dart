@@ -14,7 +14,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class AttendanceForm extends StatefulWidget {
   // This is passing the data from the previous screen
   final String roles;
-  final String department;
+  final String deptID; // <- Renamed from 'department'
   final String agenda;
   final String firstName;
   final String lastName;
@@ -28,7 +28,7 @@ class AttendanceForm extends StatefulWidget {
     required this.createdBy,
     required this.expiryTime,
     required this.roles,
-    required this.department,
+    required this.deptID, // <- Use this to fetch the department name
     required this.agenda,
     required this.firstName,
     required this.lastName,
@@ -63,6 +63,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
   bool isCompanyValid = true;
   bool isEmailValid = true;
   List<bool> contactFieldValidity = [];
+  String departmentName = "";
 
   // Initialize the controllers and other variables
   // This function is called when the widget is created
@@ -75,6 +76,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
   // until the form expires
   @override
   void initState() {
+    fetchDepartmentName(widget.deptID);
     super.initState();
     contactControllers = [TextEditingController()];
   contactFieldValidity = [true];
@@ -95,6 +97,33 @@ class _AttendanceFormState extends State<AttendanceForm> {
 
     _startCountdown();
   }
+
+  Future<void> fetchDepartmentName(String deptID) async {
+  try {
+    var query = await FirebaseFirestore.instance
+        .collection('references')
+        .where('deptID', isEqualTo: deptID)
+        .where('isDeleted', isEqualTo: false)
+        .limit(1)
+        .get();
+
+    if (query.docs.isNotEmpty) {
+      var data = query.docs.first.data() as Map<String, dynamic>;
+      setState(() {
+        departmentName = data['name'] ?? 'Unknown Department';
+      });
+    } else {
+      setState(() {
+        departmentName = 'Unknown Department';
+      });
+    }
+  } catch (e) {
+    setState(() {
+      departmentName = 'Error loading department';
+    });
+    print('Error fetching department: $e');
+  }
+}
 
   // Start the countdown timer
   // This function is called when the widget is initialized
@@ -295,7 +324,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
           .toList(), // Collect all contact numbers
       'timestamp': FieldValue.serverTimestamp(),
       'agenda': widget.agenda,
-      'department': widget.department,
+      'department': departmentName,
       'createdBy': widget.roles == "User"
           ? widget.createdBy // If User, store the original creator
           : "${widget.firstName} ${widget.lastName}", // Otherwise, store current user
@@ -435,7 +464,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
                             style: TextStyle(fontSize: 14),
                           ),
                           subtitle: Text(
-                            widget.department,
+                           departmentName,
                             style: TextStyle(fontSize: 10),
                           ),
                         ),

@@ -25,6 +25,9 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
 
   String firstName = "";
   String lastName = "";
+  String departmentName = ""; // Declare departmentName here
+  late String currentDeptID;  // Store actual deptID here
+
 
   DateTime? selectedScheduleTime;
 
@@ -95,7 +98,7 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
 
       await FirebaseFirestore.instance.collection('appointment').add({
         'agenda': agendaText,
-        'department': departmentController.text,
+        'deptID': currentDeptID, // ✅ Save correct department ID
         'schedule': scheduleText,
         'agendaDescript': descriptionText,
         'guest': localSelectedGuests,
@@ -119,39 +122,59 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
     }
   }
 
-  Future<void> fetchUserData() async {
-    User? user = FirebaseAuth.instance.currentUser;
+Future<void> fetchUserData() async {
+  User? user = FirebaseAuth.instance.currentUser;
 
-    if (user != null) {
-      try {
-        QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .where('uid', isEqualTo: user.uid)
-            .limit(1)
-            .get();
+  if (user != null) {
+    try {
+      // Fetch the references collection to get deptID and deptName
+      QuerySnapshot referencesSnapshot = await FirebaseFirestore.instance
+          .collection('references')
+          .where('isDeleted', isEqualTo: false)
+          .get();
 
-        if (querySnapshot.docs.isNotEmpty) {
-          var userData =
-              querySnapshot.docs.first.data() as Map<String, dynamic>;
-
-          setState(() {
-            firstName = userData['first_name'] ?? "N/A";
-            lastName = userData['last_name'] ?? "N/A";
-            departmentController.text = userData['department'] ?? "";
-          });
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("User data not found.")));
-        }
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Error fetching user data: $e")));
+      // Prepare a map to store deptID -> deptName
+      Map<String, String> departments = {};  // Map deptID -> deptName
+      for (var doc in referencesSnapshot.docs) {
+        String deptID = doc['deptID'];
+        String deptName = doc['name'];
+        departments[deptID] = deptName;  // Store deptID -> deptName mapping
       }
-    } else {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("User not logged in.")));
+
+      // Now, fetch the user data
+      QuerySnapshot userSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('uid', isEqualTo: user.uid)
+          .limit(1)
+          .get();
+
+      if (userSnapshot.docs.isNotEmpty) {
+        var userData = userSnapshot.docs.first.data() as Map<String, dynamic>;
+
+        // Extract the deptID from user data
+        String deptID = userData['deptID'] ?? '';
+
+        // Use deptID to find and display the deptName
+        setState(() {
+           firstName = userData['first_name'] ?? "N/A";
+          lastName = userData['last_name'] ?? "N/A";
+          departmentName = departments[deptID] ?? "N/A";
+          currentDeptID = deptID; // ✅ Save the actual deptID globally
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("User data not found.")));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error fetching user data: $e")));
     }
+  } else {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text("User not logged in.")));
   }
+}
+
 
   void pickScheduleDateTime() async {
     DateTime now = DateTime.now();
@@ -622,30 +645,29 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                                   ),
                                 ),
                                 SizedBox(height: 8),
-                                Container(
-                                  height: screenHeight * 0.06,
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(8),
-                                    color: Colors.grey[100],
-                                    border: Border.all(
-                                      color: Color.fromARGB(255, 11, 55, 99),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  alignment: Alignment.centerLeft,
-                                  child: Text(
-                                    departmentController.text.isNotEmpty
-                                        ? departmentController.text
-                                        : "Loading...",
-                                    style: TextStyle(
-                                      fontSize: bodySize,
-                                      fontFamily: "R",
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                ),
+                               Container(
+  height: screenHeight * 0.06,
+  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+  decoration: BoxDecoration(
+    borderRadius: BorderRadius.circular(8),
+    color: Colors.grey[100],
+    border: Border.all(
+      color: Color.fromARGB(255, 11, 55, 99),
+      width: 1,
+    ),
+  ),
+  alignment: Alignment.centerLeft,
+  child: Text(
+    departmentName.isNotEmpty
+        ? departmentName  // Display department name
+        : "Loading...",  // Display loading message while fetching
+    style: TextStyle(
+      fontSize: bodySize,
+      fontFamily: "R",
+      color: Colors.black87,
+    ),
+  ),
+),
                                 SizedBox(height: screenHeight * 0.02),
 
                                 // Date & Time picker

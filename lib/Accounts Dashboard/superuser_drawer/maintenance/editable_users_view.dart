@@ -32,7 +32,7 @@ class _EditableUserDetailsViewState extends State<EditableUserDetailsView> {
   String? _selectedRole;
 
   // Lists of available departments (will be fetched) and roles
-  List<String> _departmentList = [];
+List<Map<String, String>> _departmentList = [];
 
   // Role mapping as provided
   final Map<String, String> _rolesMap = {
@@ -106,43 +106,36 @@ class _EditableUserDetailsViewState extends State<EditableUserDetailsView> {
   }
 
   // Fetch departments from Firestore
-  Future<void> _fetchDepartments() async {
-    try {
-      QuerySnapshot categorySnapshot = await FirebaseFirestore.instance
-          .collection("categories")
-          .where("name", isEqualTo: "Department")
-          .get();
+ Future<void> _fetchDepartments() async {
+  try {
+    QuerySnapshot referencesSnapshot = await FirebaseFirestore.instance
+        .collection("references")
+        .where('isDeleted', isEqualTo: false)
+        .get();
 
-      if (categorySnapshot.docs.isNotEmpty) {
-        String departmentCategoryId = categorySnapshot.docs.first.id;
+    if (mounted) {
+      setState(() {
+        _departmentList = referencesSnapshot.docs
+            .map((doc) => {
+              'deptID': doc["deptID"] as String,
+              'name': doc["name"] as String,
+            })
+            .toList();
 
-        QuerySnapshot referencesSnapshot = await FirebaseFirestore.instance
-            .collection("categories")
-            .doc(departmentCategoryId)
-            .collection("references")
-            .where('isDeleted', isEqualTo: false)
-            .get();
-
-        if (mounted) {
-          setState(() {
-            _departmentList = referencesSnapshot.docs
-                .map((doc) => doc["name"] as String)
-                .toList();
-
-            // Add an empty selection option if needed
-            if (!_departmentList.contains('---')) {
-              _departmentList.insert(0, '---');
-            }
-          });
-
-          // Debug output
-          print("Fetched departments: $_departmentList");
+        // Add an empty selection option if needed
+        if (!_departmentList.any((department) => department['name'] == '---')) {
+          _departmentList.insert(0, {'deptID': '', 'name': '---'});
         }
-      }
-    } catch (e) {
-      print("Error fetching departments: $e");
+      });
+
+      // Debug output
+      print("Fetched departments: $_departmentList");
     }
+  } catch (e) {
+    print("Error fetching departments: $e");
   }
+}
+
 
   /// Fetch user's profile image from Supabase
   Future<void> _fetchProfileImage() async {
@@ -252,68 +245,69 @@ class _EditableUserDetailsViewState extends State<EditableUserDetailsView> {
 
   // Save changes to Firestore
   Future<void> _saveChanges() async {
-    try {
-      // Show loading indicator
-      _showLoadingDialog(context);
+  try {
+    // Show loading indicator
+    _showLoadingDialog(context);
 
-      // Create an update map with only the fields that need updating
-      Map<String, dynamic> updateData = {};
+    // Create an update map with only the fields that need updating
+    Map<String, dynamic> updateData = {};
 
-      // Only add fields that were actually changed
-      if (_selectedStatus != widget.userData['status']) {
-        updateData['status'] = _selectedStatus;
-      }
+    // Only add fields that were actually changed
+    if (_selectedStatus != widget.userData['status']) {
+      updateData['status'] = _selectedStatus;
+    }
 
-      if (_selectedDepartment != widget.userData['department']) {
-        updateData['department'] = _selectedDepartment;
-      }
+    if (_selectedDepartment != widget.userData['deptID']) {
+      updateData['deptID'] = _selectedDepartment;  // Save deptID, not name
+    }
 
-      if (_selectedRole != widget.userData['roles']) {
-        updateData['roles'] = _selectedRole;
-      }
+    if (_selectedRole != widget.userData['roles']) {
+      updateData['roles'] = _selectedRole;
+    }
 
-      // Only update if there are changes
-      if (updateData.isNotEmpty) {
-        await _firestore
-            .collection('users')
-            .doc(widget.userId)
-            .update(updateData);
-      }
+    // Only update if there are changes
+    if (updateData.isNotEmpty) {
+      await _firestore
+          .collection('users')
+          .doc(widget.userId)
+          .update(updateData);
+    }
 
-      // Dismiss loading dialog
-      if (context.mounted) Navigator.of(context).pop();
+    // Dismiss loading dialog
+    if (context.mounted) Navigator.of(context).pop();
 
-      // Show success message
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('User details updated successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
+    // Show success message
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('User details updated successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
 
-        setState(() {
-          _hasChanges = false;
-        });
+      setState(() {
+        _hasChanges = false;
+      });
 
-        // Close the details view
-        Navigator.of(context).pop();
-      }
-    } catch (e) {
-      // Dismiss loading dialog
-      if (context.mounted) Navigator.of(context).pop();
+      // Close the details view
+      Navigator.of(context).pop();
+    }
+  } catch (e) {
+    // Dismiss loading dialog
+    if (context.mounted) Navigator.of(context).pop();
 
-      // Show error message
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error updating user details: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    // Show error message
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error updating user details: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
+}
+
 
   // Show loading dialog while saving changes
   void _showLoadingDialog(BuildContext context) {
@@ -755,130 +749,122 @@ class _EditableUserDetailsViewState extends State<EditableUserDetailsView> {
   }
 
   Widget _buildDepartmentDropdown() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Department',
-            style: TextStyle(
-              fontFamily: "M",
-              fontSize: 14,
-              color: Colors.black87,
-            ),
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 16.0),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Department',
+          style: TextStyle(
+            fontFamily: "M",
+            fontSize: 14,
+            color: Colors.black87,
           ),
-          const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: FutureBuilder<List<String>>(
-              // Use FutureBuilder to ensure departments are fully loaded
-              future: _getDepartmentsList(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Padding(
-                    padding:
-                        EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-                    child: Text("Loading departments..."),
-                  );
-                }
-
-                // Get the list of departments
-                final departmentList = snapshot.data ?? [];
-
-                // Ensure the selected department is in the list
-                bool hasSelectedDepartment = false;
-                if (_selectedDepartment != null) {
-                  hasSelectedDepartment =
-                      departmentList.contains(_selectedDepartment);
-                  if (!hasSelectedDepartment) {
-                    // If the department isn't in the list, add it temporarily
-                    departmentList.add(_selectedDepartment!);
-                  }
-                }
-
-                return DropdownButtonFormField<String>(
-                  value: _selectedDepartment,
-                  decoration: const InputDecoration(
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    border: InputBorder.none,
-                  ),
-                  hint: const Text("Select Department"),
-                  isExpanded: true,
-                  onChanged: (newValue) {
-                    setState(() {
-                      _selectedDepartment = newValue;
-                      _hasChanges = true;
-                      print("Department changed to: $newValue");
-                    });
-                  },
-                  items: departmentList
-                      .map<DropdownMenuItem<String>>((String department) {
-                    return DropdownMenuItem<String>(
-                      value: department == '---' ? null : department,
-                      child: Text(department,
-                          style: const TextStyle(fontSize: 16)),
-                    );
-                  }).toList(),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: FutureBuilder<List<Map<String, String>>>(
+            // Use FutureBuilder to ensure departments are fully loaded
+            future: _getDepartmentsList(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+                  child: Text("Loading departments..."),
                 );
-              },
-            ),
+              }
+
+              // Get the list of departments
+              final departmentList = snapshot.data ?? [];
+
+              // Ensure the selected department is in the list
+              bool hasSelectedDepartment = false;
+              if (_selectedDepartment != null) {
+                hasSelectedDepartment = departmentList.any((department) =>
+                    department['deptID'] == _selectedDepartment);
+                if (!hasSelectedDepartment) {
+                  // If the department isn't in the list, add it temporarily
+                  departmentList.add({'deptID': _selectedDepartment!, 'name': _selectedDepartment!});
+                }
+              }
+
+              return DropdownButtonFormField<String>(
+                value: _selectedDepartment,
+                decoration: const InputDecoration(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  border: InputBorder.none,
+                ),
+                hint: const Text("Select Department"),
+                isExpanded: true,
+                onChanged: (newValue) {
+                  setState(() {
+                    _selectedDepartment = newValue;
+                    _hasChanges = true;
+                    print("Department changed to: $newValue");
+                  });
+                },
+                items: departmentList.map<DropdownMenuItem<String>>((department) {
+                  return DropdownMenuItem<String>(
+                    value: department['deptID'],  // Store deptID in the value
+                    child: Text(department['name'] ?? '',
+                        style: const TextStyle(fontSize: 16)),
+                  );
+                }).toList(),
+              );
+            },
           ),
-        ],
-      ),
-    );
+        ),
+      ],
+    ),
+  );
+}
+
+ Future<List<Map<String, String>>> _getDepartmentsList() async {
+  // If we already have the list, return it
+  if (_departmentList.isNotEmpty) {
+    return _departmentList;
   }
 
-  Future<List<String>> _getDepartmentsList() async {
-    // If we already have the list, return it
-    if (_departmentList.isNotEmpty) {
-      return _departmentList;
+  try {
+    // Fetch the references directly
+    QuerySnapshot referencesSnapshot = await FirebaseFirestore.instance
+        .collection("references")
+        .where('isDeleted', isEqualTo: false)
+        .get();
+
+    List<Map<String, String>> departments = referencesSnapshot.docs
+        .map((doc) => {
+          'deptID': doc["deptID"] as String,  // Save deptID as string
+          'name': doc["name"] as String,      // Save name
+        })
+        .toList();
+
+    // Add an empty selection option if needed
+    if (!departments.any((department) => department['name'] == '---')) {
+      departments.insert(0, {'deptID': '', 'name': '---'});  // Add empty selection option
     }
 
-    try {
-      QuerySnapshot categorySnapshot = await FirebaseFirestore.instance
-          .collection("categories")
-          .where("name", isEqualTo: "Department")
-          .get();
-
-      if (categorySnapshot.docs.isNotEmpty) {
-        String departmentCategoryId = categorySnapshot.docs.first.id;
-
-        QuerySnapshot referencesSnapshot = await FirebaseFirestore.instance
-            .collection("categories")
-            .doc(departmentCategoryId)
-            .collection("references")
-            .where('isDeleted', isEqualTo: false)
-            .get();
-
-        List<String> departments = referencesSnapshot.docs
-            .map((doc) => doc["name"] as String)
-            .toList();
-
-        // Add an empty selection option if needed
-        if (!departments.contains('---')) {
-          departments.insert(0, '---');
-        }
-
-        // Cache the result
-        _departmentList = departments;
-        return departments;
-      }
-    } catch (e) {
-      print("Error fetching departments: $e");
-    }
-
-    // Return a minimal list with at least the selected department if any
-    List<String> fallback = ['---'];
-    if (_selectedDepartment != null && _selectedDepartment != '---') {
-      fallback.add(_selectedDepartment!);
-    }
-    return fallback;
+    // Cache the result
+    _departmentList = departments;
+    return departments;
+  } catch (e) {
+    print("Error fetching departments: $e");
   }
+
+  // Return a minimal list with at least the selected department if any
+  List<Map<String, String>> fallback = [{'deptID': '', 'name': '---'}];
+  if (_selectedDepartment != null && _selectedDepartment != '---') {
+    fallback.add({'deptID': _selectedDepartment!, 'name': _selectedDepartment!});
+  }
+  return fallback;
+}
+
+
 
   Widget _buildRoleDropdown() {
     // Create a list of role items

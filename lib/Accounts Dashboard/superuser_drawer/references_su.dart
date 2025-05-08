@@ -43,7 +43,6 @@ class _ReferencesState extends State<References> {
   void initState() {
     super.initState();
     // Fetch the Department category ID on initialization
-    _fetchDepartmentCategoryId();
 
     // Initialize the search controller with any existing search query
     _searchDataController.text = widget.searchQuery.text;
@@ -122,33 +121,7 @@ class _ReferencesState extends State<References> {
     return (_filteredDepartments.length / _itemsPerPage).ceil();
   }
 
-  Future<void> _fetchDepartmentCategoryId() async {
-    try {
-      QuerySnapshot categorySnapshot = await _firestore
-          .collection("categories")
-          .where("name", isEqualTo: "Department")
-          .limit(1)
-          .get();
 
-      if (categorySnapshot.docs.isNotEmpty) {
-        setState(() {
-          selectedCategoryId = categorySnapshot.docs.first.id;
-        });
-      } else {
-        // Create Department category if it doesn't exist
-        DocumentReference newCategoryRef =
-            await _firestore.collection("categories").add({
-          "name": "Department",
-          "timestamp": FieldValue.serverTimestamp(),
-        });
-        setState(() {
-          selectedCategoryId = newCategoryRef.id;
-        });
-      }
-    } catch (e) {
-      _showErrorToast("Error initializing departments: $e");
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -209,14 +182,11 @@ class _ReferencesState extends State<References> {
                       height: screenWidth / 3.65,
                       child: Container(
                         child: StreamBuilder(
-                          stream: selectedCategoryId != null
-                              ? _firestore
-                                  .collection("categories")
-                                  .doc(selectedCategoryId)
+                          stream: 
+                               _firestore
                                   .collection("references")
                                   .where('isDeleted', isEqualTo: false)
-                                  .snapshots()
-                              : null,
+                                  .snapshots(),
                           builder:
                               (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                             if (snapshot.connectionState ==
@@ -533,11 +503,6 @@ class _ReferencesState extends State<References> {
 
   // Updated _showDialogAddData method with the new design
   void _showDialogAddData(BuildContext context) {
-    if (selectedCategoryId == null) {
-      _showErrorToast('Department category not found');
-      return;
-    }
-
     _nameController.clear();
 
     showDialog(
@@ -980,89 +945,94 @@ class _ReferencesState extends State<References> {
     );
   }
 
-  Future<void> _updateData(String dataId, String newName) async {
-    if (selectedCategoryId == null || dataId.isEmpty || newName.trim().isEmpty)
-      return;
+Future<void> _updateData(String dataId, String newName) async {
+  if (dataId.isEmpty || newName.trim().isEmpty) return;
 
-    try {
-      await _firestore
-          .collection("categories")
-          .doc(selectedCategoryId)
-          .collection("references")
-          .doc(dataId)
-          .update({"name": newName});
+  try {
+    await _firestore.collection("references").doc(dataId).update({
+      "name": newName.trim(),
+    });
 
-      await logAuditTrail("Department Updated",
-          "Updated department '$dataId' with new name: $newName");
+    await logAuditTrail(
+        "Department Updated", "Updated department '$dataId' with new name: $newName");
 
-      setState(() => _selectedDataId = null); // Deselect after editing
-
-      _showSuccessToast('Department updated successfully');
-    } catch (e) {
-      _showErrorToast('Error updating department: $e');
-    }
+    setState(() => _selectedDataId = null);
+    _showSuccessToast('Department updated successfully');
+  } catch (e) {
+    _showErrorToast('Error updating department: $e');
   }
+}
 
-  Future<void> _addData() async {
-    if (selectedCategoryId == null || _nameController.text.trim().isEmpty)
-      return;
 
-    try {
-      DocumentReference docRef = await _firestore
-          .collection("categories")
-          .doc(selectedCategoryId)
-          .collection("references")
-          .add({
-        "name": _nameController.text,
-        "timestamp": FieldValue.serverTimestamp(),
-        'isDeleted': false,
-      });
+Future<void> _addData() async {
+  if (_nameController.text.trim().isEmpty) return;
 
-      await logAuditTrail("Department Added",
-          "Added new department '${docRef.id}' with name: ${_nameController.text}");
+  try {
+    final referencesRef = _firestore.collection("references");
 
-      _showSuccessToast('Department added successfully');
-    } catch (e) {
-      _showErrorToast('Error adding department: $e');
+    // Get the highest current deptID
+    final snapshot = await referencesRef
+        .orderBy("deptID", descending: true)
+        .limit(1)
+        .get();
+
+    String nextDeptID = "1";  // Start with "1" as the initial department ID (string)
+    if (snapshot.docs.isNotEmpty) {
+      final currentMax = snapshot.docs.first.data()['deptID'];
+      if (currentMax != null) {
+        // If currentMax is already a string, parse and increment
+        if (currentMax is String) {
+          nextDeptID = (int.tryParse(currentMax) ?? 0 + 1).toString();
+        }
+        // If currentMax is an integer, increment and convert to string
+        else if (currentMax is int) {
+          nextDeptID = (currentMax + 1).toString();
+        }
+      }
     }
+
+    final docRef = await referencesRef.add({
+      "deptID": nextDeptID,  // Save deptID as a string
+      "name": _nameController.text.trim(),
+      "timestamp": FieldValue.serverTimestamp(),
+      "isDeleted": false,
+    });
+
+    await logAuditTrail("Department Added",
+        "Added new department '${docRef.id}' with deptID: $nextDeptID and name: ${_nameController.text}");
+
+    _showSuccessToast('Department added successfully');
+  } catch (e) {
+    _showErrorToast('Error adding department: $e');
   }
+}
+
+
 
   Future<void> _deleteData(String id) async {
-    if (selectedCategoryId == null) return;
+  if (id.isEmpty) return;
 
-    try {
-      // Step 1: Fetch the document to get the name
-      DocumentSnapshot doc = await _firestore
-          .collection("categories")
-          .doc(selectedCategoryId)
-          .collection("references")
-          .doc(id)
-          .get();
+  try {
+    DocumentSnapshot doc = await _firestore.collection("references").doc(id).get();
 
-      String name = doc.exists && doc.data() != null
-          ? (doc.data() as Map<String, dynamic>)['name'] ?? 'Unknown'
-          : 'Unknown';
+    String name = doc.exists && doc.data() != null
+        ? (doc.data() as Map<String, dynamic>)['name'] ?? 'Unknown'
+        : 'Unknown';
 
-      // Step 2: Mark as deleted
-      await _firestore
-          .collection("categories")
-          .doc(selectedCategoryId)
-          .collection("references")
-          .doc(id)
-          .update({
-        "isDeleted": true,
-      });
+    await _firestore.collection("references").doc(id).update({
+      "isDeleted": true,
+    });
 
-      // Step 3: Log the action with ID and name
-      await logAuditTrail(
-          "Department Deleted", "Deleted department '$id' with name: $name");
+    await logAuditTrail(
+        "Department Deleted", "Deleted department '$id' with name: $name");
 
-      setState(() => _selectedDataId = null); // Deselect after deleting
-      _showSuccessToast('Department deleted successfully');
-    } catch (e) {
-      _showErrorToast('Error deleting department: $e');
-    }
+    setState(() => _selectedDataId = null);
+    _showSuccessToast('Department deleted successfully');
+  } catch (e) {
+    _showErrorToast('Error deleting department: $e');
   }
+}
+
 
   // Toast notifications
   void _showSuccessToast(String message) {

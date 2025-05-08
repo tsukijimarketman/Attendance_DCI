@@ -1,6 +1,8 @@
 import 'package:attendance_app/Auth/audit_function.dart';
 import 'package:attendance_app/encryption/encryption_helper.dart';
+import 'package:attendance_app/secrets.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
@@ -24,10 +26,13 @@ class _UserManagementState extends State<UserManagement> {
   String selectedRoles = '---';
 
   // List to store department names fetched from Firestore
-  List<String> departmentList = [];
+List<Map<String, dynamic>> departmentList = []; // Using dynamic type for flexibility
 
   // Holds the currently selected department from the dropdown
-  String? selectedDepartment;
+String? selectedDepartmentId;
+
+  bool _isSendingEmail = false;
+
 
   // Search and pagination variables
   final TextEditingController _searchController = TextEditingController();
@@ -100,33 +105,27 @@ class _UserManagementState extends State<UserManagement> {
 // It filters out any references that are marked as deleted ('isDeleted' == false).
 // Finally, it extracts the names of the departments and updates the local 'departmentList' state.
 // If any error occurs during this process, it prints an error message to the console.
-  Future<void> _fetchDepartments() async {
-    try {
-      QuerySnapshot categorySnapshot = await FirebaseFirestore.instance
-          .collection("categories")
-          .where("name", isEqualTo: "Department")
-          .get();
+   Future<void> _fetchDepartments() async {
+  try {
+    QuerySnapshot referencesSnapshot = await FirebaseFirestore.instance
+        .collection("references")
+        .where('isDeleted', isEqualTo: false)
+        .get();
 
-      if (categorySnapshot.docs.isNotEmpty) {
-        String departmentCategoryId = categorySnapshot.docs.first.id;
-
-        QuerySnapshot referencesSnapshot = await FirebaseFirestore.instance
-            .collection("categories")
-            .doc(departmentCategoryId)
-            .collection("references")
-            .where('isDeleted', isEqualTo: false)
-            .get();
-
-        setState(() {
-          departmentList = referencesSnapshot.docs
-              .map((doc) => doc["name"] as String)
-              .toList();
-        });
-      }
-    } catch (e) {
-      print("Error fetching departments: $e");
-    }
+    setState(() {
+      departmentList = referencesSnapshot.docs.map((doc) {
+        return {
+          'deptID': doc["deptID"] as String,  // Treat deptID as a String
+          'name': doc["name"] as String,
+        };
+      }).toList();
+    });
+  } catch (e) {
+    print("Error fetching departments: $e");
   }
+}
+
+
 
   List<DocumentSnapshot> _getCurrentPageItems() {
     final startIndex = (_currentPage - 1) * _itemsPerPage;
@@ -491,7 +490,7 @@ class _UserManagementState extends State<UserManagement> {
 
                           // Department Dropdown
                           DropdownButtonFormField<String>(
-                            value: selectedDepartment,
+                            value: selectedDepartmentId,
                             decoration: InputDecoration(
                               contentPadding: EdgeInsets.symmetric(
                                 vertical: 12,
@@ -504,16 +503,16 @@ class _UserManagementState extends State<UserManagement> {
                                     BorderSide(color: Colors.grey.shade300),
                               ),
                             ),
-                            items: departmentList.map((String department) {
+                            items: departmentList.map((dept) {
                               return DropdownMenuItem<String>(
-                                value: department,
-                                child: Text(department,
+      value: dept['deptID'], // Convert deptID to String
+                                child: Text(dept['name']!, 
                                     style: TextStyle(fontSize: 16)),
                               );
                             }).toList(),
                             onChanged: (String? newValue) {
                               setState(() {
-                                selectedDepartment = newValue;
+                                selectedDepartmentId  = newValue;
                               });
                             },
                             hint: Text("Select Department",
@@ -571,9 +570,9 @@ class _UserManagementState extends State<UserManagement> {
                             ],
                           ),
                           child: TextButton(
-                            onPressed: () {
+                            onPressed: _isSendingEmail ? null : () {
                               // Prevent saving if a department is required but not selected
-                              if (selectedDepartment == null) {
+                              if (selectedDepartmentId  == null) {
                                 _showErrorDialog(
                                     context, "Please select a department.");
                                 return;
@@ -852,6 +851,160 @@ class _UserManagementState extends State<UserManagement> {
     );
   }
 
+  Future<void> _sendWelcomeEmail(String userEmail, String userName) async {
+  setState(() => _isSendingEmail = true);
+
+  try {
+    // Create a Dio instance for API request
+    final dio = Dio();
+
+    // Get the email template
+    String emailBody = _getWelcomeEmailTemplate(userName);
+
+    // Prepare template parameters for EmailJS API
+    final Map<String, dynamic> templateParams = {
+      'to_email': userEmail,
+      'subject': 'Welcome to DBP-DCI - Your Registration is Approved!',
+      'message_html': emailBody, // Already processed HTML content
+      'user_name': userName,
+      'login_link': 'attendance-dci.web.app',
+    };
+
+    // Prepare data for EmailJS API
+    final Map<String, dynamic> emailJsData = {
+      'service_id': AppSecrets.emailJsServiceId,
+      'template_id': AppSecrets.emailJsTemplateWelcome,
+      'template_params': templateParams,
+      'user_id': AppSecrets.emailJsUserId,
+    };
+
+    // Send the request to EmailJS API
+    final response = await dio.post(
+      'https://api.emailjs.com/api/v1.0/email/send',
+      data: emailJsData,
+      options: Options(
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        validateStatus: (status) =>
+            status! < 500, // Accept all status codes less than 500
+      ),
+    );
+
+    if (response.statusCode == 200) {
+      // Try to create a record in Firestore for tracking
+      try {
+        await _firestore.collection('email_logs').add({
+          'type': 'welcome_email',
+          'recipient': userEmail,
+          'sent_at': FieldValue.serverTimestamp(),
+          'subject': 'Welcome to DBP-DCI - Your Registration is Approved!',
+          'user_name': userName,
+          'provider': 'EmailJS',
+        });
+      } catch (firestoreError) {
+        print("Failed to log email: $firestoreError");
+      }
+
+      print('Welcome email sent successfully to $userEmail!');
+    } else {
+      throw Exception(
+          'Failed to send email: ${response.statusCode} - ${response.data}');
+    }
+  } catch (e) {
+    // Error handling
+    if (e is DioException) {
+      // Handle different types of Dio errors
+      switch (e.type) {
+        case DioExceptionType.connectionTimeout:
+          print('Connection timeout. Please check your internet connection.');
+          break;
+        case DioExceptionType.receiveTimeout:
+          print('Receive timeout. The server took too long to respond.');
+          break;
+        case DioExceptionType.connectionError:
+          print('Connection error. Please check your internet connection.');
+          break;
+        default:
+          print('Failed to send email: ${e.message}');
+          break;
+      }
+    } else {
+      print('Failed to send email: $e');
+    }
+  } finally {
+    setState(() => _isSendingEmail = false);
+  }
+}
+
+// HTML template for welcome email
+String _getWelcomeEmailTemplate(String userName) {
+  return '''<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #ffffff;
+      color: #333333;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .header {
+      background-color: #0e2643;
+      padding: 20px;
+      text-align: center;
+      color: white;
+      border-radius: 8px 8px 0 0;
+    }
+    .content {
+      padding: 20px;
+      border: 1px solid #e0e0e0;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+    }
+    .button {
+      display: inline-block;
+      background-color: #8B0000;
+      color: white;
+      padding: 12px 24px;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+    .footer {
+      margin-top: 40px;
+      font-size: 12px;
+      color: #888888;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2>Welcome to DBP-Data Center Inc.</h2>
+  </div>
+  <div class="content">
+    <p>Dear ${userName},</p>
+    
+    <p>Your registration has been approved! You can now login and access the Appointment System.</p>
+    
+    <p>Please use the link below to access the system:</p>
+    
+    <a href="https://attendance-dci.web.app" class="button" style="display: inline-block; background-color: #8B0000; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 20px 0;">Access Appointment System</a>
+    
+    <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
+    
+    <p>Best regards,<br>DBP-Data Center Inc. Team</p>
+  </div>
+  <div class="footer">
+    © 2025 DBP-Data Center Inc. All rights reserved.
+  </div>
+</body>
+</html>''';
+}  
+
   // This function handles the approval process for a pending user registration.
 // It performs the following steps:
 // 1. Retrieves the user's email and encrypted password from the Firestore document.
@@ -864,86 +1017,91 @@ class _UserManagementState extends State<UserManagement> {
 // 8. Ensures cleanup by deleting the temporary Firebase app instance, regardless of success or failure.
 // If any errors occur during this process, an error toast notification is displayed to inform the admin.
   Future<void> _approveUser(DocumentSnapshot user) async {
+  try {
+    String email = user["email"];
+    String name = user["first_name"] ?? "User"; // Get user's name if available, otherwise use "User"
+    String encryptedPassword = user["password"];
+
+    // Decrypt password before using it
+    String decryptedPassword =
+        EncryptionHelper.decryptPassword(encryptedPassword);
+
+    final options = Firebase.app().options;
+    final tempAppName = 'tempApp-${DateTime.now().millisecondsSinceEpoch}';
+
+    // Initialize a temporary Firebase app
+    final tempApp = await Firebase.initializeApp(
+      name: tempAppName,
+      options: FirebaseOptions(
+        apiKey: options.apiKey,
+        appId: options.appId,
+        messagingSenderId: options.messagingSenderId,
+        projectId: options.projectId,
+        authDomain: options.authDomain,
+        storageBucket: options.storageBucket,
+      ),
+    );
+    
     try {
-      String email = user["email"];
-      String encryptedPassword = user["password"];
+      final tempAuth = FirebaseAuth.instanceFor(app: tempApp);
 
-      // Decrypt password before using it
-      String decryptedPassword =
-          EncryptionHelper.decryptPassword(encryptedPassword);
-
-      final options = Firebase.app().options;
-      final tempAppName = 'tempApp-${DateTime.now().millisecondsSinceEpoch}';
-
-      // Initialize a temporary Firebase app
-      final tempApp = await Firebase.initializeApp(
-        name: tempAppName,
-        options: FirebaseOptions(
-          apiKey: options.apiKey,
-          appId: options.appId,
-          messagingSenderId: options.messagingSenderId,
-          projectId: options.projectId,
-          authDomain: options.authDomain,
-          storageBucket: options.storageBucket,
-        ),
+      final userCredential = await tempAuth.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: decryptedPassword, // Use decrypted password from Firestore
       );
-      // Create a new user in the temporary app
-      try {
-        final tempAuth = FirebaseAuth.instanceFor(app: tempApp);
 
-        final userCredential = await tempAuth.createUserWithEmailAndPassword(
-          email: email.trim(),
-          password: decryptedPassword, // Use decrypted password from Firestore
-        );
+      String newUid = userCredential.user!.uid;
 
-        String newUid = userCredential.user!.uid;
+      // Sign out from the temporary auth instance
+      await tempAuth.signOut();
 
-        // Sign out from the temporary auth instance
-        await tempAuth.signOut();
+      // Update Firestore record
+      await _firestore.collection("users").doc(user.id).update({
+        "uid": newUid,
+        "status": "active",
+        "password": FieldValue.delete(), // Remove password for security
+        "roles": rolesMap[selectedRoles],
+        "deptID": selectedDepartmentId,
+      });
 
-        // Update Firestore record
-        await _firestore.collection("users").doc(user.id).update({
-          "uid": newUid,
-          "status": "active",
-          "password": FieldValue.delete(), // Remove password for security
-          "roles": rolesMap[selectedRoles],
-          "department": selectedDepartment,
-        });
+      await logAuditTrail("User Approved",
+          "Super User approved user $email and assigned to department: $selectedDepartmentId with role: ${rolesMap[selectedRoles]}");
 
-        await logAuditTrail("User Approved",
-            "Super User approved user $email and assigned to department: $selectedDepartment with role: ${rolesMap[selectedRoles]}");
+      // Send welcome email to the user
+      await _sendWelcomeEmail(email, name);
 
-        toastification.show(
-          context: context,
-          alignment: Alignment.topRight,
-          icon: Icon(Icons.check_circle_outline, color: Colors.blue),
-          title: Text('User Approved!'),
-          description: Text('User approved and account created successfully!'),
-          type: ToastificationType.success,
-          style: ToastificationStyle.flatColored,
-          autoCloseDuration: const Duration(seconds: 3),
-          animationDuration: const Duration(milliseconds: 300),
-        );
-        return;
-      } finally {
-        // Clean up: delete temporary app
-        await tempApp.delete();
-      }
-    } catch (e) {
       toastification.show(
         context: context,
         alignment: Alignment.topRight,
-        icon: Icon(Icons.error, color: Colors.red),
-        title: Text('Error approving!'),
-        description: Text('Error approving user: ${e.toString()}'),
-        type: ToastificationType.error,
+        icon: Icon(Icons.check_circle_outline, color: Colors.blue),
+        title: Text('User Approved!'),
+        description: Text('User approved and welcome email sent successfully!'),
+        type: ToastificationType.success,
         style: ToastificationStyle.flatColored,
         autoCloseDuration: const Duration(seconds: 3),
         animationDuration: const Duration(milliseconds: 300),
       );
       return;
+    } finally {
+      // Clean up: delete temporary app
+      await tempApp.delete();
     }
+  } catch (e) {
+    toastification.show(
+      context: context,
+      alignment: Alignment.topRight,
+      icon: Icon(Icons.error, color: Colors.red),
+      title: Text('Error approving!'),
+      description: Text('Error approving user: ${e.toString()}'),
+      type: ToastificationType.error,
+      style: ToastificationStyle.flatColored,
+      autoCloseDuration: const Duration(seconds: 3),
+      animationDuration: const Duration(milliseconds: 300),
+    );
+    return;
   }
+}
+
 
   // This function handles rejecting a user from the system.
   // Steps:

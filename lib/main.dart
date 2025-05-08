@@ -113,7 +113,7 @@ class MyApp extends StatelessWidget {
         expiryTime: expiryTime,
         createdBy: uri.queryParameters['createdBy'] ?? "",
         roles: uri.queryParameters['roles'] ?? "",
-        department: uri.queryParameters['department'] ?? "",
+        deptID: uri.queryParameters['department'] ?? "",
         agenda: uri.queryParameters['agenda'] ?? "",
         firstName: uri.queryParameters['first_name'] ?? "",
         lastName: uri.queryParameters['last_name'] ?? "",
