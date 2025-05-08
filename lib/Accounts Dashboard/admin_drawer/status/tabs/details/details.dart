@@ -34,6 +34,8 @@ class _DetailPageState extends State<DetailPage> {
   String status = "N/A";
   String organizer = "N/A";
   String organizerEmail = "N/A";
+  String deptID = "";
+  String deptName = "";
 
   String remark = ""; // To store cancellation remark
   List<Map<String, dynamic>> guests = [];
@@ -78,7 +80,7 @@ class _DetailPageState extends State<DetailPage> {
 
           setState(() {
             fullName = "${userData['first_name']} ${userData['last_name']}";
-            userDepartment = userData['department'] ?? "";
+            userDepartment = userData['deptID'] ?? "";
             currentUserEmail =
                 userData['email'] ?? user.email ?? ""; // Store user's email
           });
@@ -111,10 +113,11 @@ class _DetailPageState extends State<DetailPage> {
 
       if (querySnapshot.docs.isNotEmpty) {
         var data = querySnapshot.docs.first.data() as Map<String, dynamic>;
-        setState(() {
+                     String appointmentDeptID = data['deptID'] ?? '';
+ setState(() {
           agendaTitle = data['agenda'] ?? "N/A";
           agendaDescription = data['agendaDescript'] ?? "N/A";
-          department = data['department'] ?? "N/A";
+        department = appointmentDeptID; // temporary value
           schedule = formatSchedule(data['schedule'] ?? "N/A");
           status = data['status'] ?? "N/A";
           organizer = data['createdBy'] ?? fullName;
@@ -132,6 +135,8 @@ class _DetailPageState extends State<DetailPage> {
 
           isLoading = false;
         });
+                      await fetchDepartmentNameByID(appointmentDeptID);
+
       } else {
         setState(() {
           isLoading = false;
@@ -143,6 +148,32 @@ class _DetailPageState extends State<DetailPage> {
       });
     }
   }
+
+ Future<void> fetchDepartmentNameByID(String deptID) async {
+  try {
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection('references')
+        .where('deptID', isEqualTo: deptID)
+        .where('isDeleted', isEqualTo: false)
+        .limit(1)
+        .get();
+
+    if (querySnapshot.docs.isNotEmpty) {
+      var deptData = querySnapshot.docs.first.data() as Map<String, dynamic>;
+
+      setState(() {
+        department = deptData['name'] ?? 'Unknown Department';
+      });
+    } else {
+      setState(() {
+        department = 'Unknown Department';
+      });
+      print("No department found for deptID: $deptID");
+    }
+  } catch (e) {
+    print("Error fetching department name: $e");
+  }
+}
 
   void _showCancelDialog(String agenda) {
     TextEditingController remarkController = TextEditingController();
@@ -1214,7 +1245,7 @@ class _DetailPageState extends State<DetailPage> {
             _buildDetailRow('Title:', agendaTitle),
             _buildDetailRow('Description:', agendaDescription),
             _buildOrgRow('Organizer:', organizer, organizerEmail),
-            _buildDetailRow('Department:', department),
+_buildDetailRow('Department:', department),
             _buildDetailRow('Date & Time:', schedule),
             _buildDetailRow('Status:', status),
             // Show remark only if status is Cancelled

@@ -28,6 +28,8 @@ class _QrCodeState extends State<QrCode> with AutomaticKeepAliveClientMixin {
   String firstName = "";
   String lastName = "";
   String qrUrl = "";
+      String department ="";
+
   // The initState method is called when the widget is first created. It initializes the state of the widget by setting the agendaController's text to the selected agenda passed via the widget's constructor.
   // It also triggers the fetchUserData method to fetch and load the current user's data from Firebase into the state.
   // This ensures that the necessary data is available when the widget is displayed.
@@ -73,12 +75,16 @@ class _QrCodeState extends State<QrCode> with AutomaticKeepAliveClientMixin {
         if (querySnapshot.docs.isNotEmpty) {
           var userData =
               querySnapshot.docs.first.data() as Map<String, dynamic>;
+                            String deptID = userData['deptID'] ?? '';
 
           setState(() {
             firstName = userData['first_name'] ?? "N/A";
             lastName = userData['last_name'] ?? "N/A";
-            departmentController.text = userData['department'] ?? "";
+          departmentController.text = deptID;
           });
+
+                                      await fetchDepartmentNameByID(deptID);
+
         } else {
           ScaffoldMessenger.of(context)
               .showSnackBar(SnackBar(content: Text("No user document found.")));
@@ -147,6 +153,32 @@ class _QrCodeState extends State<QrCode> with AutomaticKeepAliveClientMixin {
 
 
 
+
+  Future<void> fetchDepartmentNameByID(String deptID) async {
+  try {
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection('references')
+        .where('deptID', isEqualTo: deptID)
+        .where('isDeleted', isEqualTo: false)
+        .limit(1)
+        .get();
+
+    if (querySnapshot.docs.isNotEmpty) {
+      var deptData = querySnapshot.docs.first.data() as Map<String, dynamic>;
+
+      setState(() {
+        department = deptData['name'] ?? 'Unknown Department';
+      });
+    } else {
+      setState(() {
+        department = 'Unknown Department';
+      });
+      print("No department found for deptID: $deptID");
+    }
+  } catch (e) {
+    print("Error fetching department name: $e");
+  }
+}
  
   @override
   Widget build(BuildContext context) {

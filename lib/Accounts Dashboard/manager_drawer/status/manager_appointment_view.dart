@@ -158,7 +158,7 @@ class _ManagerAppointmentViewState extends State<ManagerAppointmentView> {
               querySnapshot.docs.first.data() as Map<String, dynamic>;
 
           setState(() {
-            userDepartment = userData['department'] ?? "";
+            userDepartment = userData['deptID'] ?? "";
             first_name = userData['first_name'] ?? "";
             last_name = userData['last_name'] ?? "";
             fullName = "$first_name $last_name";

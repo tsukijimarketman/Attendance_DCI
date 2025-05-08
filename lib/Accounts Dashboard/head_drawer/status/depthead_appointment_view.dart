@@ -157,7 +157,7 @@ class _deptheadAppointmentViewState extends State<deptheadAppointmentView> {
               querySnapshot.docs.first.data() as Map<String, dynamic>;
 
           setState(() {
-            userDepartment = userData['department'] ?? "";
+            userDepartment = userData['deptID'] ?? "";
             first_name = userData['first_name'] ?? "";
             last_name = userData['last_name'] ?? "";
             isLoading = false;

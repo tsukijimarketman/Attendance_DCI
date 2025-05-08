@@ -35,6 +35,8 @@ class _ManagerAppointmentManagerState extends State<ManagerAppointmentManager> {
   int totalPagesHistory = 1;
   TextEditingController itemsPerPageController = TextEditingController();
   bool isAscending = true; // Default sort direction
+    Map<String, String> departmentMap = {};
+
 
   // Status colors
   final Map<String, Color> statusColors = {
@@ -48,7 +50,13 @@ class _ManagerAppointmentManagerState extends State<ManagerAppointmentManager> {
   void initState() {
     super.initState();
     itemsPerPageController.text = itemsPerPage.toString();
-  }
+  
+  fetchDepartmentNames().then((map) {
+    setState(() {
+      departmentMap = map;
+    });
+  });
+}
 
   @override
   void dispose() {
@@ -61,7 +69,7 @@ class _ManagerAppointmentManagerState extends State<ManagerAppointmentManager> {
 
   // Modified _showAppointmentDetails method to add status-based restriction
   void _showAppointmentDetails(
-      Map<String, dynamic> appointmentData, String docId) {
+      Map<String, dynamic> appointmentData, String docId) async{
     final TextEditingController agendaController =
         TextEditingController(text: appointmentData['agenda'] ?? '');
     final TextEditingController departmentController =
@@ -76,6 +84,28 @@ class _ManagerAppointmentManagerState extends State<ManagerAppointmentManager> {
 
     final double dialogWidth = MediaQuery.of(context).size.width * 0.7;
     final double dialogHeight = MediaQuery.of(context).size.height * 0.7;
+
+  
+     // ✅ Fetch departmentName before the dialog
+  String deptID = appointmentData['deptID'] ?? '';
+  String departmentName = 'Unknown Department';
+
+  try {
+    QuerySnapshot refSnapshot = await FirebaseFirestore.instance
+        .collection('references')
+        .where('deptID', isEqualTo: deptID)
+        .where('isDeleted', isEqualTo: false)
+        .limit(1)
+        .get();
+
+    if (refSnapshot.docs.isNotEmpty) {
+      var deptData = refSnapshot.docs.first.data() as Map<String, dynamic>;
+      departmentName = deptData['name'] ?? 'Unknown Department';
+    }
+  } catch (e) {
+    print("Error fetching department name: $e");
+  }
+
 
     // QR code states - only used if status is "In Progress"
     bool isGeneratingQR = false;
@@ -116,20 +146,20 @@ class _ManagerAppointmentManagerState extends State<ManagerAppointmentManager> {
                   }
                 }
 
+                 String deptID = appointmentData['deptID'] ?? '';
+
                 int now = DateTime.now().millisecondsSinceEpoch;
-                int qrExpiryTime = now + (30 * 60 * 1000); // 30 minutes
                 int formExpiryTime = now + (60 * 60 * 1000); // 60 minutes
 
                 // Generate QR URL
                 qrUrl = "https://attendance-dci.web.app//#/attendance_form"
                     "?agenda=${Uri.encodeComponent(appointmentData['agenda'] ?? '')}"
-                    "&department=${Uri.encodeComponent(appointmentData['department'] ?? '')}"
+                  "&department=${Uri.encodeComponent(deptID)}"
+
                     "&createdBy=${Uri.encodeComponent(appointmentData['createdBy'] ?? '')}"
                     "&first_name=${Uri.encodeComponent(firstName)}"
                     "&last_name=${Uri.encodeComponent(lastName)}"
                     "&expiryTime=${formExpiryTime}";
-
-                expiryTime = qrExpiryTime;
 
                 setState(() {
                   qrGenerated = true;
@@ -224,11 +254,10 @@ class _ManagerAppointmentManagerState extends State<ManagerAppointmentManager> {
                                   _buildDetailItem(
                                       Icons.access_time, 'Time', formattedTime),
                                   SizedBox(height: 15),
-                                  _buildDetailItem(
+                                 _buildDetailItem(
                                       Icons.business,
                                       'Department',
-                                      appointmentData['department'] ??
-                                          'No Department'),
+                                    departmentName),
                                   SizedBox(height: 15),
                                   _buildDetailItem(
                                       Icons.person,
@@ -523,9 +552,29 @@ class _ManagerAppointmentManagerState extends State<ManagerAppointmentManager> {
     );
   }
 
+   Future<Map<String, String>> fetchDepartmentNames() async {
+  QuerySnapshot snapshot = await FirebaseFirestore.instance
+      .collection('references')
+      .where('isDeleted', isEqualTo: false)
+      .get();
+
+  Map<String, String> deptMap = {};
+  for (var doc in snapshot.docs) {
+    var data = doc.data() as Map<String, dynamic>;
+    if (data.containsKey('deptID') && data.containsKey('name')) {
+      deptMap[data['deptID']] = data['name'];
+    }
+  }
+  return deptMap;
+}
+
   // Modified filter method to check for user invitation
   List<QueryDocumentSnapshot> getFilteredAppointments(
-      List<QueryDocumentSnapshot> allAppointments, String? currentUserEmail) {
+      List<QueryDocumentSnapshot> allAppointments, 
+      String? currentUserEmail,
+            Map<String, String> departmentMap // Add the departmentMap here
+
+) {
     // First filter by search query
     List<QueryDocumentSnapshot> searchFiltered;
     if (searchQuery.isEmpty) {
@@ -534,11 +583,13 @@ class _ManagerAppointmentManagerState extends State<ManagerAppointmentManager> {
       searchFiltered = allAppointments.where((doc) {
         var data = doc.data() as Map<String, dynamic>;
         String agenda = (data['agenda'] ?? '').toString().toLowerCase();
-        String department = (data['department'] ?? '').toString().toLowerCase();
+ String deptID = (data['deptID'] ?? '').toString();
+        String deptName = departmentMap[deptID]?.toLowerCase() ?? ''; // Get department name from departmentMap
         String createdBy = (data['createdBy'] ?? '').toString().toLowerCase();
 
         return agenda.contains(searchQuery.toLowerCase()) ||
-            department.contains(searchQuery.toLowerCase()) ||
+            deptName.contains(searchQuery.toLowerCase()) ||
+
             createdBy.contains(searchQuery.toLowerCase());
       }).toList();
     }
@@ -720,7 +771,7 @@ class _ManagerAppointmentManagerState extends State<ManagerAppointmentManager> {
                             final allAppointments = snapshot.data?.docs ?? [];
                             final filteredAppointments =
                                 getFilteredAppointments(
-                                    allAppointments, currentUserEmail);
+                                    allAppointments, currentUserEmail, departmentMap);
                             final separatedAppointments =
                                 separateAppointments(filteredAppointments);
 
@@ -829,6 +880,7 @@ class _ManagerAppointmentManagerState extends State<ManagerAppointmentManager> {
                                                       width,
                                                       height,
                                                       false,
+                                                       departmentMap, // 👈 add this
                                                     );
                                                   },
                                                 ),
@@ -912,6 +964,7 @@ class _ManagerAppointmentManagerState extends State<ManagerAppointmentManager> {
                                                       width,
                                                       height,
                                                       true,
+                                                       departmentMap, // 👈 add this
                                                     );
                                                   },
                                                 ),
@@ -1188,6 +1241,9 @@ class _ManagerAppointmentManagerState extends State<ManagerAppointmentManager> {
     double width,
     double height,
     bool isHistory,
+          Map<String, String> departmentMap, // new param
+
+
   ) {
     // Parse schedule string to DateTime
     DateTime scheduleDate = DateTime.parse(appointmentData['schedule']);
@@ -1281,7 +1337,8 @@ class _ManagerAppointmentManagerState extends State<ManagerAppointmentManager> {
                               isHistory ? Colors.grey[500] : Colors.grey[600]),
                       SizedBox(width: width * 0.005),
                       Text(
-                        appointmentData['department'] ?? 'No Department',
+                       departmentMap[appointmentData['deptID']] ?? 'No Department',
+
                         style: TextStyle(
                           fontSize: bodySize,
                           fontFamily: 'M', // Medium font

@@ -456,6 +456,14 @@ class _MaintenanceState extends State<Maintenance>
 
   /// Builds a card for a specific role category
   Widget _buildRoleCard(String title, String role) {
+     return FutureBuilder<Map<String, String>>(
+    future: _fetchDepartmentNames(),
+    builder: (context, deptSnapshot) {
+      if (!deptSnapshot.hasData) {
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      final deptMap = deptSnapshot.data!;
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -573,8 +581,10 @@ class _MaintenanceState extends State<Maintenance>
                       String lastName = userData['last_name'] ?? '';
                       String name = "$firstName $lastName".trim();
                       String email = userData['email'] ?? 'No email';
-                      String department = userData['department'] ?? 'N/A';
+    String deptID = userData['deptID'] ?? '';
 
+                     String department =
+                            deptMap[deptID] ?? 'Unknown Department';
                       // Get first letter for avatar
                       String avatarLetter = (firstName.isNotEmpty)
                           ? firstName[0].toUpperCase()
@@ -594,6 +604,9 @@ class _MaintenanceState extends State<Maintenance>
       ),
     );
   }
+     );
+  }
+
 
   /// Builds a card for a specific department
   Widget _buildDepartmentCard(
@@ -757,26 +770,61 @@ class _MaintenanceState extends State<Maintenance>
   }
 
   /// Fetches and groups users by department
-  Future<Map<String, List<Map<String, dynamic>>>>
-      _fetchUsersGroupedByDepartment() async {
-    QuerySnapshot userSnapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .where('status', isEqualTo: 'active')
-        .get();
+   Future<Map<String, List<Map<String, dynamic>>>> _fetchUsersGroupedByDepartment() async {
 
-    Map<String, List<Map<String, dynamic>>> grouped = {};
+final deptSnapshot = await FirebaseFirestore.instance
+      .collection('references')
+      .where('isDeleted', isEqualTo: false)
+      .get();
 
-    for (var doc in userSnapshot.docs) {
-      var data = doc.data() as Map<String, dynamic>;
-      String department = data['department'] ?? 'Unknown Department';
+  // Create a map of deptID -> name
+  final Map<String, String> deptMap = {
+    for (var doc in deptSnapshot.docs)
+      if (doc.data().containsKey('deptID') && doc.data().containsKey('name'))
+        doc['deptID']: doc['name']
+  };
 
-      if (!grouped.containsKey(department)) {
-        grouped[department] = [];
-      }
+  // Fetch active users
+  final userSnapshot = await FirebaseFirestore.instance
+      .collection('users')
+      .where('status', isEqualTo: 'active')
+      .get();
 
-      grouped[department]!.add(data);
+  final Map<String, List<Map<String, dynamic>>> groupedUsers = {};
+
+  for (var doc in userSnapshot.docs) {
+    final userData = doc.data();
+
+    final deptID = userData['deptID'];
+    final deptName = deptMap[deptID] ?? 'Unknown Department';
+
+    if (!groupedUsers.containsKey(deptName)) {
+      groupedUsers[deptName] = [];
     }
 
-    return grouped;
+    groupedUsers[deptName]!.add(userData);
   }
+
+   return groupedUsers;
 }
+    }
+
+ Future<Map<String, String>> _fetchDepartmentNames() async {
+  final snapshot = await FirebaseFirestore.instance
+      .collection('references')
+      .where('isDeleted', isEqualTo: false)
+      .get();
+
+  Map<String, String> deptMap = {};
+  for (var doc in snapshot.docs) {
+    final data = doc.data();
+    if (data.containsKey('deptID') && data.containsKey('name')) {
+      deptMap[data['deptID']] = data['name'];
+    }
+  }
+
+     return deptMap;
+}
+
+
+    

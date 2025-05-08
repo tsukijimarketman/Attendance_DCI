@@ -324,7 +324,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
           .toList(), // Collect all contact numbers
       'timestamp': FieldValue.serverTimestamp(),
       'agenda': widget.agenda,
-      'department': departmentName,
+      'department': widget.deptID, // Pass deptID here instead of departmentName
       'createdBy': widget.roles == "User"
           ? widget.createdBy // If User, store the original creator
           : "${widget.firstName} ${widget.lastName}", // Otherwise, store current user

@@ -67,7 +67,7 @@ class _AppointmentManagerState extends State<AppointmentManager> {
 
   // Modified _showAppointmentDetails method to add status-based restriction
   void _showAppointmentDetails(
-      Map<String, dynamic> appointmentData, String docId) {
+      Map<String, dynamic> appointmentData, String docId) async {
     final TextEditingController agendaController =
         TextEditingController(text: appointmentData['agenda'] ?? '');
     final TextEditingController departmentController =
@@ -82,6 +82,27 @@ class _AppointmentManagerState extends State<AppointmentManager> {
 
     final double dialogWidth = MediaQuery.of(context).size.width * 0.7;
     final double dialogHeight = MediaQuery.of(context).size.height * 0.7;
+
+
+     // ✅ Fetch departmentName before the dialog
+  String deptID = appointmentData['deptID'] ?? '';
+  String departmentName = 'Unknown Department';
+
+  try {
+    QuerySnapshot refSnapshot = await FirebaseFirestore.instance
+        .collection('references')
+        .where('deptID', isEqualTo: deptID)
+        .where('isDeleted', isEqualTo: false)
+        .limit(1)
+        .get();
+
+    if (refSnapshot.docs.isNotEmpty) {
+      var deptData = refSnapshot.docs.first.data() as Map<String, dynamic>;
+      departmentName = deptData['name'] ?? 'Unknown Department';
+    }
+  } catch (e) {
+    print("Error fetching department name: $e");
+  }
 
     // QR code states - only used if status is "In Progress"
     bool isGeneratingQR = false;
@@ -104,7 +125,8 @@ class _AppointmentManagerState extends State<AppointmentManager> {
                 setState(() {
                   isGeneratingQR = true;
                 });
-
+                         // ✅ Fetch department name here inside the function
+    String deptID = appointmentData['deptID'] ?? '';
                 // Get current user details
                 User? user = FirebaseAuth.instance.currentUser;
                 if (user != null) {
@@ -122,40 +144,19 @@ class _AppointmentManagerState extends State<AppointmentManager> {
                   }
                 } 
 
-                  // 🔍 Fetch department name using deptID from appointmentData
-    String deptID = appointmentData['deptID'] ?? '';
-    String departmentName = 'Unknown Department';
-
-    try {
-      QuerySnapshot refSnapshot = await FirebaseFirestore.instance
-          .collection('references')
-          .where('deptID', isEqualTo: deptID)
-          .where('isDeleted', isEqualTo: false)
-          .limit(1)
-          .get();
-
-      if (refSnapshot.docs.isNotEmpty) {
-        var deptData = refSnapshot.docs.first.data() as Map<String, dynamic>;
-        departmentName = deptData['name'] ?? 'Unknown Department';
-      }
-    } catch (e) {
-      print("Error fetching department name: $e");
-    }
 
                 int now = DateTime.now().millisecondsSinceEpoch;
-                int qrExpiryTime = now + (30 * 60 * 1000); // 30 minutes
                 int formExpiryTime = now + (60 * 60 * 1000); // 60 minutes
 
                 // Generate QR URL
                 qrUrl = "https://attendance-dci.web.app//#/attendance_form"
                     "?agenda=${Uri.encodeComponent(appointmentData['agenda'] ?? '')}"
-        "&department=${Uri.encodeComponent(departmentName)}"
+                  "&department=${Uri.encodeComponent(deptID)}"
                     "&createdBy=${Uri.encodeComponent(appointmentData['createdBy'] ?? '')}"
                     "&first_name=${Uri.encodeComponent(firstName)}"
                     "&last_name=${Uri.encodeComponent(lastName)}"
                     "&expiryTime=${formExpiryTime}";
 
-                expiryTime = qrExpiryTime;
 
                 setState(() {
                   qrGenerated = true;
@@ -253,8 +254,7 @@ class _AppointmentManagerState extends State<AppointmentManager> {
                                   _buildDetailItem(
                                       Icons.business,
                                       'Department',
-                                      appointmentData['department'] ??
-                                          'No Department'),
+                                    departmentName),
                                   SizedBox(height: 15),
                                   _buildDetailItem(
                                       Icons.person,

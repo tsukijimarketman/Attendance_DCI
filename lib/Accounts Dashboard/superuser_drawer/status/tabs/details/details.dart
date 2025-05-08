@@ -80,7 +80,7 @@ class _DetailPageState extends State<DetailPage> {
 
           setState(() {
             fullName = "${userData['first_name']} ${userData['last_name']}";
-            userDepartment = userData['department'] ?? "";
+            userDepartment = userData['deptID'] ?? "";
             currentUserEmail =
                 userData['email'] ?? user.email ?? ""; // Store user's email
           });
