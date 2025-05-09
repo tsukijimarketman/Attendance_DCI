@@ -919,8 +919,8 @@ class _ReferencesState extends State<References> {
                           ),
                           child: TextButton(
                             onPressed: () {
-                              _deleteData(_selectedDataId!);
-                              Navigator.pop(context);
+   _deleteData(_selectedDataId!); // Let the function decide whether to close the dialog
+Navigator.pop(context);
                             },
                             child: Text(
                               "Delete",
@@ -1009,16 +1009,48 @@ Future<void> _addData() async {
 
 
 
-  Future<void> _deleteData(String id) async {
+Future<void> _deleteData(String id) async {
   if (id.isEmpty) return;
 
   try {
-    DocumentSnapshot doc = await _firestore.collection("references").doc(id).get();
+    DocumentSnapshot docSnapshot =
+        await _firestore.collection("references").doc(id).get();
 
-    String name = doc.exists && doc.data() != null
-        ? (doc.data() as Map<String, dynamic>)['name'] ?? 'Unknown'
-        : 'Unknown';
+    if (!docSnapshot.exists || docSnapshot.data() == null) {
+      _showErrorToast('Department not found');
+      return;
+    }
 
+    final data = docSnapshot.data() as Map<String, dynamic>;
+    String name = data['name'] ?? 'Unknown';
+    String deptID = data['deptID'] ?? id;
+
+    List<String> blockingSources = [];
+
+    // Check users
+    final usersSnapshot = await _firestore
+        .collection("users")
+        .where("deptID", isEqualTo: deptID)
+        .limit(1)
+        .get();
+
+    if (usersSnapshot.docs.isNotEmpty) blockingSources.add("Users");
+
+    // Check appointments
+    final appointmentsSnapshot = await _firestore
+        .collection("appointment")
+        .where("deptID", isEqualTo: deptID)
+        .limit(1)
+        .get();
+
+    if (appointmentsSnapshot.docs.isNotEmpty) blockingSources.add("Appointments");
+
+    if (blockingSources.isNotEmpty) {
+      _showBlockedDeletionDialog(blockingSources);
+      return;
+    }
+
+    // Proceed with soft delete
     await _firestore.collection("references").doc(id).update({
       "isDeleted": true,
     });
@@ -1031,6 +1063,92 @@ Future<void> _addData() async {
   } catch (e) {
     _showErrorToast('Error deleting department: $e');
   }
+}
+
+
+void _showBlockedDeletionDialog(List<String> sources) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        elevation: 8.0,
+        child: Container(
+          width: MediaQuery.of(context).size.width / 3.5,
+          padding: EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16.0),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.white, Color(0xFFFFF3F3)],
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.orange[700], size: 28),
+                  SizedBox(width: 10),
+                  Text(
+                    "Deletion Blocked",
+                    style: TextStyle(
+                      fontFamily: fontSemiBold,
+                      color: Colors.orange[700],
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 15),
+              Text(
+                "This department cannot be deleted because it is currently linked to existing records in:\n\n• ${sources.join('\n• ')}",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: fontRegular,
+                  fontSize: MediaQuery.of(context).size.width / 100,
+                  color: Colors.black87,
+                ),
+              ),
+              SizedBox(height: 20),
+               Container(
+                          width: MediaQuery.of(context).size.width / 8,
+                          height: MediaQuery.of(context).size.width / 35,
+                          decoration: BoxDecoration(
+                            color: Colors.blue[700],
+                            borderRadius: BorderRadius.circular(
+                                MediaQuery.of(context).size.width / 170),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                spreadRadius: 0,
+                              ),
+                            ],
+                          ),
+                          child: TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  "OK",
+                  style: TextStyle(
+                    fontFamily: fontRegular,
+                    fontSize: MediaQuery.of(context).size.width / 100,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+               )
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }
 
 
