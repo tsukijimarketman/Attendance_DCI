@@ -30,7 +30,7 @@ class _GenderDistributionPieChartState extends State<GenderDistributionPieChart>
   Future<void> fetchGenderData() async {
     try {
       // Access Firestore and get users collection
-      final usersCollection = FirebaseFirestore.instance.collection('users');
+      final usersCollection = FirebaseFirestore.instance.collection('users').where('status', isEqualTo: 'active');
       final querySnapshot = await usersCollection.get();
 
       // Process each user document

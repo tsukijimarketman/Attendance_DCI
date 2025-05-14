@@ -108,7 +108,7 @@ class _MaintenanceState extends State<Maintenance>
                   ManageUsers(
                     searchQuery: _searchQuery,
                   ),
-                  References(searchQuery: _searchController),
+                  AdminReferences(searchQuery: _searchController),
                 ],
               ),
             ),
