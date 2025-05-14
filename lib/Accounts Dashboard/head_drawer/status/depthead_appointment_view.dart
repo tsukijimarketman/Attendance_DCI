@@ -509,7 +509,7 @@ class _deptheadAppointmentViewState extends State<deptheadAppointmentView> {
                                   StreamBuilder<QuerySnapshot>(
                                 stream: FirebaseFirestore.instance
                                     .collection('appointment')
-                                    .where('department', isEqualTo: userDepartment)
+                                    .where('deptID', isEqualTo: userDepartment)
                                     .where('status',
                                         isEqualTo: widget.statusType)
                                     .snapshots(),

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:attendance_app/Accounts%20Dashboard/head_drawer/status/depthead_appointment_view.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/appointment_view.dart';
 import 'package:attendance_app/Auth/audit_function.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -88,7 +87,7 @@ if (querySnapshot.docs.isEmpty) {
 }
 
     final userData = querySnapshot.docs.first.data();
-    final String? department = userData['department'];
+    final String? department = userData['deptID'];
 
     if (department == null) {
       throw Exception('User department not found');
@@ -106,7 +105,7 @@ if (querySnapshot.docs.isEmpty) {
       final futures = tempCounts.keys.map((status) async {
       final snapshot = await _firestore
           .collection('appointment')
-          .where('department', isEqualTo: department)
+          .where('deptID', isEqualTo: department)
           .where('status', isEqualTo: status)
           .get();
       return MapEntry(status, snapshot.docs.length);
