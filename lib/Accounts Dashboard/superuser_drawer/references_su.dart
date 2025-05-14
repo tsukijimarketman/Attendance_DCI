@@ -970,36 +970,60 @@ Future<void> _addData() async {
   try {
     final referencesRef = _firestore.collection("references");
 
-    // Get the highest current deptID
+    // Get the highest current deptID (as string, lexically sorted)
     final snapshot = await referencesRef
         .orderBy("deptID", descending: true)
         .limit(1)
         .get();
 
-    String nextDeptID = "1";  // Start with "1" as the initial department ID (string)
+    int nextDeptNumber = 1;  // Default start
+
     if (snapshot.docs.isNotEmpty) {
       final currentMax = snapshot.docs.first.data()['deptID'];
       if (currentMax != null) {
-        // If currentMax is already a string, parse and increment
-        if (currentMax is String) {
-          nextDeptID = (int.tryParse(currentMax) ?? 0 + 1).toString();
-        }
-        // If currentMax is an integer, increment and convert to string
-        else if (currentMax is int) {
-          nextDeptID = (currentMax + 1).toString();
-        }
+        // Parse the string deptID safely
+        final parsed = int.tryParse(currentMax.toString()) ?? 0;
+        nextDeptNumber = parsed + 1;
       }
     }
 
+    // Format as 3-digit string with leading zeros
+    final nextDeptID = nextDeptNumber.toString().padLeft(3, '0');
+
+    final deptName = _nameController.text.trim();
+
+    // 🔍 Check if name OR deptID already exists
+    final duplicateCheck = await referencesRef
+        .where("isDeleted", isEqualTo: false)
+        .where("name", isEqualTo: deptName)
+        .get();
+
+    final idCheck = await referencesRef
+        .where("isDeleted", isEqualTo: false)
+        .where("deptID", isEqualTo: nextDeptID)
+        .get();
+
+    if (duplicateCheck.docs.isNotEmpty) {
+      _showErrorToast('Department with the same name already exists.');
+      return;
+    }
+
+    if (idCheck.docs.isNotEmpty) {
+      _showErrorToast('Department with the same ID already exists.');
+      return;
+    }
+
     final docRef = await referencesRef.add({
-      "deptID": nextDeptID,  // Save deptID as a string
+      "deptID": nextDeptID,
       "name": _nameController.text.trim(),
       "timestamp": FieldValue.serverTimestamp(),
       "isDeleted": false,
     });
 
-    await logAuditTrail("Department Added",
-        "Added new department '${docRef.id}' with deptID: $nextDeptID and name: ${_nameController.text}");
+    await logAuditTrail(
+      "Department Added",
+      "Added new department '${docRef.id}' with deptID: $nextDeptID and name: ${_nameController.text}",
+    );
 
     _showSuccessToast('Department added successfully');
   } catch (e) {
