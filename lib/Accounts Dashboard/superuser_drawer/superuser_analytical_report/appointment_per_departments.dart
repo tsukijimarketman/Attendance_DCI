@@ -18,73 +18,163 @@ class AppointmentsPerDepartmentChartState extends State<AppointmentsPerDepartmen
   
   // Department data will be loaded from Firestore
   Map<String, int> departmentAppointments = {};
+  Map<String, String> departmentFullNames = {};
+  Map<String, String> departmentIds = {}; // Maps abbreviation to deptID
+  
   bool isLoading = true;
   String error = '';
   
-  // Stream subscription for Firestore updates
+  // Stream subscriptions for Firestore updates
   StreamSubscription<QuerySnapshot>? _appointmentsSubscription;
+  StreamSubscription<QuerySnapshot>? _departmentsSubscription;
 
-  // List of all departments to show, even if they have 0 appointments
-  final List<String> allDepartments = [
-    'QMS', 'IQA', 'PMD', 'HRA', 'BD', 'ACCT', 'ITO', 'ADM', 
-    'TID', 'PI', 'LC', 'CA', 'CS', 'CPD'
-  ];
-
-  // Mapping between full department names and abbreviations
-  final Map<String, String> departmentAbbreviations = {
-    'Quality Management System': 'QMS',
-    'Internal Quality Audit': 'IQA',
-    'Project Management Department': 'PMD',
-    'Human Resources Admin': 'HRA',
-    'Business Development': 'BD',
-    'Accounting': 'ACCT',
-    'IT Operations': 'ITO',
-    'Admin Operations': 'ADM',
-    'Technology & Innovations': 'TID',
-    'Project Implementation': 'PI',
-    'Legal and Compliance': 'LC',
-    'Corporate Affairs': 'CA',
-    'Customer Service': 'CS',
-    'Corporate Planning & Development': 'CPD',
-  };
-
-  // Tooltip for showing department full names when needed
-  final Map<String, String> departmentFullNames = {
-    'QMS': 'Quality Management System',
-    'IQA': 'Internal Quality Audit',
-    'PMD': 'Project Management Department',
-    'HRA': 'Human Resources Admin',
-    'BD': 'Business Development',
-    'ACCT': 'Accounting',
-    'ITO': 'IT Operations',
-    'ADM': 'Admin Operations',
-    'TID': 'Technology & Innovations',
-    'PI': 'Project Implementation',
-    'LC': 'Legal and Compliance',
-    'CA': 'Corporate Affairs',
-    'CS': 'Customer Service',
-    'CPD': 'Corporate Planning & Development',
-  };
+  // List of department abbreviations
+  List<String> departmentAbbreviations = [];
 
   @override
   void initState() {
     super.initState();
-    subscribeToAppointments();
+    // First load departments, then load appointments
+    loadDepartments();
   }
 
   @override
   void dispose() {
     _appointmentsSubscription?.cancel();
+    _departmentsSubscription?.cancel();
     super.dispose();
   }
 
-  // Subscribe to Firestore updates
-  void subscribeToAppointments() {
+  // Load departments from references collection
+  void loadDepartments() {
     setState(() {
       isLoading = true;
       error = '';
     });
 
+    try {
+      _departmentsSubscription = FirebaseFirestore.instance
+          .collection('references')
+          .snapshots()
+          .listen((snapshot) {
+        processDepartmentData(snapshot);
+      }, onError: (e) {
+        setState(() {
+          error = 'Error loading departments: $e';
+          isLoading = false;
+        });
+      });
+    } catch (e) {
+      setState(() {
+        error = 'Failed to load departments: $e';
+        isLoading = false;
+      });
+    }
+  }
+
+  // Process department data from Firestore
+  void processDepartmentData(QuerySnapshot snapshot) {
+    try {
+      Map<String, String> fullNames = {};
+      Map<String, String> deptIds = {};
+      List<String> abbrevs = [];
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final String? name = data['name'] as String?;
+        final String? deptId = data['deptID'] as String?;
+        final bool? isDeleted = data['isDeleted'] as bool?;
+        
+        // Skip deleted departments or those without names
+        if (isDeleted == true || name == null || name.isEmpty || deptId == null) {
+          continue;
+        }
+        
+        // Generate abbreviation from the department name
+        String abbrev = createAbbreviation(name);
+        
+        fullNames[abbrev] = name;
+        deptIds[abbrev] = deptId;
+        abbrevs.add(abbrev);
+      }
+      
+      setState(() {
+        departmentFullNames = fullNames;
+        departmentIds = deptIds;
+        departmentAbbreviations = abbrevs;
+        
+        // After loading departments, now load appointments
+        if (departmentAbbreviations.isNotEmpty) {
+          subscribeToAppointments();
+        } else {
+          isLoading = false;
+          error = 'No departments found';
+        }
+      });
+    } catch (e) {
+      setState(() {
+        error = 'Error processing departments: $e';
+        isLoading = false;
+      });
+    }
+  }
+
+  // Create abbreviation from department name (3-4 characters)
+  String createAbbreviation(String departmentName) {
+    // Split the name into words
+    List<String> words = departmentName.split(' ');
+    
+    if (words.isEmpty) return '';
+    
+    // For very short names (1-2 words), we might just use the first letters
+    if (words.length <= 2) {
+      String abbrev = '';
+      for (var word in words) {
+        if (word.isNotEmpty) {
+          abbrev += word[0].toUpperCase();
+        }
+      }
+      
+      // If abbreviation is too short, add more letters from the first word
+      if (abbrev.length < 3 && words[0].length >= 3) {
+        abbrev = words[0].substring(0, 3).toUpperCase();
+      }
+      
+      return abbrev;
+    }
+    
+    // For longer names, take first letter of each main word
+    String abbrev = '';
+    for (var word in words) {
+      // Skip small connecting words for abbreviation
+      if (word.toLowerCase() != 'and' && 
+          word.toLowerCase() != 'of' && 
+          word.toLowerCase() != 'the' &&
+          word.isNotEmpty) {
+        abbrev += word[0].toUpperCase();
+      }
+    }
+    
+    // Ensure abbreviation is 3-4 characters
+    if (abbrev.length < 3) {
+      // Add more characters from prominent words if needed
+      for (var word in words) {
+        if (word.length > 1 && abbrev.length < 3) {
+          abbrev += word[1].toUpperCase();
+        }
+      }
+    }
+    
+    // Truncate if too long
+    if (abbrev.length > 4) {
+      abbrev = abbrev.substring(0, 4);
+    }
+    
+    return abbrev;
+  }
+
+  // Subscribe to Firestore appointments
+  void subscribeToAppointments() {
     try {
       _appointmentsSubscription = FirebaseFirestore.instance
           .collection('appointment')
@@ -93,13 +183,13 @@ class AppointmentsPerDepartmentChartState extends State<AppointmentsPerDepartmen
         processAppointmentData(snapshot);
       }, onError: (e) {
         setState(() {
-          error = 'Error: $e';
+          error = 'Error loading appointments: $e';
           isLoading = false;
         });
       });
     } catch (e) {
       setState(() {
-        error = 'Failed to subscribe: $e';
+        error = 'Failed to subscribe to appointments: $e';
         isLoading = false;
       });
     }
@@ -110,22 +200,50 @@ class AppointmentsPerDepartmentChartState extends State<AppointmentsPerDepartmen
     try {
       // Initialize counters for all departments with zero
       Map<String, int> counts = {};
-      for (String dept in allDepartments) {
+      for (String dept in departmentAbbreviations) {
         counts[dept] = 0;
       }
       
-      // Count appointments by department
+      // Count appointments by department ID
       for (var doc in snapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
-        String? department = data['department'] as String?;
+        String? deptId = data['deptID'] as String?;
+        bool counted = false;
         
-        if (department != null && department.isNotEmpty) {
-          // Convert full department name to abbreviation if needed
-          String deptAbbrev = departmentAbbreviations[department] ?? department;
+        // First try to count by department ID - primary method
+        if (deptId != null && deptId.isNotEmpty) {
+          // Find which department abbreviation matches this deptID
+          for (String abbrev in departmentAbbreviations) {
+            if (departmentIds[abbrev] == deptId) {
+              counts[abbrev] = (counts[abbrev] ?? 0) + 1;
+              counted = true;
+              break;
+            }
+          }
+        }
+        
+        // If we couldn't identify by deptID and we haven't counted this appointment yet,
+        // try to look at internal users as a fallback only
+        if (!counted && data.containsKey('internal_users') && data['internal_users'] is List) {
+          // We'll only count the primary department (first one)
+          // to avoid duplicate counting of appointments
+          List<dynamic> internalUsers = data['internal_users'] as List<dynamic>;
           
-          // Make sure the abbreviation is one of our known departments
-          if (allDepartments.contains(deptAbbrev)) {
-            counts[deptAbbrev] = (counts[deptAbbrev] ?? 0) + 1;
+          if (internalUsers.isNotEmpty) {
+            var firstUser = internalUsers.first;
+            if (firstUser is Map<String, dynamic> && firstUser.containsKey('department')) {
+              String? departmentName = firstUser['department'] as String?;
+              
+              if (departmentName != null && departmentName.isNotEmpty) {
+                // Find matching department by full name
+                for (String abbrev in departmentAbbreviations) {
+                  if (departmentFullNames[abbrev] == departmentName) {
+                    counts[abbrev] = (counts[abbrev] ?? 0) + 1;
+                    break;
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -136,7 +254,7 @@ class AppointmentsPerDepartmentChartState extends State<AppointmentsPerDepartmen
       });
     } catch (e) {
       setState(() {
-        error = 'Error processing data: $e';
+        error = 'Error processing appointments: $e';
         isLoading = false;
       });
     }
@@ -188,6 +306,15 @@ class AppointmentsPerDepartmentChartState extends State<AppointmentsPerDepartmen
                     ),
                   ),
                 )
+              else if (departmentAbbreviations.isEmpty)
+                const Expanded(
+                  child: Center(
+                    child: Text(
+                      'No departments found',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                )
               else
                 Expanded(
                   child: BarChart(
@@ -225,7 +352,7 @@ class AppointmentsPerDepartmentChartState extends State<AppointmentsPerDepartmen
         enabled: true,
         touchTooltipData: BarTouchTooltipData(
           getTooltipItem: (group, groupIndex, rod, rodIndex) {
-            String departmentAbbrev = allDepartments[group.x];
+            String departmentAbbrev = departmentAbbreviations[group.x];
             return BarTooltipItem(
               '${departmentFullNames[departmentAbbrev] ?? departmentAbbrev}\n${rod.toY.round()} appointments',
               TextStyle(
@@ -302,7 +429,7 @@ class AppointmentsPerDepartmentChartState extends State<AppointmentsPerDepartmen
   // Bottom titles widget - display department abbreviations
   Widget bottomTitles(double value, TitleMeta meta) {
     final index = value.toInt();
-    if (index < 0 || index >= allDepartments.length) {
+    if (index < 0 || index >= departmentAbbreviations.length) {
       return const SizedBox.shrink();
     }
     
@@ -312,7 +439,7 @@ class AppointmentsPerDepartmentChartState extends State<AppointmentsPerDepartmen
       fontSize: 10,
     );
     
-    final text = allDepartments[index];
+    final text = departmentAbbreviations[index];
     
     return SideTitleWidget(
       meta: meta,
@@ -352,9 +479,9 @@ class AppointmentsPerDepartmentChartState extends State<AppointmentsPerDepartmen
   // Generate bar groups
   List<BarChartGroupData> get barGroups {
     return List.generate(
-      allDepartments.length,
+      departmentAbbreviations.length,
       (index) {
-        final deptAbbrev = allDepartments[index];
+        final deptAbbrev = departmentAbbreviations[index];
         final count = departmentAppointments[deptAbbrev] ?? 0;
         
         return BarChartGroupData(

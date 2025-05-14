@@ -1,27 +1,22 @@
 import 'dart:async';
-import 'package:attendance_app/Auth/audit_function.dart';
 import 'package:attendance_app/widget/animated_textfield.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:toastification/toastification.dart';
 
-class References extends StatefulWidget {
+class AdminReferences extends StatefulWidget {
   final TextEditingController searchQuery;
-  const References({super.key, required this.searchQuery});
+  const AdminReferences({super.key, required this.searchQuery});
 
   @override
-  State<References> createState() => _ReferencesState();
+  State<AdminReferences> createState() => _AdminReferencesState();
 }
 
-class _ReferencesState extends State<References> {
+class _AdminReferencesState extends State<AdminReferences> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  TextEditingController _nameController = TextEditingController();
   TextEditingController _searchDataController = TextEditingController();
-  TextEditingController _editDataController = TextEditingController();
 
-  // Default to the "Department" category
-  String? selectedCategoryId;
+  // Department management
   String? _selectedDataId;
   String dataSearchQuery = "";
 
@@ -42,8 +37,6 @@ class _ReferencesState extends State<References> {
   @override
   void initState() {
     super.initState();
-    // Fetch the Department category ID on initialization
-    _fetchDepartmentCategoryId();
 
     // Initialize the search controller with any existing search query
     _searchDataController.text = widget.searchQuery.text;
@@ -63,8 +56,6 @@ class _ReferencesState extends State<References> {
     _searchDataController.removeListener(_onSearchChanged);
     widget.searchQuery.removeListener(_onExternalSearchChanged);
     _searchDataController.dispose();
-    _nameController.dispose();
-    _editDataController.dispose();
     _debounce?.cancel();
     super.dispose();
   }
@@ -122,32 +113,6 @@ class _ReferencesState extends State<References> {
     return (_filteredDepartments.length / _itemsPerPage).ceil();
   }
 
-  Future<void> _fetchDepartmentCategoryId() async {
-    try {
-      QuerySnapshot categorySnapshot = await _firestore
-          .collection("categories")
-          .where("name", isEqualTo: "Department")
-          .limit(1)
-          .get();
-
-      if (categorySnapshot.docs.isNotEmpty) {
-        setState(() {
-          selectedCategoryId = categorySnapshot.docs.first.id;
-        });
-      } else {
-        // Create Department category if it doesn't exist
-        DocumentReference newCategoryRef =
-            await _firestore.collection("categories").add({
-          "name": "Department",
-          "timestamp": FieldValue.serverTimestamp(),
-        });
-        setState(() {
-          selectedCategoryId = newCategoryRef.id;
-        });
-      }
-    } catch (e) {}
-  }
-
   @override
   Widget build(BuildContext context) {
     // Get screen dimensions for responsive layout
@@ -164,6 +129,7 @@ class _ReferencesState extends State<References> {
           children: [
             Container(
               width: screenWidth,
+              height: screenWidth / 3.1,
               child: Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
@@ -172,258 +138,249 @@ class _ReferencesState extends State<References> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    
                     // Department List
                     Container(
-                      height: screenWidth / 3.65,
-                      child: Container(
-                        child: StreamBuilder(
-                          stream: selectedCategoryId != null
-                              ? _firestore
-                                  .collection("categories")
-                                  .doc(selectedCategoryId)
-                                  .collection("references")
-                                  .where('isDeleted', isEqualTo: false)
-                                  .snapshots()
-                              : null,
-                          builder:
-                              (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return Center(
-                                child: CircularProgressIndicator(
-                                  color: const Color.fromARGB(255, 11, 55, 99),
-                                ),
-                              );
-                            }
+                      height: screenWidth / 3.2,
+                      child: StreamBuilder(
+                        stream: _firestore
+                            .collection("references")
+                            .where('isDeleted', isEqualTo: false)
+                            .snapshots(),
+                        builder:
+                            (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return Center(
+                              child: CircularProgressIndicator(
+                                color: const Color.fromARGB(255, 11, 55, 99),
+                              ),
+                            );
+                          }
 
-                            if (!snapshot.hasData ||
-                                snapshot.data!.docs.isEmpty) {
-                              return Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.folder_open,
-                                      size: screenWidth * 0.04,
-                                      color: Colors.grey,
-                                    ),
-                                    SizedBox(height: screenHeight * 0.01),
-                                    Text(
-                                      "No departments available",
-                                      style: TextStyle(
-                                        fontFamily: fontMedium,
-                                        fontSize: screenWidth * 0.012,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }
-
-                            // Update all departments when data changes
-                            _allDepartments = snapshot.data!.docs;
-
-                            // Apply filtering based on search query
-                            if (dataSearchQuery.isEmpty) {
-                              _filteredDepartments = _allDepartments;
-                            } else {
-                              _filterDepartments();
-                            }
-
-                            // Get current page items
-                            final currentPageItems = _getCurrentPageItems();
-
-                            if (_filteredDepartments.isEmpty) {
-                              return Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.search_off,
-                                      size: screenWidth * 0.04,
-                                      color: Colors.grey,
-                                    ),
-                                    SizedBox(height: screenHeight * 0.01),
-                                    Text(
-                                      "No departments matching your search",
-                                      style: TextStyle(
-                                        fontFamily: fontMedium,
-                                        fontSize: screenWidth * 0.012,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }
-
-                            return Column(
-                              children: [
-                                Expanded(
-                                  child: Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: screenWidth * 0.02,
-                                      vertical: screenHeight * 0.01,
-                                    ),
-                                    child: ListView.separated(
-                                      itemCount: currentPageItems.length,
-                                      separatorBuilder: (context, index) =>
-                                          Divider(
-                                        color: Colors.grey.shade300,
-                                        height: 1,
-                                      ),
-                                      itemBuilder: (context, index) {
-                                        var data = currentPageItems[index];
-                                        bool isSelected =
-                                            _selectedDataId == data.id;
-
-                                        return Container(
-                                          decoration: BoxDecoration(
-                                            color: isSelected
-                                                ? const Color.fromARGB(
-                                                        255, 11, 55, 99)
-                                                    .withOpacity(0.1)
-                                                : Colors.transparent,
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                          ),
-                                          child: ListTile(
-                                            contentPadding:
-                                                EdgeInsets.symmetric(
-                                              horizontal: screenWidth * 0.02,
-                                              vertical: screenHeight * 0.005,
-                                            ),
-                                            title: Text(
-                                              data["name"],
-                                              style: TextStyle(
-                                                fontFamily: isSelected
-                                                    ? fontSemiBold
-                                                    : fontRegular,
-                                                fontSize: screenWidth * 0.012 >
-                                                        18
-                                                    ? 18
-                                                    : screenWidth * 0.012 < 14
-                                                        ? 14
-                                                        : screenWidth * 0.012,
-                                                color: isSelected
-                                                    ? const Color.fromARGB(
-                                                        255, 11, 55, 99)
-                                                    : Colors.black87,
-                                              ),
-                                            ),
-                                            onTap: () {
-                                              setState(() {
-                                                _selectedDataId =
-                                                    isSelected ? null : data.id;
-                                              });
-                                            },
-                                          ),
-                                        );
-                                      },
-                                    ),
+                          if (!snapshot.hasData ||
+                              snapshot.data!.docs.isEmpty) {
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.folder_open,
+                                    size: screenWidth * 0.04,
+                                    color: Colors.grey,
                                   ),
-                                ),
-                                // Pagination info
-                                Padding(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: screenWidth * 0.02),
-                                  child: Text(
-                                    'Showing ${currentPageItems.length} of ${_filteredDepartments.length} departments',
+                                  SizedBox(height: screenHeight * 0.01),
+                                  Text(
+                                    "No departments available",
                                     style: TextStyle(
-                                      color: Colors.grey.shade600,
-                                      fontSize: screenWidth * 0.01,
-                                      fontFamily: fontRegular,
+                                      fontFamily: fontMedium,
+                                      fontSize: screenWidth * 0.012,
+                                      color: Colors.grey[600],
                                     ),
                                   ),
-                                ),
-                                // Pagination controls
-                                Container(
+                                ],
+                              ),
+                            );
+                          }
+
+                          // Update all departments when data changes
+                          _allDepartments = snapshot.data!.docs;
+
+                          // Apply filtering based on search query
+                          if (dataSearchQuery.isEmpty) {
+                            _filteredDepartments = _allDepartments;
+                          } else {
+                            _filterDepartments();
+                          }
+
+                          // Get current page items
+                          final currentPageItems = _getCurrentPageItems();
+
+                          if (_filteredDepartments.isEmpty) {
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.search_off,
+                                    size: screenWidth * 0.04,
+                                    color: Colors.grey,
+                                  ),
+                                  SizedBox(height: screenHeight * 0.01),
+                                  Text(
+                                    "No departments matching your search",
+                                    style: TextStyle(
+                                      fontFamily: fontMedium,
+                                      fontSize: screenWidth * 0.012,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+
+                          return Column(
+                            children: [
+                              Expanded(
+                                child: Padding(
                                   padding: EdgeInsets.symmetric(
-                                      vertical: screenHeight * 0.01),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      IconButton(
-                                        icon: Icon(Icons.first_page,
-                                            color: _currentPage > 1
-                                                ? const Color.fromARGB(
-                                                    255, 11, 55, 99)
-                                                : Colors.grey),
-                                        onPressed: _currentPage > 1
-                                            ? () =>
-                                                setState(() => _currentPage = 1)
-                                            : null,
-                                        tooltip: 'First Page',
-                                        iconSize: screenWidth * 0.01 > 20
-                                            ? 20
-                                            : screenWidth * 0.01,
-                                      ),
-                                      IconButton(
-                                        icon: Icon(Icons.chevron_left,
-                                            color: _currentPage > 1
-                                                ? const Color.fromARGB(
-                                                    255, 11, 55, 99)
-                                                : Colors.grey),
-                                        onPressed: _currentPage > 1
-                                            ? () =>
-                                                setState(() => _currentPage--)
-                                            : null,
-                                        tooltip: 'Previous Page',
-                                        iconSize: screenWidth * 0.01 > 20
-                                            ? 20
-                                            : screenWidth * 0.01,
-                                      ),
-                                      Container(
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: screenWidth * 0.01),
-                                        child: Text(
-                                          'Page $_currentPage of $_totalPages',
-                                          style: TextStyle(
-                                            fontFamily: fontMedium,
-                                            fontSize: screenWidth * 0.01,
-                                            color: const Color.fromARGB(
-                                                255, 11, 55, 99),
+                                    horizontal: screenWidth * 0.02,
+                                    vertical: screenHeight * 0.01,
+                                  ),
+                                  child: ListView.separated(
+                                    itemCount: currentPageItems.length,
+                                    separatorBuilder: (context, index) =>
+                                        Divider(
+                                      color: Colors.grey.shade300,
+                                      height: 1,
+                                    ),
+                                    itemBuilder: (context, index) {
+                                      var data = currentPageItems[index];
+                                      bool isSelected =
+                                          _selectedDataId == data.id;
+
+                                      return Container(
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? const Color.fromARGB(
+                                                      255, 11, 55, 99)
+                                                  .withOpacity(0.1)
+                                              : Colors.transparent,
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: ListTile(
+                                          contentPadding: EdgeInsets.symmetric(
+                                            horizontal: screenWidth * 0.02,
+                                            vertical: screenHeight * 0.005,
                                           ),
+                                          title: Text(
+                                            data["name"],
+                                            style: TextStyle(
+                                              fontFamily: isSelected
+                                                  ? fontSemiBold
+                                                  : fontRegular,
+                                              fontSize: screenWidth * 0.012 > 18
+                                                  ? 18
+                                                  : screenWidth * 0.012 < 14
+                                                      ? 14
+                                                      : screenWidth * 0.012,
+                                              color: isSelected
+                                                  ? const Color.fromARGB(
+                                                      255, 11, 55, 99)
+                                                  : Colors.black87,
+                                            ),
+                                          ),
+                                          onTap: () {
+                                            setState(() {
+                                              _selectedDataId =
+                                                  isSelected ? null : data.id;
+                                            });
+                                          },
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                              // Pagination info
+                              Padding(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: screenWidth * 0.02),
+                                child: Text(
+                                  'Showing ${currentPageItems.length} of ${_filteredDepartments.length} departments',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: screenWidth * 0.01,
+                                    fontFamily: fontRegular,
+                                  ),
+                                ),
+                              ),
+                              // Pagination controls
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                    vertical: screenHeight * 0.01),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(Icons.first_page,
+                                          color: _currentPage > 1
+                                              ? const Color.fromARGB(
+                                                  255, 11, 55, 99)
+                                              : Colors.grey),
+                                      onPressed: _currentPage > 1
+                                          ? () =>
+                                              setState(() => _currentPage = 1)
+                                          : null,
+                                      tooltip: 'First Page',
+                                      iconSize: screenWidth * 0.01 > 20
+                                          ? 20
+                                          : screenWidth * 0.01,
+                                    ),
+                                    IconButton(
+                                      icon: Icon(Icons.chevron_left,
+                                          color: _currentPage > 1
+                                              ? const Color.fromARGB(
+                                                  255, 11, 55, 99)
+                                              : Colors.grey),
+                                      onPressed: _currentPage > 1
+                                          ? () => setState(() => _currentPage--)
+                                          : null,
+                                      tooltip: 'Previous Page',
+                                      iconSize: screenWidth * 0.01 > 20
+                                          ? 20
+                                          : screenWidth * 0.01,
+                                    ),
+                                    Container(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: screenWidth * 0.01),
+                                      child: Text(
+                                        'Page $_currentPage of $_totalPages',
+                                        style: TextStyle(
+                                          fontFamily: fontMedium,
+                                          fontSize: screenWidth * 0.01,
+                                          color: const Color.fromARGB(
+                                              255, 11, 55, 99),
                                         ),
                                       ),
-                                      IconButton(
-                                        icon: Icon(Icons.chevron_right,
-                                            color: _currentPage < _totalPages
-                                                ? const Color.fromARGB(
-                                                    255, 11, 55, 99)
-                                                : Colors.grey),
-                                        onPressed: _currentPage < _totalPages
-                                            ? () =>
-                                                setState(() => _currentPage++)
-                                            : null,
-                                        tooltip: 'Next Page',
-                                        iconSize: screenWidth * 0.01 > 20
-                                            ? 20
-                                            : screenWidth * 0.01,
-                                      ),
-                                      IconButton(
-                                        icon: Icon(Icons.last_page,
-                                            color: _currentPage < _totalPages
-                                                ? const Color.fromARGB(
-                                                    255, 11, 55, 99)
-                                                : Colors.grey),
-                                        onPressed: _currentPage < _totalPages
-                                            ? () => setState(() =>
-                                                _currentPage = _totalPages)
-                                            : null,
-                                        tooltip: 'Last Page',
-                                        iconSize: screenWidth * 0.01 > 20
-                                            ? 20
-                                            : screenWidth * 0.01,
-                                      ),
-                                    ],
-                                  ),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(Icons.chevron_right,
+                                          color: _currentPage < _totalPages
+                                              ? const Color.fromARGB(
+                                                  255, 11, 55, 99)
+                                              : Colors.grey),
+                                      onPressed: _currentPage < _totalPages
+                                          ? () => setState(() => _currentPage++)
+                                          : null,
+                                      tooltip: 'Next Page',
+                                      iconSize: screenWidth * 0.01 > 20
+                                          ? 20
+                                          : screenWidth * 0.01,
+                                    ),
+                                    IconButton(
+                                      icon: Icon(Icons.last_page,
+                                          color: _currentPage < _totalPages
+                                              ? const Color.fromARGB(
+                                                  255, 11, 55, 99)
+                                              : Colors.grey),
+                                      onPressed: _currentPage < _totalPages
+                                          ? () => setState(
+                                              () => _currentPage = _totalPages)
+                                          : null,
+                                      tooltip: 'Last Page',
+                                      iconSize: screenWidth * 0.01 > 20
+                                          ? 20
+                                          : screenWidth * 0.01,
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            );
-                          },
-                        ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ),
                   ],

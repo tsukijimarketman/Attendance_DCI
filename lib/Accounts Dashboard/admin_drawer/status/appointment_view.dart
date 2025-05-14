@@ -561,7 +561,7 @@ class _AppointmentViewState extends State<AppointmentView> {
                                   if (calculatedTotalPages == 0)
                                     calculatedTotalPages = 1;
 
-                                  // Create the content area first
+                                  // Create the content area
                                   Widget contentArea;
 
                                   if (allUniqueAppointments.isEmpty) {
@@ -650,10 +650,11 @@ class _AppointmentViewState extends State<AppointmentView> {
                                                         child: Text(
                                                           agenda,
                                                           style: TextStyle(
-                                                              fontSize:
-                                                                  screenWidth /
-                                                                      90,
-                                                              fontFamily: "B"),
+                                                            fontSize:
+                                                                screenWidth /
+                                                                    90,
+                                                            fontFamily: "B",
+                                                          ),
                                                         ),
                                                       ),
                                                     ],
@@ -661,9 +662,10 @@ class _AppointmentViewState extends State<AppointmentView> {
                                                   subtitle: Text(
                                                     "Scheduled: $schedule",
                                                     style: TextStyle(
-                                                        fontSize:
-                                                            screenWidth / 110,
-                                                        fontFamily: "R"),
+                                                      fontSize:
+                                                          screenWidth / 110,
+                                                      fontFamily: "R",
+                                                    ),
                                                   ),
                                                   leading: Icon(
                                                     statusIcon,
@@ -1101,7 +1103,7 @@ class _AppointmentViewState extends State<AppointmentView> {
                                                 ),
                                               ),
                                             ],
-                                          )
+                                          ),
                                         ],
                                       ),
 

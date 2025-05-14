@@ -70,7 +70,7 @@ class AgeDistributionChartState extends State<AgeDistributionChart> {
 
       // Query Firestore for user data
       final QuerySnapshot userSnapshot = 
-          await FirebaseFirestore.instance.collection('users').get();
+          await FirebaseFirestore.instance.collection('users').where('status', isEqualTo: 'active').get();
       
       // Process each user's birthdate
       for (var doc in userSnapshot.docs) {

@@ -26,7 +26,7 @@ class _CivilStatusPieChartState extends State<CivilStatusPieChart> {
   Future<void> fetchCivilStatusData() async {
     try {
       // Access Firestore and get users collection
-      final usersCollection = FirebaseFirestore.instance.collection('users');
+      final usersCollection = FirebaseFirestore.instance.collection('users').where('status', isEqualTo: 'active');
       final querySnapshot = await usersCollection.get();
 
       // Process each user document
@@ -162,13 +162,7 @@ class _CivilStatusPieChartState extends State<CivilStatusPieChart> {
               ],
             ),
           ),
-          Text(
-            'Total Users: $totalUsers',
-            style: TextStyle(
-              fontSize: MediaQuery.of(context).size.width/80,
-              fontFamily: "B",
-            ),
-          ),
+          
           SizedBox(height: MediaQuery.of(context).size.width / 80),
         ],
       ),
