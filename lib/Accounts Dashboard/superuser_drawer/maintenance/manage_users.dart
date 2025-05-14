@@ -658,7 +658,7 @@ Stream<QuerySnapshot> _getUsersStream() {
         if (document.exists) {
           final userData = document.data() as Map<String, dynamic>;
           final firestoreUid = userData['uid']; // Fetch the correct stored UID
-          final profileImageUrl = "$firestoreUid";
+          final profileImageUrl = "$firestoreUid";  
 
           showDialog(
             context: context,
