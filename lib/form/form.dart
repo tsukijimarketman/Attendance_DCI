@@ -328,7 +328,6 @@ class _AttendanceFormState extends State<AttendanceForm> {
       'createdBy': widget.roles == "User"
           ? widget.createdBy // If User, store the original creator
           : "${widget.firstName} ${widget.lastName}", // Otherwise, store current user
-      'selectedScheduleTime': widget.selectedScheduleTime,
       'signature_url': signatureUrl,
     };
 
@@ -465,21 +464,6 @@ class _AttendanceFormState extends State<AttendanceForm> {
                           ),
                           subtitle: Text(
                            departmentName,
-                            style: TextStyle(fontSize: 10),
-                          ),
-                        ),
-                        ListTile(
-                          leading: Icon(
-                            Icons.schedule,
-                            color: Colors.orange,
-                            size: 18,
-                          ),
-                          title: Text(
-                            "Scheduled at",
-                            style: TextStyle(fontSize: 14),
-                          ),
-                          subtitle: Text(
-                            formatDateTime(scheduledTime),
                             style: TextStyle(fontSize: 10),
                           ),
                         ),
