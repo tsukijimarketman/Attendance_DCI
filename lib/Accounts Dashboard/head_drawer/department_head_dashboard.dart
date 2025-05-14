@@ -169,9 +169,6 @@ class _Deparment_Head_DashboardState extends State<Deparment_Head_Dashboard> {
         _imageUrl = imageUrl;
       });
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No Profile Image Found')),
-      );
     }
   }
 
