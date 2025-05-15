@@ -14,7 +14,8 @@ class deptheadAppointmentView extends StatefulWidget {
   const deptheadAppointmentView({super.key, required this.statusType});
 
   @override
-  State<deptheadAppointmentView> createState() => _deptheadAppointmentViewState();
+  State<deptheadAppointmentView> createState() =>
+      _deptheadAppointmentViewState();
 }
 
 class _deptheadAppointmentViewState extends State<deptheadAppointmentView> {
@@ -519,40 +520,33 @@ class _deptheadAppointmentViewState extends State<deptheadAppointmentView> {
                                     return Center(child: CustomLoader());
                                   }
 
-                                  if (snapshot.hasData) {
-                                    // Only process data when it first loads or actually changes
-                                    if (!initialDataLoaded) {
-                                      // Process initial data outside of the build method
-                                      WidgetsBinding.instance
-                                          .addPostFrameCallback((_) {
-                                        if (mounted) {
-                                          _processNewData(
-                                              snapshot.data?.docs ?? []);
-                                          setState(
-                                              () {}); // Trigger a single rebuild
-                                        }
-                                      });
+                                  if (snapshot.hasError) {
+                                    return Center(
+                                        child:
+                                            Text("Error loading appointments"));
+                                  }
 
-                                      // Show loading while initial data is processed
-                                      return Center(child: CustomLoader());
-                                    } else if (snapshot.data != null &&
-                                        snapshot.data!.size > 0) {
-                                      // For subsequent data changes, check if we actually need to update
-                                      bool shouldUpdate = _checkIfDataChanged(
-                                          snapshot.data!.docs);
+                                  // Handle initial data load
+                                  if (!initialDataLoaded && snapshot.hasData) {
+                                    // Only process initial data once
+                                    _processNewData(snapshot.data?.docs ?? []);
 
-                                      if (shouldUpdate) {
-                                        // Process updated data outside the build cycle
-                                        WidgetsBinding.instance
-                                            .addPostFrameCallback((_) {
-                                          if (mounted) {
-                                            _processNewData(
-                                                snapshot.data!.docs);
-                                            setState(
-                                                () {}); // Trigger a single rebuild
-                                          }
-                                        });
-                                      }
+                                    // Set initialDataLoaded flag without setState to avoid rebuild loop
+                                    initialDataLoaded = true;
+
+                                    // No need for setState here since we're already in build
+                                  }
+                                  // For subsequent data changes, check if we need to update
+                                  else if (initialDataLoaded &&
+                                      snapshot.hasData &&
+                                      snapshot.data!.size > 0) {
+                                    bool shouldUpdate = _checkIfDataChanged(
+                                        snapshot.data!.docs);
+
+                                    if (shouldUpdate) {
+                                      // Process data directly, no need for post-frame callback
+                                      _processNewData(snapshot.data!.docs);
+                                      // No setState needed here, we're already in the build method
                                     }
                                   }
 
@@ -567,7 +561,7 @@ class _deptheadAppointmentViewState extends State<deptheadAppointmentView> {
                                   if (calculatedTotalPages == 0)
                                     calculatedTotalPages = 1;
 
-                                  // Create the content area first
+                                  // Create the content area
                                   Widget contentArea;
 
                                   if (allUniqueAppointments.isEmpty) {
@@ -656,10 +650,11 @@ class _deptheadAppointmentViewState extends State<deptheadAppointmentView> {
                                                         child: Text(
                                                           agenda,
                                                           style: TextStyle(
-                                                              fontSize:
-                                                                  screenWidth /
-                                                                      90,
-                                                              fontFamily: "B"),
+                                                            fontSize:
+                                                                screenWidth /
+                                                                    90,
+                                                            fontFamily: "B",
+                                                          ),
                                                         ),
                                                       ),
                                                     ],
@@ -667,9 +662,10 @@ class _deptheadAppointmentViewState extends State<deptheadAppointmentView> {
                                                   subtitle: Text(
                                                     "Scheduled: $schedule",
                                                     style: TextStyle(
-                                                        fontSize:
-                                                            screenWidth / 110,
-                                                        fontFamily: "R"),
+                                                      fontSize:
+                                                          screenWidth / 110,
+                                                      fontFamily: "R",
+                                                    ),
                                                   ),
                                                   leading: Icon(
                                                     statusIcon,
@@ -1107,7 +1103,7 @@ class _deptheadAppointmentViewState extends State<deptheadAppointmentView> {
                                                 ),
                                               ),
                                             ],
-                                          )
+                                          ),
                                         ],
                                       ),
 
