@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:attendance_app/Accounts%20Dashboard/head_drawer/status/depthead_appointment_view.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/status/appointment_view.dart';
 import 'package:attendance_app/Auth/audit_function.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';

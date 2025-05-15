@@ -103,8 +103,18 @@ class MyApp extends StatelessWidget {
   MaterialPageRoute _handleAttendanceFormRoute(Uri uri) {
     /// - Extracts and validates important parameters like `expiryTime` and `selectedScheduleTime`.
     int expiryTime = int.tryParse(uri.queryParameters['expiryTime'] ?? "") ?? 0;
-    int selectedScheduleTime =
-        int.tryParse(uri.queryParameters['selectedScheduleTime'] ?? "") ?? 0;
+     // Fix: Ensure proper parsing of the schedule time
+    String scheduleParam = uri.queryParameters['selectedScheduleTime'] ?? "";
+    int selectedScheduleTime = 0;
+    
+    // Try to parse the schedule parameter
+    try {
+      selectedScheduleTime = int.parse(scheduleParam);
+      // Add a debug print to verify the value (you can remove this later)
+      print("Parsed schedule time: $selectedScheduleTime");
+    } catch (e) {
+      print("Error parsing schedule time: $e, using default value");
+    }
 
     /// - If valid, passes all query parameters to the AttendanceForm widget.
     return MaterialPageRoute(

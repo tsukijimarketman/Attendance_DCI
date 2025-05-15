@@ -193,117 +193,72 @@ Future<void> fetchUserData() async {
   }
 }
 
+  void pickScheduleDateTime() async {
+    DateTime now = DateTime.now();
 
- void pickScheduleDateTime() async {
-  DateTime now = DateTime.now();
-
-  // Step 1: Pick date
-  DateTime? pickedDate = await showDatePicker(
-    context: context,
-    initialDate: now,
-    firstDate: now,
-    lastDate: DateTime(2100),
-    builder: (context, child) {
-      return Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(
-            primary: Color.fromARGB(255, 11, 55, 99),
-            onPrimary: Colors.white,
-            onSurface: Color.fromARGB(255, 11, 55, 99),
-          ),
-          textButtonTheme: TextButtonThemeData(
-            style: TextButton.styleFrom(
-              foregroundColor: Color.fromARGB(255, 11, 55, 99),
-            ),
-          ),
-        ),
-        child: child!,
-      );
-    },
-  );
-
-  if (pickedDate == null) return;
-
-  // Step 2: Define minimum time if selected date is today
-  TimeOfDay initialTime = TimeOfDay.now();
-  if (!isSameDate(pickedDate, now)) {
-    initialTime = TimeOfDay(hour: 0, minute: 0); // start of day
-  }
-
-  // Step 3: Pick time
-  TimeOfDay? pickedTime = await showTimePicker(
-    context: context,
-    initialTime: initialTime,
-    builder: (context, child) {
-      return Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(
-            primary: Color.fromARGB(255, 11, 55, 99),
-            onPrimary: Colors.white,
-            onSurface: Color.fromARGB(255, 11, 55, 99),
-          ),
-          textButtonTheme: TextButtonThemeData(
-            style: TextButton.styleFrom(
-              foregroundColor: Color.fromARGB(255, 11, 55, 99),
-            ),
-          ),
-        ),
-        child: child!,
-      );
-    },
-  );
-
-  if (pickedTime == null) return;
-
-  // Step 4: Combine picked date and time
-  DateTime fullDateTime = DateTime(
-    pickedDate.year,
-    pickedDate.month,
-    pickedDate.day,
-    pickedTime.hour,
-    pickedTime.minute,
-  );
-
-  // Step 5: Block if selected time is in the past
-  if (fullDateTime.isBefore(now)) {
-    _showErrorToast("Please select a future time.");
-    return;
-  }
-
-  // Step 6: Save
-  setState(() {
-    selectedScheduleTime = fullDateTime;
-    scheduleController.text = fullDateTime.toIso8601String();
-  });
-}
-
-bool isSameDate(DateTime a, DateTime b) {
-  return a.year == b.year && a.month == b.month && a.day == b.day;
-}
-
-  void _showErrorToast(String message) {
-    toastification.show(
+    DateTime? pickedDate = await showDatePicker(
       context: context,
-      alignment: Alignment.topRight,
-      icon: Icon(Icons.error_outline, color: Colors.black),
-      title: Text(
-        'Error',
-        style: TextStyle(color: Colors.black),
-      ),
-      description: Text(
-        message,
-        style: TextStyle(color: Colors.black),
-      ),
-      type: ToastificationType.error,
-      style: ToastificationStyle.flatColored,
-      autoCloseDuration: const Duration(seconds: 3),
-      animationDuration: const Duration(milliseconds: 300),
+      initialDate: now,
+      firstDate: now,
+      lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Color.fromARGB(255, 11, 55, 99),
+              onPrimary: Colors.white,
+              onSurface: Color.fromARGB(255, 11, 55, 99),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Color.fromARGB(255, 11, 55, 99),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
+
+    if (pickedDate == null) return;
+
+    TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Color.fromARGB(255, 11, 55, 99),
+              onPrimary: Colors.white,
+              onSurface: Color.fromARGB(255, 11, 55, 99),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Color.fromARGB(255, 11, 55, 99),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedTime == null) return;
+
+    DateTime fullDateTime = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+
+    setState(() {
+      selectedScheduleTime = fullDateTime;
+      scheduleController.text = fullDateTime.toIso8601String();
+    });
   }
-
-
-
-
 
   String formatDateTime(DateTime dateTime) {
     return "${_monthName(dateTime.month)} ${dateTime.day} ${dateTime.year} at "

@@ -506,6 +506,7 @@ class _AppointmentViewState extends State<AppointmentView> {
                               child: // This is the modified part of the StreamBuilder in the build method
 // Replace the existing StreamBuilder's content with this code
 
+                                    // Replace the existing StreamBuilder in the build method with this implementation
                                   StreamBuilder<QuerySnapshot>(
                                 stream: FirebaseFirestore.instance
                                     .collection('appointment')
@@ -547,6 +548,7 @@ class _AppointmentViewState extends State<AppointmentView> {
                                       // No setState needed here, we're already in the build method
                                     }
                                   }
+
 
                                   // Get current items for the page
                                   var currentItems = getCurrentPageItems();
