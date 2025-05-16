@@ -180,6 +180,7 @@ class _InternalReportsState extends State<InternalReports> {
   }
   
   // Handle reordering of horizontal charts
+  
   void _reorderHorizontalCharts(String listName, int oldIndex, int newIndex) {
     setState(() {
       if (listName == 'department_status') {

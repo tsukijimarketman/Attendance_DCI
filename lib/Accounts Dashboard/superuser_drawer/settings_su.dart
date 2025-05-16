@@ -395,7 +395,9 @@ class _SettingsSUState extends State<SettingsSU> {
         byBirthChecked = userData["by_birth"] ?? false;
         byNaturalizedChecked = userData["by_naturalized"] ?? false;
 
-        return Expanded(
+        return Container(
+          width: MediaQuery.of(context).size.width,
+          height: MediaQuery.of(context).size.height,
           child: SingleChildScrollView(
             child: Padding(
               padding: EdgeInsets.all(MediaQuery.of(context).size.width / 40),
