@@ -6,12 +6,14 @@ import 'package:attendance_app/encryption/encryption_helper.dart';
 import 'package:attendance_app/hover_extensions.dart';
 import 'package:attendance_app/widget/animated_textfield.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 
 import 'package:lottie/lottie.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -58,6 +60,17 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
   late AnimationController controllerSignin;
   late Animation<double> _textRevealcontrollerSignin;
   late Animation<double> _textOpacitycontrollerSignin;
+  final String url = 'https://attendance-dci.web.app/privacy-policy/';
+
+  Future<void> _launchURL(BuildContext context) async {
+    if (await canLaunch(url)) {
+      await launch(url, webOnlyWindowName: '_blank'); // Opens in new tab on web
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not open Privacy Policy')),
+      );
+    }
+  }
 
   // this is all for the animation of the text field
   @override
@@ -380,6 +393,37 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
               ),
             ),
             SizedBox(
+              height: MediaQuery.of(context).size.width / 70,
+            ),
+            RichText(
+      text: TextSpan(
+        text: 'By signing in, you agree to our ',
+        style: TextStyle(color: Colors.white, fontSize: 14),
+        children: [
+          TextSpan(
+            text: 'Privacy Policy',
+            style: TextStyle(
+              color: Colors.blue,
+              fontSize: 18,
+              decoration: TextDecoration.underline,
+              fontWeight: FontWeight.bold,
+            ),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () async {
+                if (await canLaunch(url)) {
+                  await launch(url, webOnlyWindowName: '_blank'); // open new tab on web
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Could not open Privacy Policy')),
+                  );
+                }
+              },
+          ),
+          TextSpan(text: '.'),
+        ],
+      )
+    ).showCursorOnHover.moveUpOnHover,
+     SizedBox(
               height: MediaQuery.of(context).size.width / 70,
             ),
             Row(
