@@ -44,6 +44,7 @@ class SideBarXUsage extends StatelessWidget {
         SidebarXItem(icon: Icons.build, label: 'Maintenance'),
         SidebarXItem(icon: Icons.event_note, label: 'Current Appointments'),
         SidebarXItem(icon: Icons.lock_reset, label: 'Backup & Clean'),
+        SidebarXItem(icon: Icons.settings, label: 'Settings'),
 
       ],
     );

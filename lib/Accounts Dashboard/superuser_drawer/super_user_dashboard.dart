@@ -582,6 +582,8 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
       return const AppointmentManager();
       case 6:
         return const ManagerDB();
+      case 7:
+        return const SettingsSU();
       default:
         return const Text('Select an option from the menu.',
             style: TextStyle(fontSize: 20));
