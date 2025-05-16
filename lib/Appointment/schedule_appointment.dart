@@ -1,11 +1,14 @@
 import 'package:attendance_app/Auth/audit_function.dart';
 import 'package:attendance_app/Calendar/calendar.dart';
 import 'package:attendance_app/hover_extensions.dart';
+import 'package:attendance_app/secrets.dart';
 import 'package:attendance_app/widget/animated_textfield.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:toastification/toastification.dart';
 
 class ScheduleAppointment extends StatefulWidget {
@@ -90,12 +93,68 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
       DateTime startDateTime = DateTime.parse(scheduleController.text);
       DateTime endDateTime = startDateTime.add(Duration(hours: 1));
 
+          String? eventId;
+              bool shouldSaveAppointment = false;
+
+
+    // 🔍 Step 1: Check Firestore config for Google Calendar
+    DocumentSnapshot calendarConfigSnapshot = await FirebaseFirestore.instance
+        .collection('appointment_config')
+        .doc('google_calendar')
+        .get();
+
+    bool isGoogleCalendarEnabled = calendarConfigSnapshot.exists &&
+        (calendarConfigSnapshot.data() as Map<String, dynamic>)
+            .containsKey('isActive') &&
+        calendarConfigSnapshot.get('isActive') == true;
+
+    // 🔍 Step 2: Check Firestore config for Email notifications
+    DocumentSnapshot emailConfigSnapshot = await FirebaseFirestore.instance
+        .collection('appointment_config')
+        .doc('email_sender')
+        .get();
+
+    bool isEmailNotificationsEnabled = emailConfigSnapshot.exists &&
+        (emailConfigSnapshot.data() as Map<String, dynamic>)
+            .containsKey('isActive') &&
+        emailConfigSnapshot.get('isActive') == true;
+
+    // ❌ If both features are off, show toast and return
+    if (!isGoogleCalendarEnabled && !isEmailNotificationsEnabled) {
+      toastification.show(
+        context: context,
+        alignment: Alignment.topRight,
+        icon: const Icon(Icons.error, color: Colors.red),
+        title: const Text('Feature Not Enabled'),
+        description: const Text(
+            'Appointment cannot be submitted. Please enable Google Calendar or Email Notifications.'),
+        type: ToastificationType.error,
+        style: ToastificationStyle.flatColored,
+        autoCloseDuration: const Duration(seconds: 3),
+        animationDuration: const Duration(milliseconds: 300),
+      );
+      return;
+    }
+
+
+    // ✅ Step 2: Only trigger Google Calendar logic if enabled
+    if (isGoogleCalendarEnabled) {
       GoogleCalendarService googleCalendarService = GoogleCalendarService();
       String? accessToken = await googleCalendarService.authenticateUser();
 
       if (accessToken == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Google authentication required!")));
+        toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: const Icon(Icons.error, color: Colors.red),
+          title: const Text('Authentication Required'),
+          description: const Text(
+              'Google authentication is required to create a calendar event.'),
+          type: ToastificationType.error,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
+        );
         return;
       }
 
@@ -108,12 +167,39 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
         descriptionText,
       );
 
-      if (eventId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text("Failed to create event on Google Calendar")));
+     if (eventId == null) {
+        toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: const Icon(Icons.error, color: Colors.red),
+          title: const Text('Calendar Error'),
+          description:
+              const Text('Failed to create event on Google Calendar.'),
+          type: ToastificationType.error,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
+        );
         return;
       }
 
+      shouldSaveAppointment = true;
+    }
+
+
+    // ✅ Email Notifications logic
+    if (isEmailNotificationsEnabled && guestEmails.isNotEmpty) {
+      await _sendMeetingInvitationEmails(
+        agendaText,
+        startDateTime,
+        descriptionText,
+        fullName,
+        guestEmails,
+      );
+      shouldSaveAppointment = true;
+    }
+
+         if (shouldSaveAppointment) {
       await FirebaseFirestore.instance.collection('appointment').add({
         'agenda': agendaText,
         'deptID': currentDeptID, // ✅ Save correct department ID
@@ -126,19 +212,207 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
         'createdByEmail': user?.email,
         'googleEventId': eventId,
       });
+      
 
       await logAuditTrail("Created Appointment",
           "User $fullName scheduled an appointment with agenda: $agendaText");
 
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Form submitted successfully!")));
+       toastification.show(
+        context: context,
+        alignment: Alignment.topRight,
+        icon: const Icon(Icons.check_circle, color: Colors.green),
+        title: const Text('Success'),
+        description:
+            const Text('Form submitted successfully and appointment created.'),
+        type: ToastificationType.success,
+        style: ToastificationStyle.flatColored,
+        autoCloseDuration: const Duration(seconds: 3),
+        animationDuration: const Duration(milliseconds: 300),
+      );
 
       clearText();
+         }
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Error: $e")));
+      toastification.show(
+      context: context,
+      alignment: Alignment.topRight,
+      icon: const Icon(Icons.error, color: Colors.red),
+      title: const Text('Error'),
+      description: Text("An error occurred: $e"),
+      type: ToastificationType.error,
+      style: ToastificationStyle.flatColored,
+      autoCloseDuration: const Duration(seconds: 3),
+      animationDuration: const Duration(milliseconds: 300),
+      );
     }
   }
+
+/// Sends meeting invitation emails to all attendees
+/// 
+/// This function uses EmailJS to send HTML emails with meeting details
+/// to all participants, similar to the MinutesOfMeeting email functionality
+Future<void> _sendMeetingInvitationEmails(
+  String agenda, 
+  DateTime schedule, 
+  String description, 
+  String organizer, 
+  List<String> recipientEmails
+) async {
+  // Skip if there are no recipients
+  if (recipientEmails.isEmpty) {
+    return;
+  }
+  
+  try {
+    // Format the date/time nicely
+    String formattedDate = DateFormat('yyyy-MM-dd, h:mm a').format(schedule);
+    
+    // Create a Dio instance for API request
+    final dio = Dio();
+    
+    // Create email HTML template with meeting details
+    String emailBody = _getMeetingInvitationTemplate(
+      agenda, 
+      formattedDate, 
+      description, 
+      organizer
+    );
+    
+    // Prepare template parameters for EmailJS API
+    final Map<String, dynamic> templateParams = {
+      'to_emails': recipientEmails.join(', '),
+      'subject': "Meeting Invitation - $agenda",
+      'message_html': emailBody,
+      'sender_name': "DBP-Data Center Inc.",
+      'meeting_agenda': agenda,
+      'meeting_date': formattedDate,
+      'meeting_description': description,
+      'meeting_organizer': organizer,
+    };
+
+    // Prepare data for EmailJS API
+    final Map<String, dynamic> emailJsData = {
+      'service_id': AppSecrets.emailJsServiceId,
+      'template_id': AppSecrets.emailJsTemplateId,
+      'template_params': templateParams,
+      'user_id': AppSecrets.emailJsUserId,
+    };
+
+    // Send the request to EmailJS API
+    final response = await dio.post(
+      'https://api.emailjs.com/api/v1.0/email/send',
+      data: emailJsData,
+      options: Options(
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        validateStatus: (status) => status! < 500,
+      ),
+    );
+
+    if (response.statusCode == 200) {
+      // Create a record in Firestore for tracking
+      await FirebaseFirestore.instance.collection('email_logs').add({
+        'agenda': agenda,
+        'recipients': recipientEmails,
+        'sent_at': FieldValue.serverTimestamp(),
+        'subject': "Meeting Invitation - $agenda",
+        'email_type': 'meeting_invitation',
+        'provider': 'EmailJS',
+      });
+    } else {
+      throw Exception('Failed to send email: ${response.statusCode} - ${response.data}');
+    }
+  } catch (e) {
+    // Log error but don't stop execution flow
+    print('Error sending invitation emails: $e');
+    // Could add more detailed error handling similar to MinutesOfMeeting
+  }
+}
+
+/// Creates an HTML email template for meeting invitations
+/// 
+/// Returns a formatted HTML email with meeting details
+String _getMeetingInvitationTemplate(
+  String agenda, 
+  String schedule, 
+  String description,
+  String organizer
+) {
+  return '''<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #ffffff;
+      color: #333333;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .header {
+      background-color: #0e2643;
+      padding: 20px;
+      text-align: center;
+      color: white;
+      border-radius: 8px 8px 0 0;
+    }
+    .content {
+      padding: 20px;
+      border: 1px solid #e0e0e0;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+    }
+    .meeting-details {
+      background-color: #f5f5f5;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 15px 0;
+    }
+    .label {
+      font-weight: bold;
+      color: #555;
+    }
+    .footer {
+      margin-top: 40px;
+      font-size: 12px;
+      color: #888888;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2>DBP-Data Center Inc.</h2>
+    <p>Meeting Invitation</p>
+  </div>
+  <div class="content">
+    <p>Dear Attendee,</p>
+    
+    <p>You have been invited to attend a meeting with the following details:</p>
+    
+    <div class="meeting-details">
+      <p><span class="label">Agenda:</span> ${agenda}</p>
+      <p><span class="label">Date & Time:</span> ${schedule}</p>
+      <p><span class="label">Description:</span> ${description}</p>
+      <p><span class="label">Organized by:</span> ${organizer}</p>
+    </div>
+    
+    <p>Please ensure your attendance to this important meeting.</p>
+    
+    <p>If you have any questions or cannot attend, please reply to this email or contact the organizer directly.</p>
+    
+    <p>Thank you for your attention to this matter.</p>
+    
+    <p>Best regards,<br>
+    DBP-Data Center Inc.</p>
+  </div>
+  <div class="footer">
+    © ${DateTime.now().year} DBP-Data Center Inc. All rights reserved.
+  </div>
+</body>
+</html>''';
+}
 
 Future<void> fetchUserData() async {
   User? user = FirebaseAuth.instance.currentUser;
@@ -194,71 +468,104 @@ Future<void> fetchUserData() async {
 }
 
   void pickScheduleDateTime() async {
-    DateTime now = DateTime.now();
+  DateTime now = DateTime.now();
 
-    DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: now,
-      firstDate: now,
-      lastDate: DateTime(2100),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Color.fromARGB(255, 11, 55, 99),
-              onPrimary: Colors.white,
-              onSurface: Color.fromARGB(255, 11, 55, 99),
-            ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: Color.fromARGB(255, 11, 55, 99),
-              ),
+  DateTime? pickedDate = await showDatePicker(
+    context: context,
+    initialDate: now,
+    firstDate: now,
+    lastDate: DateTime(2100),
+    builder: (context, child) {
+      return Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: ColorScheme.light(
+            primary: Color.fromARGB(255, 11, 55, 99),
+            onPrimary: Colors.white,
+            onSurface: Color.fromARGB(255, 11, 55, 99),
+          ),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(
+              foregroundColor: Color.fromARGB(255, 11, 55, 99),
             ),
           ),
-          child: child!,
-        );
-      },
-    );
+        ),
+        child: child!,
+      );
+    },
+  );
 
-    if (pickedDate == null) return;
+  if (pickedDate == null) return;
 
-    TimeOfDay? pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Color.fromARGB(255, 11, 55, 99),
-              onPrimary: Colors.white,
-              onSurface: Color.fromARGB(255, 11, 55, 99),
-            ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: Color.fromARGB(255, 11, 55, 99),
-              ),
+  // Calculate minimum allowed time
+  TimeOfDay minimumTime = TimeOfDay.now();
+  bool isToday = pickedDate.year == now.year && 
+                 pickedDate.month == now.month && 
+                 pickedDate.day == now.day;
+
+  TimeOfDay? pickedTime = await showTimePicker(
+    context: context,
+    initialTime: isToday ? TimeOfDay.fromDateTime(now.add(Duration(minutes: 5))) : TimeOfDay(hour: 9, minute: 0),
+    builder: (context, child) {
+      return Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: ColorScheme.light(
+            primary: Color.fromARGB(255, 11, 55, 99),
+            onPrimary: Colors.white,
+            onSurface: Color.fromARGB(255, 11, 55, 99),
+          ),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(
+              foregroundColor: Color.fromARGB(255, 11, 55, 99),
             ),
           ),
-          child: child!,
+        ),
+        child: child!,
+      );
+    },
+  );
+
+  if (pickedTime == null) return;
+
+  // Create the selected date time
+  DateTime fullDateTime = DateTime(
+    pickedDate.year,
+    pickedDate.month,
+    pickedDate.day,
+    pickedTime.hour,
+    pickedTime.minute,
+  );
+
+  // Validate that the selected time is not in the past
+  if (fullDateTime.isBefore(now)) {
+     toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: Icon(Icons.check_circle_outline, color: Colors.black),
+          title: Text('Invalid Time Selection',
+            style: TextStyle(
+                fontFamily: "B",
+                fontSize: MediaQuery.of(context).size.width / 80)),
+          description: Text(
+          "Cannot select a time in the past. Please choose a future time.",
+          style: TextStyle(
+            color: Colors.black87,
+            fontSize: MediaQuery.of(context).size.width / 90,
+            fontFamily: "M",
+          ),
+        ),
+          type: ToastificationType.error,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
         );
-      },
-    );
-
-    if (pickedTime == null) return;
-
-    DateTime fullDateTime = DateTime(
-      pickedDate.year,
-      pickedDate.month,
-      pickedDate.day,
-      pickedTime.hour,
-      pickedTime.minute,
-    );
-
-    setState(() {
-      selectedScheduleTime = fullDateTime;
-      scheduleController.text = fullDateTime.toIso8601String();
-    });
+        return;
   }
+
+  setState(() {
+    selectedScheduleTime = fullDateTime;
+    scheduleController.text = fullDateTime.toIso8601String();
+  });
+}
 
   String formatDateTime(DateTime dateTime) {
     return "${_monthName(dateTime.month)} ${dateTime.day} ${dateTime.year} at "

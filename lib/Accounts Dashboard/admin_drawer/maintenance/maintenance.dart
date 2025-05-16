@@ -1,4 +1,5 @@
 import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_references_su.dart';
+import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/maintenance/appointmentconfig.dart';
 import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/maintenance/manage_users.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -45,7 +46,7 @@ class _MaintenanceState extends State<Maintenance>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
 
     // Add listener to search controller with debounce
     _searchController.addListener(_onSearchChanged);
@@ -109,6 +110,7 @@ class _MaintenanceState extends State<Maintenance>
                     searchQuery: _searchQuery,
                   ),
                   AdminReferences(searchQuery: _searchController),
+                  Appointmentconfig(searchQuery: _searchQuery)
                 ],
               ),
             ),
@@ -169,7 +171,9 @@ class _MaintenanceState extends State<Maintenance>
             children: [
               _buildTabButton(0, 'Sort Users', Icons.people_outline),
               _buildTabButton(1, 'Manage Users', Icons.settings),
-              _buildTabButton(2, 'Manage Departments', Icons.workspaces)
+              _buildTabButton(2, 'Manage Departments', Icons.workspaces),
+              _buildTabButton(3, 'Appointment Configuration',  Icons.settings_applications)
+
             ],
           ),
         ],
