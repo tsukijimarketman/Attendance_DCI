@@ -9,8 +9,8 @@ import 'package:attendance_app/Appointment/schedule_appointment.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_auditSU.dart';
-import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_settings_su.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/auditSU.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/settings_su.dart';
 import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_sidebar_provider.dart';
 import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_sidebarx_usage.dart';
 import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_references_su.dart';
@@ -387,132 +387,6 @@ class _Admin_DashboardState extends State<Admin_Dashboard> {
               width: MediaQuery.of(context).size.width / 50,
             ),
             GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        if (selectedOption == "Settings") {
-                          // If Settings is clicked again, toggle the visibility of the page
-                          if (isHeadersClicked) {
-                            isHeadersClicked = false;
-                          } else {
-                            selectedOption = "Settings";
-                            isHeadersClicked = true;
-                          }
-                        } else {
-                          // If a different option is clicked, set it as the selected option
-                          selectedOption = "Settings";
-                          isHeadersClicked = true;
-                        }
-                      });
-                    },
-                    child: selectedOption == "Settings" &&
-                            isHeadersClicked == false
-                        ? MouseRegion(
-                            onEnter: (event) {
-                              setState(() {
-                                color2 = Color.fromARGB(255, 11, 55, 99);
-                              });
-                            },
-                            onExit: (event) {
-                              setState(() {
-                                color2 = Colors.grey;
-                              });
-                            },
-                            child: Tooltip(
-                              message: 'Settings',
-                              preferBelow: false,
-                              decoration:
-                                  BoxDecoration(color: Colors.transparent),
-                              textStyle: TextStyle(
-                                  color: Color.fromARGB(255, 11, 55, 99),
-                                  fontFamily: "B",
-                                  fontSize:
-                                      MediaQuery.of(context).size.width / 140),
-                              padding: EdgeInsets.symmetric(
-                                  horizontal:
-                                      MediaQuery.of(context).size.width / 120,
-                                  vertical:
-                                      MediaQuery.of(context).size.width / 160),
-                              child: Icon(
-                                Icons.settings_outlined,
-                                color: color2,
-                                size: MediaQuery.of(context).size.width / 60,
-                              ),
-                            ),
-                          )
-                        : Tooltip(
-                            message: 'Settings',
-                            preferBelow: false,
-                            decoration:
-                                BoxDecoration(color: Colors.transparent),
-                            textStyle: TextStyle(
-                                color: Color.fromARGB(255, 11, 55, 99),
-                                fontFamily: "B",
-                                fontSize:
-                                    MediaQuery.of(context).size.width / 140),
-                            padding: EdgeInsets.symmetric(
-                                horizontal:
-                                    MediaQuery.of(context).size.width / 120,
-                                vertical:
-                                    MediaQuery.of(context).size.width / 160),
-                            child: Icon(
-                              isHeadersClicked == true &&
-                                      selectedOption == "Settings"
-                                  ? iconSettings
-                                  : Icons.settings_outlined,
-                              color: isHeadersClicked == true &&
-                                      selectedOption == "Settings"
-                                  ? Color.fromARGB(255, 11, 55, 99)
-                                  : Colors.grey,
-                              size: MediaQuery.of(context).size.width / 60,
-                            ),
-                          ))
-                .showCursorOnHover,
-            SizedBox(
-              width: MediaQuery.of(context).size.width / 40,
-            ),
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  if (selectedOption == "Audit Logs") {
-                    // If Audit Logs is clicked again, toggle the visibility of the page
-                    if (isHeadersClicked) {
-                      isHeadersClicked = false;
-                    } else {
-                      selectedOption = "Audit Logs";
-                      isHeadersClicked = true;
-                    }
-                  } else {
-                    // If a different option is clicked, set it as the selected option
-                    selectedOption = "Audit Logs";
-                    isHeadersClicked = true;
-                  }
-                });
-              },
-              child: Tooltip(
-                message: 'Audit Logs',
-                preferBelow: false,
-                decoration: BoxDecoration(color: Colors.transparent),
-                textStyle: TextStyle(
-                    color: Color.fromARGB(255, 11, 55, 99),
-                    fontFamily: "B",
-                    fontSize: MediaQuery.of(context).size.width / 140),
-                padding: EdgeInsets.symmetric(
-                    horizontal: MediaQuery.of(context).size.width / 120,
-                    vertical: MediaQuery.of(context).size.width / 160),
-                child: Icon(
-                  Icons.history,
-                  color:
-                      isHeadersClicked == true && selectedOption == "Audit Logs"
-                          ? Color.fromARGB(255, 11, 55, 99)
-                          : Colors.grey,
-                  size: MediaQuery.of(context).size.width / 60,
-                ),
-              ),
-            ).showCursorOnHover,
-            SizedBox(
-              width: MediaQuery.of(context).size.width / 40,
-            ),
-            GestureDetector(
               onTap: () {
                 showSignOutDialog(context);
               },
@@ -577,7 +451,11 @@ class _Admin_DashboardState extends State<Admin_Dashboard> {
       case 3:
         return const Maintenance();
       case 4:
-      return const AppointmentManager();
+        return const AppointmentManager();
+      case 5:
+        return const SettingsSU();
+      case 6:
+        return const AuditSU();
       default:
         return const Text('Select an option from the menu.',
             style: TextStyle(fontSize: 20));

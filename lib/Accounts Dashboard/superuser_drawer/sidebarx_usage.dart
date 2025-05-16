@@ -34,7 +34,6 @@ class SideBarXUsage extends StatelessWidget {
             color: Color.fromARGB(255, 255, 76, 63), size: 26),
         selectedItemTextPadding: const EdgeInsets.symmetric(horizontal: 20),
       ),
-      
       headerDivider: const Divider(thickness: 2, color: Colors.black12),
       items: [
         SidebarXItem(icon: Icons.dashboard, label: 'Dashboard'),
@@ -44,7 +43,8 @@ class SideBarXUsage extends StatelessWidget {
         SidebarXItem(icon: Icons.build, label: 'Maintenance'),
         SidebarXItem(icon: Icons.event_note, label: 'Current Appointments'),
         SidebarXItem(icon: Icons.lock_reset, label: 'Backup & Clean'),
-
+        SidebarXItem(icon: Icons.settings, label: 'Settings'),
+        SidebarXItem(icon: Icons.history, label: 'Audit Logs'),
       ],
     );
   }

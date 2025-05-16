@@ -41,6 +41,9 @@ class DeptHeadSideBarXUsage extends StatelessWidget {
         SidebarXItem(icon: Icons.event, label: 'Appointment Creation'),
         SidebarXItem(icon: Icons.group, label: 'Clients'),  
         SidebarXItem(icon: Icons.event_note, label: 'Current Appointments'),
+        SidebarXItem(icon: Icons.settings, label: 'Settings'),
+        SidebarXItem(icon: Icons.history, label: 'Audit Logs'),
+        
       ],
     );
   }
