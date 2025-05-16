@@ -16,25 +16,23 @@ class ScheduleAppointment extends StatefulWidget {
 
   @override
   State<ScheduleAppointment> createState() => _ScheduleAppointmentState();
-  
 }
 
 class _ScheduleAppointmentState extends State<ScheduleAppointment> {
   Map<String, String> departmentNames = {};
   void fetchDepartmentNames() async {
-  QuerySnapshot snapshot = await FirebaseFirestore.instance
-      .collection('references')
-      .where('isDeleted', isEqualTo: false)
-      .get();
-  setState(() {
-    for (var doc in snapshot.docs) {
-      String deptID = doc['deptID'];
-      String deptName = doc['name'];
-      departmentNames[deptID] = deptName;
-    }
-  });
-}
-
+    QuerySnapshot snapshot = await FirebaseFirestore.instance
+        .collection('references')
+        .where('isDeleted', isEqualTo: false)
+        .get();
+    setState(() {
+      for (var doc in snapshot.docs) {
+        String deptID = doc['deptID'];
+        String deptName = doc['name'];
+        departmentNames[deptID] = deptName;
+      }
+    });
+  }
 
   final TextEditingController agendaController = TextEditingController();
   final TextEditingController departmentController = TextEditingController();
@@ -47,8 +45,7 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
   String firstName = "";
   String lastName = "";
   String departmentName = ""; // Declare departmentName here
-  late String currentDeptID;  // Store actual deptID here
-
+  late String currentDeptID; // Store actual deptID here
 
   DateTime? selectedScheduleTime;
 
@@ -58,7 +55,7 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
   @override
   void initState() {
     super.initState();
-    fetchDepartmentNames(); 
+    fetchDepartmentNames();
     fetchUserData();
   }
 
@@ -93,253 +90,241 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
       DateTime startDateTime = DateTime.parse(scheduleController.text);
       DateTime endDateTime = startDateTime.add(Duration(hours: 1));
 
-          String? eventId;
-              bool shouldSaveAppointment = false;
+      String? eventId;
+      bool shouldSaveAppointment = false;
 
+      // 🔍 Step 1: Check Firestore config for Google Calendar
+      DocumentSnapshot calendarConfigSnapshot = await FirebaseFirestore.instance
+          .collection('appointment_config')
+          .doc('google_calendar')
+          .get();
 
-    // 🔍 Step 1: Check Firestore config for Google Calendar
-    DocumentSnapshot calendarConfigSnapshot = await FirebaseFirestore.instance
-        .collection('appointment_config')
-        .doc('google_calendar')
-        .get();
+      bool isGoogleCalendarEnabled = calendarConfigSnapshot.exists &&
+          (calendarConfigSnapshot.data() as Map<String, dynamic>)
+              .containsKey('isActive') &&
+          calendarConfigSnapshot.get('isActive') == true;
 
-    bool isGoogleCalendarEnabled = calendarConfigSnapshot.exists &&
-        (calendarConfigSnapshot.data() as Map<String, dynamic>)
-            .containsKey('isActive') &&
-        calendarConfigSnapshot.get('isActive') == true;
+      // 🔍 Step 2: Check Firestore config for Email notifications
+      DocumentSnapshot emailConfigSnapshot = await FirebaseFirestore.instance
+          .collection('appointment_config')
+          .doc('email_sender')
+          .get();
 
-    // 🔍 Step 2: Check Firestore config for Email notifications
-    DocumentSnapshot emailConfigSnapshot = await FirebaseFirestore.instance
-        .collection('appointment_config')
-        .doc('email_sender')
-        .get();
+      bool isEmailNotificationsEnabled = emailConfigSnapshot.exists &&
+          (emailConfigSnapshot.data() as Map<String, dynamic>)
+              .containsKey('isActive') &&
+          emailConfigSnapshot.get('isActive') == true;
 
-    bool isEmailNotificationsEnabled = emailConfigSnapshot.exists &&
-        (emailConfigSnapshot.data() as Map<String, dynamic>)
-            .containsKey('isActive') &&
-        emailConfigSnapshot.get('isActive') == true;
+      // ❌ If both features are off, show toast and return
+      if (!isGoogleCalendarEnabled && !isEmailNotificationsEnabled) {
+        toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: const Icon(Icons.error, color: Colors.red),
+          title: const Text('Feature Not Enabled'),
+          description: const Text(
+              'Appointment cannot be submitted. Please enable Google Calendar or Email Notifications.'),
+          type: ToastificationType.error,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
+        );
+        return;
+      }
 
-    // ❌ If both features are off, show toast and return
-    if (!isGoogleCalendarEnabled && !isEmailNotificationsEnabled) {
+      // ✅ Step 2: Only trigger Google Calendar logic if enabled
+      if (isGoogleCalendarEnabled) {
+        GoogleCalendarService googleCalendarService = GoogleCalendarService();
+        String? accessToken = await googleCalendarService.authenticateUser();
+
+        if (accessToken == null) {
+          toastification.show(
+            context: context,
+            alignment: Alignment.topRight,
+            icon: const Icon(Icons.error, color: Colors.red),
+            title: const Text('Authentication Required'),
+            description: const Text(
+                'Google authentication is required to create a calendar event.'),
+            type: ToastificationType.error,
+            style: ToastificationStyle.flatColored,
+            autoCloseDuration: const Duration(seconds: 3),
+            animationDuration: const Duration(milliseconds: 300),
+          );
+          return;
+        }
+
+        String? eventId = await googleCalendarService.createCalendarEvent(
+          accessToken,
+          agendaText,
+          startDateTime,
+          endDateTime,
+          guestEmails,
+          descriptionText,
+        );
+
+        if (eventId == null) {
+          toastification.show(
+            context: context,
+            alignment: Alignment.topRight,
+            icon: const Icon(Icons.error, color: Colors.red),
+            title: const Text('Calendar Error'),
+            description:
+                const Text('Failed to create event on Google Calendar.'),
+            type: ToastificationType.error,
+            style: ToastificationStyle.flatColored,
+            autoCloseDuration: const Duration(seconds: 3),
+            animationDuration: const Duration(milliseconds: 300),
+          );
+          return;
+        }
+
+        shouldSaveAppointment = true;
+      }
+
+      // ✅ Email Notifications logic
+      if (isEmailNotificationsEnabled && guestEmails.isNotEmpty) {
+        await _sendMeetingInvitationEmails(
+          agendaText,
+          startDateTime,
+          descriptionText,
+          fullName,
+          guestEmails,
+        );
+        shouldSaveAppointment = true;
+      }
+
+      if (shouldSaveAppointment) {
+        await FirebaseFirestore.instance.collection('appointment').add({
+          'agenda': agendaText,
+          'deptID': currentDeptID, // ✅ Save correct department ID
+          'schedule': scheduleText,
+          'agendaDescript': descriptionText,
+          'guest': localSelectedGuests,
+          'internal_users': localSelectedUsers,
+          'status': 'Scheduled',
+          'createdBy': fullName,
+          'createdByEmail': user?.email,
+          'googleEventId': eventId,
+        });
+
+        await logAuditTrail("Created Appointment",
+            "User $fullName scheduled an appointment with agenda: $agendaText");
+
+        toastification.show(
+          context: context,
+          alignment: Alignment.topRight,
+          icon: const Icon(Icons.check_circle, color: Colors.green),
+          title: const Text('Success'),
+          description: const Text(
+              'Form submitted successfully and appointment created.'),
+          type: ToastificationType.success,
+          style: ToastificationStyle.flatColored,
+          autoCloseDuration: const Duration(seconds: 3),
+          animationDuration: const Duration(milliseconds: 300),
+        );
+
+        clearText();
+      }
+    } catch (e) {
       toastification.show(
         context: context,
         alignment: Alignment.topRight,
         icon: const Icon(Icons.error, color: Colors.red),
-        title: const Text('Feature Not Enabled'),
-        description: const Text(
-            'Appointment cannot be submitted. Please enable Google Calendar or Email Notifications.'),
+        title: const Text('Error'),
+        description: Text("An error occurred: $e"),
         type: ToastificationType.error,
         style: ToastificationStyle.flatColored,
         autoCloseDuration: const Duration(seconds: 3),
         animationDuration: const Duration(milliseconds: 300),
       );
+    }
+  }
+
+  /// Sends meeting invitation emails to all attendees
+  ///
+  /// This function uses EmailJS to send HTML emails with meeting details
+  /// to all participants, similar to the MinutesOfMeeting email functionality
+  Future<void> _sendMeetingInvitationEmails(
+      String agenda,
+      DateTime schedule,
+      String description,
+      String organizer,
+      List<String> recipientEmails) async {
+    // Skip if there are no recipients
+    if (recipientEmails.isEmpty) {
       return;
     }
 
+    try {
+      // Format the date/time nicely
+      String formattedDate = DateFormat('yyyy-MM-dd, h:mm a').format(schedule);
 
-    // ✅ Step 2: Only trigger Google Calendar logic if enabled
-    if (isGoogleCalendarEnabled) {
-      GoogleCalendarService googleCalendarService = GoogleCalendarService();
-      String? accessToken = await googleCalendarService.authenticateUser();
+      // Create a Dio instance for API request
+      final dio = Dio();
 
-      if (accessToken == null) {
-        toastification.show(
-          context: context,
-          alignment: Alignment.topRight,
-          icon: const Icon(Icons.error, color: Colors.red),
-          title: const Text('Authentication Required'),
-          description: const Text(
-              'Google authentication is required to create a calendar event.'),
-          type: ToastificationType.error,
-          style: ToastificationStyle.flatColored,
-          autoCloseDuration: const Duration(seconds: 3),
-          animationDuration: const Duration(milliseconds: 300),
-        );
-        return;
-      }
+      // Create email HTML template with meeting details
+      String emailBody = _getMeetingInvitationTemplate(
+          agenda, formattedDate, description, organizer);
 
-      String? eventId = await googleCalendarService.createCalendarEvent(
-        accessToken,
-        agendaText,
-        startDateTime,
-        endDateTime,
-        guestEmails,
-        descriptionText,
-      );
-
-     if (eventId == null) {
-        toastification.show(
-          context: context,
-          alignment: Alignment.topRight,
-          icon: const Icon(Icons.error, color: Colors.red),
-          title: const Text('Calendar Error'),
-          description:
-              const Text('Failed to create event on Google Calendar.'),
-          type: ToastificationType.error,
-          style: ToastificationStyle.flatColored,
-          autoCloseDuration: const Duration(seconds: 3),
-          animationDuration: const Duration(milliseconds: 300),
-        );
-        return;
-      }
-
-      shouldSaveAppointment = true;
-    }
-
-
-    // ✅ Email Notifications logic
-    if (isEmailNotificationsEnabled && guestEmails.isNotEmpty) {
-      await _sendMeetingInvitationEmails(
-        agendaText,
-        startDateTime,
-        descriptionText,
-        fullName,
-        guestEmails,
-      );
-      shouldSaveAppointment = true;
-    }
-
-         if (shouldSaveAppointment) {
-      await FirebaseFirestore.instance.collection('appointment').add({
-        'agenda': agendaText,
-        'deptID': currentDeptID, // ✅ Save correct department ID
-        'schedule': scheduleText,
-        'agendaDescript': descriptionText,
-        'guest': localSelectedGuests,
-        'internal_users': localSelectedUsers,
-        'status': 'Scheduled',
-        'createdBy': fullName,
-        'createdByEmail': user?.email,
-        'googleEventId': eventId,
-      });
-      
-
-      await logAuditTrail("Created Appointment",
-          "User $fullName scheduled an appointment with agenda: $agendaText");
-
-       toastification.show(
-        context: context,
-        alignment: Alignment.topRight,
-        icon: const Icon(Icons.check_circle, color: Colors.green),
-        title: const Text('Success'),
-        description:
-            const Text('Form submitted successfully and appointment created.'),
-        type: ToastificationType.success,
-        style: ToastificationStyle.flatColored,
-        autoCloseDuration: const Duration(seconds: 3),
-        animationDuration: const Duration(milliseconds: 300),
-      );
-
-      clearText();
-         }
-    } catch (e) {
-      toastification.show(
-      context: context,
-      alignment: Alignment.topRight,
-      icon: const Icon(Icons.error, color: Colors.red),
-      title: const Text('Error'),
-      description: Text("An error occurred: $e"),
-      type: ToastificationType.error,
-      style: ToastificationStyle.flatColored,
-      autoCloseDuration: const Duration(seconds: 3),
-      animationDuration: const Duration(milliseconds: 300),
-      );
-    }
-  }
-
-/// Sends meeting invitation emails to all attendees
-/// 
-/// This function uses EmailJS to send HTML emails with meeting details
-/// to all participants, similar to the MinutesOfMeeting email functionality
-Future<void> _sendMeetingInvitationEmails(
-  String agenda, 
-  DateTime schedule, 
-  String description, 
-  String organizer, 
-  List<String> recipientEmails
-) async {
-  // Skip if there are no recipients
-  if (recipientEmails.isEmpty) {
-    return;
-  }
-  
-  try {
-    // Format the date/time nicely
-    String formattedDate = DateFormat('yyyy-MM-dd, h:mm a').format(schedule);
-    
-    // Create a Dio instance for API request
-    final dio = Dio();
-    
-    // Create email HTML template with meeting details
-    String emailBody = _getMeetingInvitationTemplate(
-      agenda, 
-      formattedDate, 
-      description, 
-      organizer
-    );
-    
-    // Prepare template parameters for EmailJS API
-    final Map<String, dynamic> templateParams = {
-      'to_emails': recipientEmails.join(', '),
-      'subject': "Meeting Invitation - $agenda",
-      'message_html': emailBody,
-      'sender_name': "DBP-Data Center Inc.",
-      'meeting_agenda': agenda,
-      'meeting_date': formattedDate,
-      'meeting_description': description,
-      'meeting_organizer': organizer,
-    };
-
-    // Prepare data for EmailJS API
-    final Map<String, dynamic> emailJsData = {
-      'service_id': AppSecrets.emailJsServiceId,
-      'template_id': AppSecrets.emailJsTemplateId,
-      'template_params': templateParams,
-      'user_id': AppSecrets.emailJsUserId,
-    };
-
-    // Send the request to EmailJS API
-    final response = await dio.post(
-      'https://api.emailjs.com/api/v1.0/email/send',
-      data: emailJsData,
-      options: Options(
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        validateStatus: (status) => status! < 500,
-      ),
-    );
-
-    if (response.statusCode == 200) {
-      // Create a record in Firestore for tracking
-      await FirebaseFirestore.instance.collection('email_logs').add({
-        'agenda': agenda,
-        'recipients': recipientEmails,
-        'sent_at': FieldValue.serverTimestamp(),
+      // Prepare template parameters for EmailJS API
+      final Map<String, dynamic> templateParams = {
+        'to_emails': recipientEmails.join(', '),
         'subject': "Meeting Invitation - $agenda",
-        'email_type': 'meeting_invitation',
-        'provider': 'EmailJS',
-      });
-    } else {
-      throw Exception('Failed to send email: ${response.statusCode} - ${response.data}');
-    }
-  } catch (e) {
-    // Log error but don't stop execution flow
-    print('Error sending invitation emails: $e');
-    // Could add more detailed error handling similar to MinutesOfMeeting
-  }
-}
+        'message_html': emailBody,
+        'sender_name': "DBP-Data Center Inc.",
+        'meeting_agenda': agenda,
+        'meeting_date': formattedDate,
+        'meeting_description': description,
+        'meeting_organizer': organizer,
+      };
 
-/// Creates an HTML email template for meeting invitations
-/// 
-/// Returns a formatted HTML email with meeting details
-String _getMeetingInvitationTemplate(
-  String agenda, 
-  String schedule, 
-  String description,
-  String organizer
-) {
-  return '''<!DOCTYPE html>
+      // Prepare data for EmailJS API
+      final Map<String, dynamic> emailJsData = {
+        'service_id': AppSecrets.emailJsServiceId,
+        'template_id': AppSecrets.emailJsTemplateId,
+        'template_params': templateParams,
+        'user_id': AppSecrets.emailJsUserId,
+      };
+
+      // Send the request to EmailJS API
+      final response = await dio.post(
+        'https://api.emailjs.com/api/v1.0/email/send',
+        data: emailJsData,
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          validateStatus: (status) => status! < 500,
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        // Create a record in Firestore for tracking
+        await FirebaseFirestore.instance.collection('email_logs').add({
+          'agenda': agenda,
+          'recipients': recipientEmails,
+          'sent_at': FieldValue.serverTimestamp(),
+          'subject': "Meeting Invitation - $agenda",
+          'email_type': 'meeting_invitation',
+          'provider': 'EmailJS',
+        });
+      } else {
+        throw Exception(
+            'Failed to send email: ${response.statusCode} - ${response.data}');
+      }
+    } catch (e) {
+      // Log error but don't stop execution flow
+      print('Error sending invitation emails: $e');
+      // Could add more detailed error handling similar to MinutesOfMeeting
+    }
+  }
+
+  /// Creates an HTML email template for meeting invitations
+  ///
+  /// Returns a formatted HTML email with meeting details
+  String _getMeetingInvitationTemplate(
+      String agenda, String schedule, String description, String organizer) {
+    return '''<!DOCTYPE html>
 <html>
 <head>
   <style>
@@ -412,140 +397,142 @@ String _getMeetingInvitationTemplate(
   </div>
 </body>
 </html>''';
-}
-
-Future<void> fetchUserData() async {
-  User? user = FirebaseAuth.instance.currentUser;
-
-  if (user != null) {
-    try {
-      // Fetch the references collection to get deptID and deptName
-      QuerySnapshot referencesSnapshot = await FirebaseFirestore.instance
-          .collection('references')
-          .where('isDeleted', isEqualTo: false)
-          .get();
-
-      // Prepare a map to store deptID -> deptName
-      Map<String, String> departments = {};  // Map deptID -> deptName
-      for (var doc in referencesSnapshot.docs) {
-        String deptID = doc['deptID'];
-        String deptName = doc['name'];
-        departments[deptID] = deptName;  // Store deptID -> deptName mapping
-      }
-
-      // Now, fetch the user data
-      QuerySnapshot userSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .where('uid', isEqualTo: user.uid)
-          .limit(1)
-          .get();
-
-      if (userSnapshot.docs.isNotEmpty) {
-        var userData = userSnapshot.docs.first.data() as Map<String, dynamic>;
-
-        // Extract the deptID from user data
-        String deptID = userData['deptID'] ?? '';
-
-        // Use deptID to find and display the deptName
-        setState(() {
-           firstName = userData['first_name'] ?? "N/A";
-          lastName = userData['last_name'] ?? "N/A";
-          departmentName = departments[deptID] ?? "N/A";
-          currentDeptID = deptID; // ✅ Save the actual deptID globally
-        });
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("User data not found.")));
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error fetching user data: $e")));
-    }
-  } else {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text("User not logged in.")));
   }
-}
+
+  Future<void> fetchUserData() async {
+    User? user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      try {
+        // Fetch the references collection to get deptID and deptName
+        QuerySnapshot referencesSnapshot = await FirebaseFirestore.instance
+            .collection('references')
+            .where('isDeleted', isEqualTo: false)
+            .get();
+
+        // Prepare a map to store deptID -> deptName
+        Map<String, String> departments = {}; // Map deptID -> deptName
+        for (var doc in referencesSnapshot.docs) {
+          String deptID = doc['deptID'];
+          String deptName = doc['name'];
+          departments[deptID] = deptName; // Store deptID -> deptName mapping
+        }
+
+        // Now, fetch the user data
+        QuerySnapshot userSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .where('uid', isEqualTo: user.uid)
+            .limit(1)
+            .get();
+
+        if (userSnapshot.docs.isNotEmpty) {
+          var userData = userSnapshot.docs.first.data() as Map<String, dynamic>;
+
+          // Extract the deptID from user data
+          String deptID = userData['deptID'] ?? '';
+
+          // Use deptID to find and display the deptName
+          setState(() {
+            firstName = userData['first_name'] ?? "N/A";
+            lastName = userData['last_name'] ?? "N/A";
+            departmentName = departments[deptID] ?? "N/A";
+            currentDeptID = deptID; // ✅ Save the actual deptID globally
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("User data not found.")));
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error fetching user data: $e")));
+      }
+    } else {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("User not logged in.")));
+    }
+  }
 
   void pickScheduleDateTime() async {
-  DateTime now = DateTime.now();
+    DateTime now = DateTime.now();
 
-  DateTime? pickedDate = await showDatePicker(
-    context: context,
-    initialDate: now,
-    firstDate: now,
-    lastDate: DateTime(2100),
-    builder: (context, child) {
-      return Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(
-            primary: Color.fromARGB(255, 11, 55, 99),
-            onPrimary: Colors.white,
-            onSurface: Color.fromARGB(255, 11, 55, 99),
-          ),
-          textButtonTheme: TextButtonThemeData(
-            style: TextButton.styleFrom(
-              foregroundColor: Color.fromARGB(255, 11, 55, 99),
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now,
+      lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Color.fromARGB(255, 11, 55, 99),
+              onPrimary: Colors.white,
+              onSurface: Color.fromARGB(255, 11, 55, 99),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Color.fromARGB(255, 11, 55, 99),
+              ),
             ),
           ),
-        ),
-        child: child!,
-      );
-    },
-  );
+          child: child!,
+        );
+      },
+    );
 
-  if (pickedDate == null) return;
+    if (pickedDate == null) return;
 
-  // Calculate minimum allowed time
-  TimeOfDay minimumTime = TimeOfDay.now();
-  bool isToday = pickedDate.year == now.year && 
-                 pickedDate.month == now.month && 
-                 pickedDate.day == now.day;
+    // Calculate minimum allowed time
+    TimeOfDay minimumTime = TimeOfDay.now();
+    bool isToday = pickedDate.year == now.year &&
+        pickedDate.month == now.month &&
+        pickedDate.day == now.day;
 
-  TimeOfDay? pickedTime = await showTimePicker(
-    context: context,
-    initialTime: isToday ? TimeOfDay.fromDateTime(now.add(Duration(minutes: 5))) : TimeOfDay(hour: 9, minute: 0),
-    builder: (context, child) {
-      return Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(
-            primary: Color.fromARGB(255, 11, 55, 99),
-            onPrimary: Colors.white,
-            onSurface: Color.fromARGB(255, 11, 55, 99),
-          ),
-          textButtonTheme: TextButtonThemeData(
-            style: TextButton.styleFrom(
-              foregroundColor: Color.fromARGB(255, 11, 55, 99),
+    TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: isToday
+          ? TimeOfDay.fromDateTime(now.add(Duration(minutes: 5)))
+          : TimeOfDay(hour: 9, minute: 0),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Color.fromARGB(255, 11, 55, 99),
+              onPrimary: Colors.white,
+              onSurface: Color.fromARGB(255, 11, 55, 99),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Color.fromARGB(255, 11, 55, 99),
+              ),
             ),
           ),
-        ),
-        child: child!,
-      );
-    },
-  );
+          child: child!,
+        );
+      },
+    );
 
-  if (pickedTime == null) return;
+    if (pickedTime == null) return;
 
-  // Create the selected date time
-  DateTime fullDateTime = DateTime(
-    pickedDate.year,
-    pickedDate.month,
-    pickedDate.day,
-    pickedTime.hour,
-    pickedTime.minute,
-  );
+    // Create the selected date time
+    DateTime fullDateTime = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
 
-  // Validate that the selected time is not in the past
-  if (fullDateTime.isBefore(now)) {
-     toastification.show(
-          context: context,
-          alignment: Alignment.topRight,
-          icon: Icon(Icons.check_circle_outline, color: Colors.black),
-          title: Text('Invalid Time Selection',
+    // Validate that the selected time is not in the past
+    if (fullDateTime.isBefore(now)) {
+      toastification.show(
+        context: context,
+        alignment: Alignment.topRight,
+        icon: Icon(Icons.check_circle_outline, color: Colors.black),
+        title: Text('Invalid Time Selection',
             style: TextStyle(
                 fontFamily: "B",
                 fontSize: MediaQuery.of(context).size.width / 80)),
-          description: Text(
+        description: Text(
           "Cannot select a time in the past. Please choose a future time.",
           style: TextStyle(
             color: Colors.black87,
@@ -553,19 +540,19 @@ Future<void> fetchUserData() async {
             fontFamily: "M",
           ),
         ),
-          type: ToastificationType.error,
-          style: ToastificationStyle.flatColored,
-          autoCloseDuration: const Duration(seconds: 3),
-          animationDuration: const Duration(milliseconds: 300),
-        );
-        return;
-  }
+        type: ToastificationType.error,
+        style: ToastificationStyle.flatColored,
+        autoCloseDuration: const Duration(seconds: 3),
+        animationDuration: const Duration(milliseconds: 300),
+      );
+      return;
+    }
 
-  setState(() {
-    selectedScheduleTime = fullDateTime;
-    scheduleController.text = fullDateTime.toIso8601String();
-  });
-}
+    setState(() {
+      selectedScheduleTime = fullDateTime;
+      scheduleController.text = fullDateTime.toIso8601String();
+    });
+  }
 
   String formatDateTime(DateTime dateTime) {
     return "${_monthName(dateTime.month)} ${dateTime.day} ${dateTime.year} at "
@@ -778,6 +765,7 @@ Future<void> fetchUserData() async {
                         'contactNum': contactNum.text,
                         'emailAdd': emailAdd.text,
                         'companyName': companyName.text,
+                        'isDeleted': false,
                       });
 
                       clearAddnewguest();
@@ -969,29 +957,30 @@ Future<void> fetchUserData() async {
                                   ),
                                 ),
                                 SizedBox(height: 8),
-                               Container(
-  height: screenHeight * 0.06,
-  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-  decoration: BoxDecoration(
-    borderRadius: BorderRadius.circular(8),
-    color: Colors.grey[100],
-    border: Border.all(
-      color: Color.fromARGB(255, 11, 55, 99),
-      width: 1,
-    ),
-  ),
-  alignment: Alignment.centerLeft,
-  child: Text(
-    departmentName.isNotEmpty
-        ? departmentName  // Display department name
-        : "Loading...",  // Display loading message while fetching
-    style: TextStyle(
-      fontSize: bodySize,
-      fontFamily: "R",
-      color: Colors.black87,
-    ),
-  ),
-),
+                                Container(
+                                  height: screenHeight * 0.06,
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    color: Colors.grey[100],
+                                    border: Border.all(
+                                      color: Color.fromARGB(255, 11, 55, 99),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    departmentName.isNotEmpty
+                                        ? departmentName // Display department name
+                                        : "Loading...", // Display loading message while fetching
+                                    style: TextStyle(
+                                      fontSize: bodySize,
+                                      fontFamily: "R",
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ),
                                 SizedBox(height: screenHeight * 0.02),
 
                                 // Date & Time picker
@@ -1199,8 +1188,9 @@ Future<void> fetchUserData() async {
                                       "${data["first_name"] ?? ""} ${data["last_name"] ?? ""}"
                                           .trim(),
                                   "email": data["email"] ?? "No Email",
-                                  "department": departmentNames[data["deptID"]] ?? "No Department",
-
+                                  "department":
+                                      departmentNames[data["deptID"]] ??
+                                          "No Department",
                                 };
                               }).toList();
 
