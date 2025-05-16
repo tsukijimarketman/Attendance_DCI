@@ -39,8 +39,6 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
   Color color3 = Colors.grey;
   Color color4 = Colors.grey;
 
-// Icon for settings is initialized as the settings icon from the material design icons library.
-  IconData iconSettings = Icons.settings;
 
   // Boolean variable to check if a profile completion toast has been shown already. This avoids multiple toasts being shown.
   bool _hasShownProfileToast = false;
@@ -384,132 +382,6 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
               ],
             ),
             SizedBox(
-              width: MediaQuery.of(context).size.width / 50,
-            ),
-            GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        if (selectedOption == "Settings") {
-                          // If Settings is clicked again, toggle the visibility of the page
-                          if (isHeadersClicked) {
-                            isHeadersClicked = false;
-                          } else {
-                            selectedOption = "Settings";
-                            isHeadersClicked = true;
-                          }
-                        } else {
-                          // If a different option is clicked, set it as the selected option
-                          selectedOption = "Settings";
-                          isHeadersClicked = true;
-                        }
-                      });
-                    },
-                    child: selectedOption == "Settings" &&
-                            isHeadersClicked == false
-                        ? MouseRegion(
-                            onEnter: (event) {
-                              setState(() {
-                                color2 = Color.fromARGB(255, 11, 55, 99);
-                              });
-                            },
-                            onExit: (event) {
-                              setState(() {
-                                color2 = Colors.grey;
-                              });
-                            },
-                            child: Tooltip(
-                              message: 'Settings',
-                              preferBelow: false,
-                              decoration:
-                                  BoxDecoration(color: Colors.transparent),
-                              textStyle: TextStyle(
-                                  color: Color.fromARGB(255, 11, 55, 99),
-                                  fontFamily: "B",
-                                  fontSize:
-                                      MediaQuery.of(context).size.width / 140),
-                              padding: EdgeInsets.symmetric(
-                                  horizontal:
-                                      MediaQuery.of(context).size.width / 120,
-                                  vertical:
-                                      MediaQuery.of(context).size.width / 160),
-                              child: Icon(
-                                Icons.settings_outlined,
-                                color: color2,
-                                size: MediaQuery.of(context).size.width / 60,
-                              ),
-                            ),
-                          )
-                        : Tooltip(
-                            message: 'Settings',
-                            preferBelow: false,
-                            decoration:
-                                BoxDecoration(color: Colors.transparent),
-                            textStyle: TextStyle(
-                                color: Color.fromARGB(255, 11, 55, 99),
-                                fontFamily: "B",
-                                fontSize:
-                                    MediaQuery.of(context).size.width / 140),
-                            padding: EdgeInsets.symmetric(
-                                horizontal:
-                                    MediaQuery.of(context).size.width / 120,
-                                vertical:
-                                    MediaQuery.of(context).size.width / 160),
-                            child: Icon(
-                              isHeadersClicked == true &&
-                                      selectedOption == "Settings"
-                                  ? iconSettings
-                                  : Icons.settings_outlined,
-                              color: isHeadersClicked == true &&
-                                      selectedOption == "Settings"
-                                  ? Color.fromARGB(255, 11, 55, 99)
-                                  : Colors.grey,
-                              size: MediaQuery.of(context).size.width / 60,
-                            ),
-                          ))
-                .showCursorOnHover,
-            SizedBox(
-              width: MediaQuery.of(context).size.width / 40,
-            ),
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  if (selectedOption == "Audit Logs") {
-                    // If Audit Logs is clicked again, toggle the visibility of the page
-                    if (isHeadersClicked) {
-                      isHeadersClicked = false;
-                    } else {
-                      selectedOption = "Audit Logs";
-                      isHeadersClicked = true;
-                    }
-                  } else {
-                    // If a different option is clicked, set it as the selected option
-                    selectedOption = "Audit Logs";
-                    isHeadersClicked = true;
-                  }
-                });
-              },
-              child: Tooltip(
-                message: 'Audit Logs',
-                preferBelow: false,
-                decoration: BoxDecoration(color: Colors.transparent),
-                textStyle: TextStyle(
-                    color: Color.fromARGB(255, 11, 55, 99),
-                    fontFamily: "B",
-                    fontSize: MediaQuery.of(context).size.width / 140),
-                padding: EdgeInsets.symmetric(
-                    horizontal: MediaQuery.of(context).size.width / 120,
-                    vertical: MediaQuery.of(context).size.width / 160),
-                child: Icon(
-                  Icons.history,
-                  color:
-                      isHeadersClicked == true && selectedOption == "Audit Logs"
-                          ? Color.fromARGB(255, 11, 55, 99)
-                          : Colors.grey,
-                  size: MediaQuery.of(context).size.width / 60,
-                ),
-              ),
-            ).showCursorOnHover,
-            SizedBox(
               width: MediaQuery.of(context).size.width / 40,
             ),
             GestureDetector(
@@ -584,6 +456,8 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
         return const ManagerDB();
       case 7:
         return const SettingsSU();
+      case 8:
+        return const AuditSU();
       default:
         return const Text('Select an option from the menu.',
             style: TextStyle(fontSize: 20));

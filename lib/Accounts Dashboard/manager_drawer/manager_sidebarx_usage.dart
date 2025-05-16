@@ -34,15 +34,15 @@ class ManagerSideBarXUsage extends StatelessWidget {
             color: Color.fromARGB(255, 255, 76, 63), size: 26),
         selectedItemTextPadding: const EdgeInsets.symmetric(horizontal: 20),
       ),
-      
       headerDivider: const Divider(thickness: 2, color: Colors.black12),
       items: [
         SidebarXItem(icon: Icons.dashboard, label: 'Dashboard'),
         SidebarXItem(icon: Icons.event, label: 'Appointment Creation'),
-        SidebarXItem(icon: Icons.group, label: 'Clients'),  
+        SidebarXItem(icon: Icons.group, label: 'Clients'),
         SidebarXItem(icon: Icons.event_note, label: 'Current Appointments'),
+        SidebarXItem(icon: Icons.settings, label: 'Settings'),
+        SidebarXItem(icon: Icons.history, label: 'Audit logs'),
       ],
     );
   }
 }
-  

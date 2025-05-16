@@ -8,8 +8,10 @@ class AnimatedTextField extends StatefulWidget {
   final String label;
   final Widget? suffix;
   final bool readOnly;
-  final List<TextInputFormatter>? inputFormatters; // 👈 Add this
-
+  final List<TextInputFormatter>? inputFormatters;
+  final FocusNode? focusNode; // Add focusNode property
+  final VoidCallback? onEditingComplete; // Add onEditingComplete property
+  final TextInputAction? textInputAction; // Add textInputAction property
 
   const AnimatedTextField({
     Key? key,
@@ -19,6 +21,9 @@ class AnimatedTextField extends StatefulWidget {
     this.controller,
     required this.readOnly,
     this.inputFormatters,
+    this.focusNode, // Initialize focusNode
+    this.onEditingComplete, // Initialize onEditingComplete
+    this.textInputAction, // Initialize textInputAction
   }) : super(key: key);
 
   @override
@@ -47,6 +52,28 @@ class _AnimatedTextFieldState extends State<AnimatedTextField>
     controller.addListener(() {
       setState(() {});
     });
+    
+    // Add listener to focusNode if it exists
+    if (widget.focusNode != null) {
+      widget.focusNode!.addListener(_handleFocusChange);
+    }
+  }
+
+  @override
+  void dispose() {
+    // Remove listener from focusNode if it exists
+    if (widget.focusNode != null) {
+      widget.focusNode!.removeListener(_handleFocusChange);
+    }
+    controller.dispose();
+    super.dispose();
+  }
+  
+  // Handle focus changes from external sources
+  void _handleFocusChange() {
+    if (widget.focusNode != null) {
+      _toggleAnimation(widget.focusNode!.hasFocus);
+    }
   }
 
   void _toggleAnimation(bool focus) {
@@ -82,9 +109,17 @@ class _AnimatedTextFieldState extends State<AnimatedTextField>
             controller: widget.controller,
             obscureText: widget.obscureText,
             readOnly: widget.readOnly,
+            focusNode: widget.focusNode, // Use the provided focusNode
+            textInputAction: widget.textInputAction ?? TextInputAction.next, // Use textInputAction or default to next
+            onEditingComplete: () {
+              _toggleAnimation(false);
+              // Execute the provided onEditingComplete callback if it exists
+              if (widget.onEditingComplete != null) {
+                widget.onEditingComplete!();
+              }
+            },
             onTap: () => _toggleAnimation(true),
-            onEditingComplete: () => _toggleAnimation(false),
-            inputFormatters: widget.inputFormatters, // 👈 This is important#
+            inputFormatters: widget.inputFormatters,
             decoration: InputDecoration(
               label: Text(
                 widget.label,

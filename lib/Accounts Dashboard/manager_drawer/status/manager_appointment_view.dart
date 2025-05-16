@@ -74,7 +74,7 @@ class _ManagerAppointmentViewState extends State<ManagerAppointmentView> {
     super.initState();
     fetchUserDepartment();
     itemsPerPageController.text = itemsPerPage.toString();
-
+    currentFilterType = 'mine';
     // Set status-specific properties
     setStatusProperties();
   }
@@ -175,41 +175,20 @@ class _ManagerAppointmentViewState extends State<ManagerAppointmentView> {
     }
   }
 
-  void filterAppointments(String filterType) {
-    setState(() {
-      currentFilterType = filterType;
-      currentPage = 1;
-
-      // Clear the search when changing filters
-      searchQuery = '';
-      searchController.text = '';
-
-      // Apply the filter without calling setState again
-      allUniqueAppointments = _getFilteredData();
-    });
-  }
-
   List<QueryDocumentSnapshot> _getFilteredData() {
     // Start with the original data
     List<QueryDocumentSnapshot> filteredData = List.from(originalAppointments);
 
-    // Apply filter based on user
+    // Always filter to only show current user's appointments
     User? currentUser = FirebaseAuth.instance.currentUser;
     String? userEmail = currentUser?.email;
 
-    if (currentFilterType == 'mine' && userEmail != null) {
+    if (userEmail != null) {
       filteredData = filteredData.where((doc) {
         var data = doc.data() as Map<String, dynamic>;
         return data['createdByEmail'] == userEmail;
       }).toList();
-    } else if (currentFilterType == 'others' && userEmail != null) {
-      filteredData = filteredData.where((doc) {
-        var data = doc.data() as Map<String, dynamic>;
-        return data['createdByEmail'] != userEmail &&
-            (data['createdBy'] != null && data['createdBy'].isNotEmpty);
-      }).toList();
     }
-    // For 'all', we keep filteredData as is
 
     // Apply sort
     filteredData.sort((a, b) {
@@ -511,7 +490,9 @@ class _ManagerAppointmentViewState extends State<ManagerAppointmentView> {
                                   StreamBuilder<QuerySnapshot>(
                                 stream: FirebaseFirestore.instance
                                     .collection('appointment')
-                                    .where('createdBy', isEqualTo: fullName)
+                                    .where('createdByEmail',
+                                        isEqualTo: FirebaseAuth
+                                            .instance.currentUser?.email)
                                     .where('status',
                                         isEqualTo: widget.statusType)
                                     .snapshots(),
@@ -950,150 +931,6 @@ class _ManagerAppointmentViewState extends State<ManagerAppointmentView> {
                                                                 200),
                                                         Text(
                                                           "Sort  ",
-                                                          style: TextStyle(
-                                                            fontSize:
-                                                                screenWidth /
-                                                                    120,
-                                                            fontFamily: "SB",
-                                                            color: Color(
-                                                                0xFF082649),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                              SizedBox(
-                                                  height: screenWidth / 200),
-                                              Container(
-                                                margin: EdgeInsets.only(
-                                                    left: screenWidth / 80),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.white,
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                          screenWidth / 160),
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                      color: Colors.black
-                                                          .withOpacity(0.05),
-                                                      spreadRadius: 1,
-                                                      blurRadius: 5,
-                                                    ),
-                                                  ],
-                                                ),
-                                                child: PopupMenuButton<String>(
-                                                  offset: Offset(
-                                                      0, screenWidth / 50),
-                                                  tooltip:
-                                                      "Filter appointments",
-                                                  onSelected: (value) =>
-                                                      filterAppointments(value),
-                                                  itemBuilder: (context) => [
-                                                    PopupMenuItem(
-                                                      value: 'all',
-                                                      child: Row(
-                                                        children: [
-                                                          Icon(
-                                                              Icons
-                                                                  .calendar_today,
-                                                              size:
-                                                                  screenWidth /
-                                                                      80,
-                                                              color: Color(
-                                                                  0xFF082649)),
-                                                          SizedBox(
-                                                              width:
-                                                                  screenWidth /
-                                                                      200),
-                                                          Text(
-                                                            'All Appointments',
-                                                            style: TextStyle(
-                                                              fontSize:
-                                                                  screenWidth /
-                                                                      120,
-                                                              fontFamily: "R",
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    PopupMenuItem(
-                                                      value: 'mine',
-                                                      child: Row(
-                                                        children: [
-                                                          Icon(Icons.person,
-                                                              size:
-                                                                  screenWidth /
-                                                                      80,
-                                                              color: Color(
-                                                                  0xFF082649)),
-                                                          SizedBox(
-                                                              width:
-                                                                  screenWidth /
-                                                                      200),
-                                                          Text(
-                                                            'My Appointments',
-                                                            style: TextStyle(
-                                                              fontSize:
-                                                                  screenWidth /
-                                                                      120,
-                                                              fontFamily: "R",
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    PopupMenuItem(
-                                                      value: 'others',
-                                                      child: Row(
-                                                        children: [
-                                                          Icon(Icons.people,
-                                                              size:
-                                                                  screenWidth /
-                                                                      80,
-                                                              color: Color(
-                                                                  0xFF082649)),
-                                                          SizedBox(
-                                                              width:
-                                                                  screenWidth /
-                                                                      200),
-                                                          Text(
-                                                            'Others\' Appointments',
-                                                            style: TextStyle(
-                                                              fontSize:
-                                                                  screenWidth /
-                                                                      120,
-                                                              fontFamily: "R",
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ],
-                                                  child: Container(
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                      horizontal:
-                                                          screenWidth / 100,
-                                                      vertical:
-                                                          screenWidth / 200,
-                                                    ),
-                                                    child: Row(
-                                                      children: [
-                                                        Icon(
-                                                          Icons.filter_list,
-                                                          size:
-                                                              screenWidth / 60,
-                                                          color:
-                                                              Color(0xFF082649),
-                                                        ),
-                                                        SizedBox(
-                                                            width: screenWidth /
-                                                                200),
-                                                        Text(
-                                                          "Filter",
                                                           style: TextStyle(
                                                             fontSize:
                                                                 screenWidth /
