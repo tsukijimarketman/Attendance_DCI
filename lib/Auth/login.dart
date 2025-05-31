@@ -69,7 +69,7 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
   late AnimationController controllerSignin;
   late Animation<double> _textRevealcontrollerSignin;
   late Animation<double> _textOpacitycontrollerSignin;
-  final String url = 'https://attendance-dci.web.app/privacy-policy/';
+  final String url = 'http://192.168.1.78:8081/privacy-policy/';
 
   Future<void> _launchURL(BuildContext context) async {
     if (await canLaunch(url)) {

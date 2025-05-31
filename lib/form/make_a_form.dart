@@ -109,7 +109,7 @@ class _MakeAFormState extends State<MakeAForm> {
     // The URL points to the attendance form page with the necessary parameters
     // The parameters include the agenda, department, first name, last name, and expiry time
 
-    String qrUrl = "https://attendance-dci.web.app//#/attendance_form"
+    String qrUrl = "http://192.168.1.78:8081//#/attendance_form"
         "?agenda=${Uri.encodeComponent(widget.agenda.text)}"
         "&department=${Uri.encodeComponent(departmentController.text)}"
         "&first_name=${Uri.encodeComponent(firstName)}"
