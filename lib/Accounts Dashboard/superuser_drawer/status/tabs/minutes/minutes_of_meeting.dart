@@ -1,10 +1,11 @@
 import 'dart:typed_data';
 
+// Use only dio for HTTP and multipart
+import 'package:dio/dio.dart' as dio;
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:attendance_app/secrets.dart';
 
@@ -18,7 +19,6 @@ class MinutesOfMeeting extends StatefulWidget {
 
 class _MinutesOfMeetingState extends State<MinutesOfMeeting> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  SupabaseClient? _supabase;
 
   // State variables
   bool isLoading = true;
@@ -42,7 +42,9 @@ class _MinutesOfMeetingState extends State<MinutesOfMeeting> {
   TextEditingController _messageController = TextEditingController();
   TextEditingController _htmlEditorController = TextEditingController();
 
-    // This method is called when the widget is initialized. It performs several key actions:
+  static const String baseApiUrl = 'http://192.168.1.78:8081/api/UploadFile';
+
+  // This method is called when the widget is initialized. It performs several key actions:
   // 1. First, it fetches the meeting data by calling _fetchMeetingData().
   // 2. Then, it attempts to initialize the Supabase client. If the client is not initialized,
   //    it waits for 2 seconds and tries again to ensure the client is properly initialized.
@@ -51,34 +53,10 @@ class _MinutesOfMeetingState extends State<MinutesOfMeeting> {
   void initState() {
     super.initState();
     _fetchMeetingData();
-    _initializeSupabase().then((_) {
-      if (_supabase == null) {
-        Future.delayed(Duration(seconds: 2), () {
-          if (mounted) {
-            _initializeSupabase();
-          }
-        });
-      }
-    });
 
     // Initialize with default content only if we don't have saved content
     if (_messageController.text.isEmpty) {
       _messageController.text = _getEmailContent();
-    }
-  }
-
-  // Attempts to initialize the Supabase client. If successful, assigns it to _supabase.
-  // If an error occurs, displays a Snackbar with the error message, but only if the widget is still mounted.
-  Future<void> _initializeSupabase() async {
-    try {
-      // Try to get the client directly without checking the instance first
-      _supabase = Supabase.instance.client;
-    } catch (e) {
-      // Only show a snackbar if the widget is mounted
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error connecting to Supabase: $e')));
-      }
     }
   }
 
@@ -277,19 +255,6 @@ DBP-Data Center Inc.''';
 // Sets selected file details like path, name, and bytes, or shows an error message.
   Future<void> _selectFile() async {
     try {
-
-      // Check if Supabase client is initialized
-      if (_supabase == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Please wait, connecting to storage...')));
-        await _initializeSupabase(); // Try to initialize again
-
-        // If still not initialized, return
-        if (_supabase == null) {
-          return;
-        }
-      }
-
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf', 'doc', 'docx'],
@@ -297,7 +262,7 @@ DBP-Data Center Inc.''';
 
       if (result != null) {
         setState(() {
-          _fileAttachmentPath = result.files.single.path!;
+          _fileAttachmentPath = result.files.single.path ?? '';
           _fileAttachmentName = result.files.single.name;
           _fileBytes = result.files.single.bytes;
           _fileUrl = ''; // Reset file URL when new file is selected
@@ -309,10 +274,8 @@ DBP-Data Center Inc.''';
     }
   }
 
-  // Uploads a file to Supabase storage and stores the public URL for later use.
-// Displays snack bar messages for successful uploads or errors.
-// Ensures the file is selected before uploading and handles the upload process asynchronously.
-  Future<void> _uploadFileToSupabase() async {
+  // Remove _uploadFileToSupabase and use only this:
+  Future<void> _uploadFileToServer() async {
     if (_fileBytes == null || _fileAttachmentName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please select a file first')),
@@ -326,20 +289,56 @@ DBP-Data Center Inc.''';
       final fileName =
           '${DateTime.now().millisecondsSinceEpoch}_$_fileAttachmentName';
 
-      await _supabase!.storage
-          .from('meetingminutes')
-          .uploadBinary(fileName, _fileBytes!);
-
-      final fileUrl =
-          _supabase!.storage.from('meetingminutes').getPublicUrl(fileName);
-
-      // Store the URL for later use
-      setState(() {
-        _fileUrl = fileUrl;
+      // Upload to your API endpoint using dio
+      final dioClient = dio.Dio();
+      final formData = dio.FormData.fromMap({
+        "file": dio.MultipartFile.fromBytes(
+          _fileBytes!,
+          filename: fileName,
+        ),
       });
 
+      final response = await dioClient.post(
+        '$baseApiUrl/uploaddocuments',
+        data: formData,
+        options: dio.Options(
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          receiveTimeout: const Duration(seconds: 30),
+          sendTimeout: const Duration(seconds: 30),
+        ),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Construct the public download URL
+        final fileUrl = '$baseApiUrl/documents/$fileName';
+
+        setState(() {
+          _fileUrl = fileUrl;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('File uploaded successfully!')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to upload: ${response.statusCode}')),
+        );
+      }
+    } on dio.DioException catch (e) {
+      String message = 'Error uploading file: ';
+      if (e.type == dio.DioExceptionType.connectionTimeout) {
+        message += 'Connection timeout.';
+      } else if (e.type == dio.DioExceptionType.receiveTimeout) {
+        message += 'Receive timeout.';
+      } else if (e.type == dio.DioExceptionType.connectionError) {
+        message += 'Connection error.';
+      } else {
+        message += e.message ?? e.toString();
+      }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('File uploaded successfully!')),
+        SnackBar(content: Text(message)),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -682,11 +681,11 @@ DBP-Data Center Inc.''';
                                 TextButton.icon(
                                   icon: Icon(Icons.cloud_upload,
                                       size: screenWidth * 0.012),
-                                  label: Text('Upload to Supabase',
+                                  label: Text('Upload Document',
                                       style:
                                           TextStyle(fontSize: smallFontSize)),
                                  // this will trigger the _uploadFileToSupabase
-                                  onPressed: _uploadFileToSupabase,
+                                  onPressed: _uploadFileToServer,
                                 ),
                               if (_isUploading)
                                 Row(
@@ -761,7 +760,7 @@ DBP-Data Center Inc.''';
                     ),
                     SizedBox(height: elementSpacing * 0.3),
 
-// Email body with styled preview and editable content based on edit mode
+                    // Email body with styled preview and editable content based on edit mode
                     Expanded(
                       child: Container(
                         decoration: BoxDecoration(

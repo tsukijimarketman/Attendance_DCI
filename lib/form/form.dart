@@ -9,7 +9,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:signature/signature.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:dio/dio.dart' as dio;
 
 class AttendanceForm extends StatefulWidget {
   // This is passing the data from the previous screen
@@ -79,7 +79,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
     fetchDepartmentName(widget.deptID);
     super.initState();
     contactControllers = [TextEditingController()];
-  contactFieldValidity = [true];
+    contactFieldValidity = [true];
     scheduledTime =
         DateTime.fromMillisecondsSinceEpoch(widget.selectedScheduleTime);
 
@@ -99,31 +99,31 @@ class _AttendanceFormState extends State<AttendanceForm> {
   }
 
   Future<void> fetchDepartmentName(String deptID) async {
-  try {
-    var query = await FirebaseFirestore.instance
-        .collection('references')
-        .where('deptID', isEqualTo: deptID)
-        .where('isDeleted', isEqualTo: false)
-        .limit(1)
-        .get();
+    try {
+      var query = await FirebaseFirestore.instance
+          .collection('references')
+          .where('deptID', isEqualTo: deptID)
+          .where('isDeleted', isEqualTo: false)
+          .limit(1)
+          .get();
 
-    if (query.docs.isNotEmpty) {
-      var data = query.docs.first.data() as Map<String, dynamic>;
+      if (query.docs.isNotEmpty) {
+        var data = query.docs.first.data() as Map<String, dynamic>;
+        setState(() {
+          departmentName = data['name'] ?? 'Unknown Department';
+        });
+      } else {
+        setState(() {
+          departmentName = 'Unknown Department';
+        });
+      }
+    } catch (e) {
       setState(() {
-        departmentName = data['name'] ?? 'Unknown Department';
+        departmentName = 'Error loading department';
       });
-    } else {
-      setState(() {
-        departmentName = 'Unknown Department';
-      });
+      print('Error fetching department: $e');
     }
-  } catch (e) {
-    setState(() {
-      departmentName = 'Error loading department';
-    });
-    print('Error fetching department: $e');
   }
-}
 
   // Start the countdown timer
   // This function is called when the widget is initialized
@@ -164,7 +164,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
       // If the remaining time is less than or equal to 0
       // show the expired dialog immediately
       // This is important to ensure that the user is notified of the expiration
-      
+
       _showExpiredDialog();
     }
   }
@@ -226,8 +226,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
   // and updates the state to reflect the change in the UI
   void removeContactField(int index) {
     setState(() {
-      contactControllers
-          .removeAt(index);
+      contactControllers.removeAt(index);
     });
   }
 
@@ -246,37 +245,38 @@ class _AttendanceFormState extends State<AttendanceForm> {
     // Set the validity state for each field
     // Use trim() to remove leading and trailing spaces
     // Use isNotEmpty to check if the field is not empty
-  setState(() {
-    isNameValid = nameController.text.trim().isNotEmpty;
-    isCompanyValid = companyController.text.trim().isNotEmpty;
+    setState(() {
+      isNameValid = nameController.text.trim().isNotEmpty;
+      isCompanyValid = companyController.text.trim().isNotEmpty;
 
-    final email = emailAddController.text.trim();
-    final emailRegExp = RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
-    isEmailValid = emailRegExp.hasMatch(email);
+      final email = emailAddController.text.trim();
+      final emailRegExp =
+          RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
+      isEmailValid = emailRegExp.hasMatch(email);
 
-    contactFieldValidity = contactControllers.map((controller) {
-      String number = controller.text.trim();
-      return isValidPhone(number);
-    }).toList();
-  });
+      contactFieldValidity = contactControllers.map((controller) {
+        String number = controller.text.trim();
+        return isValidPhone(number);
+      }).toList();
+    });
 
-  // Check if all fields are valid
-  bool allContactsValid = contactFieldValidity.any((valid) => valid);
-  if (!isNameValid || !isCompanyValid || !isEmailValid || !allContactsValid) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Please correct the highlighted fields.")),
-    );
-    return false;
+    // Check if all fields are valid
+    bool allContactsValid = contactFieldValidity.any((valid) => valid);
+    if (!isNameValid || !isCompanyValid || !isEmailValid || !allContactsValid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Please correct the highlighted fields.")),
+      );
+      return false;
+    }
+
+    return true;
   }
-
-  return true;
-}
 
   // Submit the form data to Firestore and upload the signature to Supabase
   void submitForm() async {
     // Check if the form is valid
     // Early exit if validation fails
-      if (!validateForm()) return;
+    if (!validateForm()) return;
 
     // Check if the signature is empty
     // Early exit if signature is empty
@@ -299,9 +299,9 @@ class _AttendanceFormState extends State<AttendanceForm> {
       );
       return;
     }
-  
+
     // Upload the signature to Supabase
-    final String? signatureUrl = await _uploadToSupabase(signatureImage);
+    final String? signatureUrl = await _uploadSignatureToServer(signatureImage);
     // Check if the upload was successful
     // Early exit if the upload failed
     if (signatureUrl == null) {
@@ -344,7 +344,6 @@ class _AttendanceFormState extends State<AttendanceForm> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Form submitted successfully!")),
     );
-    
 
     // Clear fields after submission
     nameController.clear();
@@ -365,33 +364,41 @@ class _AttendanceFormState extends State<AttendanceForm> {
   }
 
   // Upload the signature image to Supabase and return the public URL
-  Future<String?> _uploadToSupabase(Uint8List imageBytes) async {
-    // Ensure the Supabase client is initialized
+  Future<String?> _uploadSignatureToServer(Uint8List imageBytes) async {
     try {
-      // Check if Supabase client is initialized
-      final client = Supabase.instance.client;
-      final String fileName =
-          "signature_${DateTime.now().millisecondsSinceEpoch}.png";
-      
-      // Upload the image to Supabase storage 
-      final response = await client.storage
-          .from("signatures") // This is the bucket Name
-          // Specify the file name and the image bytes
-          .uploadBinary(fileName, imageBytes,
-              fileOptions: const FileOptions(upsert: true));
+      final fileName = "signature_${DateTime.now().millisecondsSinceEpoch}.png";
+      final dioClient = dio.Dio();
+      final formData = dio.FormData.fromMap({
+        "file": dio.MultipartFile.fromBytes(
+          imageBytes,
+          filename: fileName,
+        ),
+      });
 
-      // CHECK IF UPLOAD FAILED
-      if (response.isEmpty) {
-        // Handle the error if the upload failed
+      final response = await dioClient.post(
+        'http://192.168.1.78:8081/api/UploadFile/uploadsignature',
+        data: formData,
+        options: dio.Options(
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          receiveTimeout: const Duration(seconds: 30),
+          sendTimeout: const Duration(seconds: 30),
+        ),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Assuming your API returns the public URL in the response body as 'url'
+        if (response.data is Map && response.data['url'] != null) {
+          return response.data['url'];
+        }
+        // If your API just stores the file and you know the public URL pattern:
+        return 'http://192.168.1.78:8081/api/UploadFile/signatures/$fileName';
+      } else {
         return null;
       }
-
-      // Get the public URL of the uploaded file
-      final String publicUrl =
-          client.storage.from("signatures").getPublicUrl(fileName);
-      // Check if the public URL is empty
-      return publicUrl;
-      // Handle the error if the public URL is empty
+    } on dio.DioException catch (e) {
+      return null;
     } catch (e) {
       return null;
     }
@@ -463,7 +470,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
                             style: TextStyle(fontSize: 14),
                           ),
                           subtitle: Text(
-                           departmentName,
+                            departmentName,
                             style: TextStyle(fontSize: 10),
                           ),
                         ),
@@ -504,14 +511,13 @@ class _AttendanceFormState extends State<AttendanceForm> {
                     height: 50,
                     width: 400,
                     child: CupertinoTextField(
-                      
                       textCapitalization: TextCapitalization.words,
                       keyboardType: TextInputType.name,
                       controller: nameController,
                       placeholder: 'Name',
                       decoration: BoxDecoration(
-    border: Border.all(color: isNameValid ? Colors.blue : Colors.red),
-                        
+                        border: Border.all(
+                            color: isNameValid ? Colors.blue : Colors.red),
                         borderRadius: BorderRadius.circular(10),
                       ),
                     )),
@@ -526,7 +532,8 @@ class _AttendanceFormState extends State<AttendanceForm> {
                       controller: companyController,
                       placeholder: 'Company',
                       decoration: BoxDecoration(
-    border: Border.all(color: isCompanyValid ? Colors.blue : Colors.red),
+                        border: Border.all(
+                            color: isCompanyValid ? Colors.blue : Colors.red),
                         borderRadius: BorderRadius.circular(10),
                       ),
                     )),
@@ -541,7 +548,8 @@ class _AttendanceFormState extends State<AttendanceForm> {
                       controller: emailAddController,
                       placeholder: 'Email Address',
                       decoration: BoxDecoration(
-    border: Border.all(color: isEmailValid ? Colors.blue : Colors.red),
+                        border: Border.all(
+                            color: isEmailValid ? Colors.blue : Colors.red),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       onChanged: (value) {
@@ -557,9 +565,11 @@ class _AttendanceFormState extends State<AttendanceForm> {
                   height: 10,
                 ),
                 ...contactControllers.asMap().entries.map((entry) {
-  int index = entry.key;
-  TextEditingController controller = entry.value;
-  bool isValid = index < contactFieldValidity.length ? contactFieldValidity[index] : true;
+                  int index = entry.key;
+                  TextEditingController controller = entry.value;
+                  bool isValid = index < contactFieldValidity.length
+                      ? contactFieldValidity[index]
+                      : true;
 
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 5),
@@ -576,7 +586,8 @@ class _AttendanceFormState extends State<AttendanceForm> {
                               12), // limit to max 13 digits (adjust as needed)
                         ],
                         decoration: BoxDecoration(
-          border: Border.all(color: isValid ? Colors.blue : Colors.red),
+                          border: Border.all(
+                              color: isValid ? Colors.blue : Colors.red),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         suffix: index == 0
@@ -584,7 +595,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
                                 icon: Icon(Icons.add_circle_outline,
                                     color: Colors
                                         .blue), // Size and color of the icon
-                                        // This will Trigger the addNewContactField function
+                                // This will Trigger the addNewContactField function
                                 onPressed:
                                     addNewContactField, // Add new contact when pressed
                               )
@@ -592,7 +603,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
                                 icon: Icon(Icons.remove_circle_outline,
                                     color: Colors
                                         .red), // Remove icon for subsequent fields
-                                        // This will Trigger the removeContactField function
+                                // This will Trigger the removeContactField function
                                 onPressed: () {
                                   removeContactField(
                                       index); // Remove specific contact field
