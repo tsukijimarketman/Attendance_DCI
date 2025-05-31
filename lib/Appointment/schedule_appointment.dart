@@ -8,6 +8,7 @@ import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:toastification/toastification.dart';
 
@@ -77,6 +78,21 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
       String scheduleText = scheduleController.text.trim();
       String descriptionText = descriptionAgendaController.text.trim();
 
+       if (agendaText.isEmpty || descriptionText.isEmpty) {
+      toastification.show(
+        context: context,
+        alignment: Alignment.topRight,
+        icon: const Icon(Icons.error, color: Colors.red),
+        title: const Text('Missing Information'),
+        description: const Text('Agenda and Description must not be empty.'),
+        type: ToastificationType.error,
+        style: ToastificationStyle.flatColored,
+        autoCloseDuration: const Duration(seconds: 3),
+        animationDuration: const Duration(milliseconds: 300),
+      );
+      return; // Stop execution
+    }
+    
       List<Map<String, dynamic>> localSelectedGuests =
           List.from(selectedGuests);
 
@@ -634,6 +650,12 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
         });
   }
 
+  bool isValidGmail(String email) {
+  final gmailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@gmail\.com$');
+  return gmailRegex.hasMatch(email);
+}
+
+
   void _showAddGuestDialog() {
     final FirebaseFirestore _firestore = FirebaseFirestore.instance;
     final TextEditingController fullName = TextEditingController();
@@ -654,73 +676,170 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
         return AlertDialog(
           title: Text("Add New Guest"),
           content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
                 height: 8,
               ),
-              Container(
-                height: 50,
-                width: 400,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  color: Colors.grey[200],
-                ),
-                child: AnimatedTextField(
-                  label: "Enter Full Name",
-                  controller: fullName,
-                  suffix: null,
-                  readOnly: false,
-                  obscureText: false,
+              Text(
+                "Full Name",
+                style: TextStyle(
+                  fontFamily: "M",
+                  fontSize: MediaQuery.of(context).size.width / 90,
+                  color: Color.fromARGB(255, 11, 55, 99),
                 ),
               ),
               SizedBox(height: 8),
-              Container(
-                height: 50,
-                width: 400,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  color: Colors.grey[200],
+              Center(
+                child: Container(
+                  width: MediaQuery.of(context).size.height * 0.5,
+                  height: MediaQuery.of(context).size.height * 0.06,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.white,
+                    border: Border.all(
+                      color: Color.fromARGB(255, 11, 55, 99),
+                      width: 1,
+                    ),
+                  ),
+                  child: TextField(
+                    controller: fullName,
+                    style: TextStyle(
+                      fontFamily: "R",
+                      fontSize: MediaQuery.of(context).size.width / 90,
+                    ),
+                    decoration: InputDecoration(
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16),
+                      border: InputBorder.none,
+                      hintText: 'Enter full name',
+                      hintStyle: TextStyle(
+                        fontFamily: "R",
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
                 ),
-                child: AnimatedTextField(
-                  label: "Enter Contact Number",
-                  controller: contactNum,
-                  suffix: null,
-                  readOnly: false,
-                  obscureText: false,
+              ),
+              SizedBox(height: 16),
+              Text(
+                "Contact Number",
+                style: TextStyle(
+                  fontFamily: "M",
+                  fontSize: MediaQuery.of(context).size.width / 90,
+                  color: Color.fromARGB(255, 11, 55, 99),
                 ),
               ),
               SizedBox(height: 8),
-              Container(
-                height: 50,
-                width: 400,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  color: Colors.grey[200],
+              Center(
+                child: Container(
+                  height: MediaQuery.of(context).size.height * 0.06,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.white,
+                    border: Border.all(
+                      color: Color.fromARGB(255, 11, 55, 99),
+                      width: 1,
+                    ),
+                  ),
+                  child: TextField(
+                    controller: contactNum,
+                    keyboardType: TextInputType.phone,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(11),
+                    ],
+                    style: TextStyle(
+                      fontFamily: "R",
+                      fontSize: MediaQuery.of(context).size.width / 90,
+                    ),
+                    decoration: InputDecoration(
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16),
+                      border: InputBorder.none,
+                      hintText: 'Enter contact number',
+                      hintStyle: TextStyle(
+                        fontFamily: "R",
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
                 ),
-                child: AnimatedTextField(
-                  label: "Enter Email Address",
-                  controller: emailAdd,
-                  suffix: null,
-                  readOnly: false,
-                  obscureText: false,
+              ),
+              SizedBox(height: 16),
+              Text(
+                "Email Address",
+                style: TextStyle(
+                  fontFamily: "M",
+                  fontSize: MediaQuery.of(context).size.width / 90,
+                  color: Color.fromARGB(255, 11, 55, 99),
                 ),
               ),
               SizedBox(height: 8),
-              Container(
-                height: 50,
-                width: 400,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  color: Colors.grey[200],
+              Center(
+                child: Container(
+                  height: MediaQuery.of(context).size.height * 0.06,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.white,
+                    border: Border.all(
+                      color: Color.fromARGB(255, 11, 55, 99),
+                      width: 1,
+                    ),
+                  ),
+                  child: TextField(
+                    controller: emailAdd,
+                    style: TextStyle(
+                      fontFamily: "R",
+                      fontSize: MediaQuery.of(context).size.width / 90,
+                    ),
+                    decoration: InputDecoration(
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16),
+                      border: InputBorder.none,
+                      hintText: 'Enter email address',
+                      hintStyle: TextStyle(
+                        fontFamily: "R",
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
                 ),
-                child: AnimatedTextField(
-                  label: "Enter Company Name",
-                  controller: companyName,
-                  suffix: null,
-                  readOnly: false,
-                  obscureText: false,
+              ),
+              SizedBox(height: 16),
+              Text(
+                "Company Name",
+                style: TextStyle(
+                  fontFamily: "M",
+                  fontSize: MediaQuery.of(context).size.width / 90,
+                  color: Color.fromARGB(255, 11, 55, 99),
+                ),
+              ),
+              SizedBox(height: 8),
+              Center(
+                child: Container(
+                  height: MediaQuery.of(context).size.height * 0.06,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.white,
+                    border: Border.all(
+                      color: Color.fromARGB(255, 11, 55, 99),
+                      width: 1,
+                    ),
+                  ),
+                  child: TextField(
+                    controller: companyName,
+                    style: TextStyle(
+                      fontFamily: "R",
+                      fontSize: MediaQuery.of(context).size.width / 90,
+                    ),
+                    decoration: InputDecoration(
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16),
+                      border: InputBorder.none,
+                      hintText: 'Enter company name',
+                      hintStyle: TextStyle(
+                        fontFamily: "R",
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -743,6 +862,29 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
+                     if (fullName.text.isEmpty ||
+      contactNum.text.isEmpty ||
+      emailAdd.text.isEmpty ||
+      companyName.text.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Please fill in all fields."),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+  if (!isValidGmail(emailAdd.text.trim())) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Please enter a valid Gmail address."),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
                     QuerySnapshot duplicateCheck = await _firestore
                         .collection('clients')
                         .where('fullName', isEqualTo: fullName.text)

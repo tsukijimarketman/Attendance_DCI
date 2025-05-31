@@ -69,6 +69,17 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
   late AnimationController controllerSignin;
   late Animation<double> _textRevealcontrollerSignin;
   late Animation<double> _textOpacitycontrollerSignin;
+  final String url = 'https://attendance-dci.web.app/privacy-policy/';
+
+  Future<void> _launchURL(BuildContext context) async {
+    if (await canLaunch(url)) {
+      await launch(url, webOnlyWindowName: '_blank'); // Opens in new tab on web
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not open Privacy Policy')),
+      );
+    }
+  }
 
   // this is all for the animation of the text field
   @override
@@ -578,33 +589,42 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
   }
 
 // Function to validate sign up form
-  void _validator() {
-    if (!mounted) return;
+ void _validator() {
+  if (!mounted) return;
 
-    String firstName = firstNameController.text.trim();
-    String lastName = lastNameController.text.trim();
-    String email = emailController.text.trim();
-    String password = passwordController.text.trim();
+  String firstName = firstNameController.text.trim();
+  String lastName = lastNameController.text.trim();
+  String email = emailController.text.trim();
+  String password = passwordController.text.trim();
 
-    // Check if any fields are empty
-    if (firstName.isEmpty ||
-        lastName.isEmpty ||
-        email.isEmpty ||
-        password.isEmpty) {
-      _showDialog('Empty Fields', 'Please fill in all required fields.');
-      return;
-    }
-
-    // Only check password validation if all fields are filled
-    if (!validatePassword(password)) {
-      _showDialog('Invalid Password',
-          'Password must contain at least one uppercase letter, one lowercase letter, one number, one special character, and be between 8-16 characters long.');
-      return;
-    }
-
-    // All validations passed, proceed with user registration
-    _storePendingUser();
+  // Check if any fields are empty
+  if (firstName.isEmpty ||
+      lastName.isEmpty ||
+      email.isEmpty ||
+      password.isEmpty) {
+    _showDialog('Empty Fields', 'Please fill in all required fields.');
+    return;
   }
+
+  // ✅ Gmail validation
+  if (!RegExp(r'^[\w-\.]+@gmail\.com$').hasMatch(email)) {
+    _showDialog('Invalid Email', 'Please enter a valid Gmail address.');
+    return;
+  }
+
+  // ✅ Password validation
+  if (!validatePassword(password)) {
+    _showDialog(
+      'Invalid Password',
+      'Password must contain at least one uppercase letter, one lowercase letter, one number, one special character, and be between 8-16 characters long.',
+    );
+    return;
+  }
+
+  // ✅ All validations passed
+  _storePendingUser();
+}
+
 
   Future<void> handlePasswordReset() async {
     String email = emailController.text.trim();
