@@ -69,17 +69,6 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
   late AnimationController controllerSignin;
   late Animation<double> _textRevealcontrollerSignin;
   late Animation<double> _textOpacitycontrollerSignin;
-  final String url = 'https://attendance-dci.web.app/privacy-policy/';
-
-  Future<void> _launchURL(BuildContext context) async {
-    if (await canLaunch(url)) {
-      await launch(url, webOnlyWindowName: '_blank'); // Opens in new tab on web
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not open Privacy Policy')),
-      );
-    }
-  }
 
   // this is all for the animation of the text field
   @override
@@ -397,7 +386,7 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
                   passwordError,
                   style: TextStyle(color: Colors.red),
                 ),
-              SizedBox(
+               SizedBox(
                 height: MediaQuery.of(context).size.width / 100,
               ),
               MouseRegion(
@@ -438,56 +427,55 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
               SizedBox(
                 height: MediaQuery.of(context).size.width / 70,
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    "Don't have an account? ",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: MediaQuery.of(context).size.width / 85,
-                      fontFamily: "R",
-                    ),
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  MediaQuery.of(context).size.width / 20,
+                  0,
+                  MediaQuery.of(context).size.width / 20,
+                  0,
                   ),
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        passwordError = "";
-                        isLogin = !isLogin;
-                      });
-                    },
-                    child: Text(
-                      "Register Now!",
-                      style: TextStyle(
-                        color: Colors.yellowAccent,
-                        fontSize: MediaQuery.of(context).size.width / 85,
-                        fontFamily: "R",
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          passwordError = "";
+                          isLogin = !isLogin;
+                        });
+                      },
+                      child: Text(
+                        "Register Now!",
+                        style: TextStyle(
+                          color: Colors.yellowAccent,
+                          fontSize: MediaQuery.of(context).size.width / 85,
+                          fontFamily: "R",
+                        ),
                       ),
-                    ),
-                  ).showCursorOnHover.moveUpOnHover,
-                  Spacer(),
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        // Clear any error messages
-                        passwordError = "";
-                        // Clear password field
-                        passwordController.clear();
-                        // Switch to forgot password screen
-                        isForgotPassword = true;
-                        isLogin = false;
-                      });
-                    },
-                    child: Text(
-                      "Forgot Password?",
-                      style: TextStyle(
-                        color: Colors.yellowAccent,
-                        fontSize: MediaQuery.of(context).size.width / 85,
-                        fontFamily: "R",
+                    ).showCursorOnHover.moveUpOnHover,
+                      GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          // Clear any error messages
+                          passwordError = "";
+                          // Clear password field
+                          passwordController.clear();
+                          // Switch to forgot password screen
+                          isForgotPassword = true;
+                          isLogin = false;
+                        });
+                      },
+                      child: Text(
+                        "Forgot Password?",
+                        style: TextStyle(
+                          color: Colors.yellowAccent,
+                          fontSize: MediaQuery.of(context).size.width / 90,
+                          fontFamily: "R",
+                        ),
                       ),
-                    ),
-                  ).showCursorOnHover.moveUpOnHover,
-                ],
+                    ).showCursorOnHover.moveUpOnHover,
+                  ],
+                ),
               )
             ],
           ),

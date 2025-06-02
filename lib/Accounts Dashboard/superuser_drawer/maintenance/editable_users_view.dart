@@ -36,7 +36,6 @@ List<Map<String, String>> _departmentList = [];
 
   // Role mapping as provided
   final Map<String, String> _rolesMap = {
-    '---': '',
     'Super User': 'Superuser',
     'Manager': 'Manager',
     'Department Head': 'DepartmentHead',
@@ -67,7 +66,7 @@ List<Map<String, String>> _departmentList = [];
       _selectedStatus = widget.userData['status'] ?? 'inactive';
 
       // Handle department with validation
-      String? department = widget.userData['department'];
+      String? department = widget.userData['deptID'];
       if (department != null && department.isNotEmpty) {
         _selectedDepartment = department;
       } else {
@@ -100,7 +99,7 @@ List<Map<String, String>> _departmentList = [];
     // Set default values to prevent null issues
     setState(() {
       _selectedStatus = widget.userData['status'] ?? 'inactive';
-      _selectedDepartment = widget.userData['department'];
+      _selectedDepartment = widget.userData['deptID'];
       _selectedRole = widget.userData['roles'];
     });
   }
@@ -123,8 +122,8 @@ List<Map<String, String>> _departmentList = [];
             .toList();
 
         // Add an empty selection option if needed
-        if (!_departmentList.any((department) => department['name'] == '---')) {
-          _departmentList.insert(0, {'deptID': '', 'name': '---'});
+        if (!_departmentList.any((department) => department['name'] == '')) {
+          _departmentList.insert(0, {'deptID': '', 'name': ''});
         }
       });
 
@@ -245,6 +244,31 @@ List<Map<String, String>> _departmentList = [];
 
   // Save changes to Firestore
   Future<void> _saveChanges() async {
+   // Validate role and department selection
+  if (_selectedRole == null || _selectedRole!.isEmpty) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a role before saving.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+    return; // Stop execution, don't save
+  }
+
+  if (_selectedDepartment == null || _selectedDepartment!.isEmpty) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a department before saving.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+    return; // Stop execution, don't save
+  }
+  
   try {
     // Show loading indicator
     _showLoadingDialog(context);

@@ -19,14 +19,12 @@ class AttendanceForm extends StatefulWidget {
   final String firstName;
   final String lastName;
   final String createdBy;
-  final int expiryTime;
   final int selectedScheduleTime;
 
   const AttendanceForm({
     // This is passing the data from the previous screen
     // and requiring the data to be passed
     required this.createdBy,
-    required this.expiryTime,
     required this.roles,
     required this.deptID, // <- Use this to fetch the department name
     required this.agenda,
@@ -51,8 +49,6 @@ class _AttendanceFormState extends State<AttendanceForm> {
     penColor: Colors.black,
     exportBackgroundColor: Colors.white,
   );
-  late Timer _timer;
-  int remainingTime = 0; // Time in seconds
   late DateTime scheduledTime; // Moved initialization inside initState()
 
   bool isValidPhone(String input) {
@@ -64,6 +60,10 @@ class _AttendanceFormState extends State<AttendanceForm> {
   bool isEmailValid = true;
   List<bool> contactFieldValidity = [];
   String departmentName = "";
+  late Timer _countdownTimer;
+int remainingTime = 3600; // 1 hour in seconds
+
+
 
   // Initialize the controllers and other variables
   // This function is called when the widget is created
@@ -82,21 +82,52 @@ class _AttendanceFormState extends State<AttendanceForm> {
   contactFieldValidity = [true];
     scheduledTime =
         DateTime.fromMillisecondsSinceEpoch(widget.selectedScheduleTime);
+          startCountdownTimer(); // Start countdown
 
-    int now = DateTime.now().millisecondsSinceEpoch;
-
-    // Check if form expired (1-hour limit)
-    if (widget.expiryTime < now) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const NotFoundPage()),
-        );
-      });
-      return;
-    }
-
-    _startCountdown();
   }
+
+  void startCountdownTimer() {
+  _countdownTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+    if (mounted) {
+      setState(() {
+        if (remainingTime > 0) {
+          remainingTime--;
+        } else {
+          _countdownTimer.cancel();
+          _showExpiredDialog(); // Call dialog first
+        }
+      });
+    }
+  });
+}
+
+void _showExpiredDialog() {
+  showDialog(
+    context: context,
+    barrierDismissible: false, // prevent user from closing it manually
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Form Expired'),
+        content: const Text('The form has expired due to time limit.'),
+        actions: [
+          TextButton(
+            child: const Text('OK'),
+            onPressed: () {
+              Navigator.of(context).pop(); // Close the dialog
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const NotFoundPage()),
+              );
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
+
+
+
 
   Future<void> fetchDepartmentName(String deptID) async {
   try {
@@ -125,73 +156,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
   }
 }
 
-  // Start the countdown timer
-  // This function is called when the widget is initialized
-  // It calculates the remaining time until the form expires
-  // and sets up a periodic timer to update the remaining time
-  void _startCountdown() {
-    // Get the current time in milliseconds since epoch
-    // Calculate the remaining time in seconds
-    int now = DateTime.now().millisecondsSinceEpoch;
-    remainingTime = ((widget.expiryTime - now) / 1000).round();
-
-    // Check if the remaining time is greater than 0
-    // If so, set up a periodic timer to update the remaining time
-    // If not, show the expired dialog immediately
-    if (remainingTime > 0) {
-      _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-        // Check if the widget is still mounted
-        // This is important to avoid calling setState on a disposed widget
-        // and to ensure that the timer is only active when the widget is visible
-        // and not in the background
-        if (mounted) {
-          setState(() {
-            remainingTime--;
-          });
-
-          // Check if the remaining time is less than or equal to 0
-          // If so, cancel the timer and show the expired dialog
-          // This is important to ensure that the dialog is shown only when the time is up
-          // and to prevent any further updates to the UI
-          // after the form has expired
-          if (remainingTime <= 0) {
-            _timer.cancel();
-            _showExpiredDialog();
-          }
-        }
-      });
-    } else {
-      // If the remaining time is less than or equal to 0
-      // show the expired dialog immediately
-      // This is important to ensure that the user is notified of the expiration
-      
-      _showExpiredDialog();
-    }
-  }
-
-  // Show a dialog when the form has expired
-  // This function is called when the form expires
-  // It shows an alert dialog to the user
-  // with a message indicating that the form has expired
-  void _showExpiredDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text("The Form Has Expired"),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop(); // Go back to previous screen
-            },
-            child: Text("OK"),
-          )
-        ],
-      ),
-    );
-  }
-
+ 
   // Dispose of the controllers to free up resources
   // This function is called when the widget is removed from the widget tree
   // It ensures that all controllers are properly disposed of
@@ -206,7 +171,8 @@ class _AttendanceFormState extends State<AttendanceForm> {
       controller.dispose();
     }
     _signatureController.dispose();
-    _timer.cancel();
+      _countdownTimer.cancel(); // cancel timer to prevent memory leak
+
     super.dispose();
   }
 
@@ -233,11 +199,17 @@ class _AttendanceFormState extends State<AttendanceForm> {
 
   // Format the time in minutes and seconds
   // Example: "5:30" for 5 minutes and 30 seconds
-  String _formatTime(int seconds) {
-    int minutes = seconds ~/ 60;
-    int secs = seconds % 60;
-    return "$minutes:${secs.toString().padLeft(2, '0')}";
-  }
+  String _formatTime(int totalSeconds) {
+  int hours = totalSeconds ~/ 3600;
+  int minutes = (totalSeconds % 3600) ~/ 60;
+  int seconds = totalSeconds % 60;
+
+  String hoursStr = hours > 0 ? "$hours hour${hours > 1 ? 's' : ''} " : "";
+  String minutesStr = minutes > 0 ? "$minutes minute${minutes > 1 ? 's' : ''} " : "";
+  String secondsStr = "$seconds second${seconds != 1 ? 's' : ''}";
+
+  return "$hoursStr$minutesStr$secondsStr".trim();
+}
 
   // Validate the form fields
   bool validateForm() {
@@ -481,18 +453,19 @@ class _AttendanceFormState extends State<AttendanceForm> {
                         ),
                         SizedBox(height: 10),
                         Center(
-                          child: Text(
-                            remainingTime > 0
-                                ? "Expires in: ${_formatTime(remainingTime)} minutes"
-                                : "Form has expired",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color:
-                                  remainingTime > 0 ? Colors.red : Colors.grey,
-                            ),
-                          ),
-                        ),
+  child: Text(
+    remainingTime > 0
+        ? "Expires in: ${_formatTime(remainingTime)}"
+        : "Form has expired",
+    style: TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.bold,
+      color: remainingTime > 0 ? Colors.red : Colors.grey,
+    ),
+  ),
+),
+                        SizedBox(height: 10),
+
                       ],
                     ),
                   ),
