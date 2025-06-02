@@ -22,7 +22,7 @@ dependencies:
   model_viewer_plus: ^1.9.1
   encrypt: ^5.0.3
   qr_flutter: ^4.1.0
-  intl: ^0.20.2
+  intl: ^0.19.0
   supabase_flutter: ^2.8.4
   image_picker: ^1.1.2
   standard_searchbar: ^2.1.1
@@ -61,6 +61,9 @@ dependencies:
   dio: ^5.8.0+1
   flutter_html: ^3.0.0
   google_fonts: ^6.2.1
+  ftpconnect: ^2.0.7
+  mime: ^2.0.0
+  path: ^1.9.1
   
   
 dev_dependencies:

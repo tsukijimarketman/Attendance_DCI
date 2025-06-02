@@ -145,7 +145,7 @@ class _AppointmentManagerState extends State<AppointmentManager> {
                 } 
 
                 // Generate QR URL
-                qrUrl = "https://attendance-dci.web.app//#/attendance_form"
+                qrUrl = "http://192.168.1.78:8081//#/attendance_form"
                     "?agenda=${Uri.encodeComponent(appointmentData['agenda'] ?? '')}"
                   "&department=${Uri.encodeComponent(deptID)}"
                     "&createdBy=${Uri.encodeComponent(appointmentData['createdBy'] ?? '')}"

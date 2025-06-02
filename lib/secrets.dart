@@ -12,7 +12,7 @@ class AppSecrets {
 
   static const String clientID =  "794795546739-gerc0clp04h1qbg5gfphjmsjcvgq6jga.apps.googleusercontent.com";
   static const String clientSecret = "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";
-  static const String redirectUri = "https://attendance-dci.web.app";
+  static const String redirectUri = "http://192.168.1.78:8081";
   static const String scopes =  "https://www.googleapis.com/auth/calendar.events";
 
 }
