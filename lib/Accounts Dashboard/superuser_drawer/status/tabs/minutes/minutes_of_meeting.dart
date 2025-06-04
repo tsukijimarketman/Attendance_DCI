@@ -42,7 +42,7 @@ class _MinutesOfMeetingState extends State<MinutesOfMeeting> {
   TextEditingController _messageController = TextEditingController();
   TextEditingController _htmlEditorController = TextEditingController();
 
-  static const String baseApiUrl = 'http://192.168.1.78:8081/api/UploadFile';
+  static const String baseApiUrl = 'https://attendance-dci.web.app/api/UploadFile';
 
   // This method is called when the widget is initialized. It performs several key actions:
   // 1. First, it fetches the meeting data by calling _fetchMeetingData().

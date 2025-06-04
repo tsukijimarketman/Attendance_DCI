@@ -398,7 +398,7 @@ class _ProfileState extends State<Profile> {
 // Utility class to fetch profile images anywhere in the app
 class ProfileImageUtil {
   // Use a variable that can be changed for testing different IP addresses/domains
-  static String baseApiUrl = 'http://192.168.1.78:8081/api/UploadFile';
+  static String baseApiUrl = 'https://attendance-dci.web.app/api/UploadFile';
   
   /// Test API connectivity and return success status
   static Future<bool> testApiConnection() async {

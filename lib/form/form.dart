@@ -376,7 +376,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
       });
 
       final response = await dioClient.post(
-        'http://192.168.1.78:8081/api/UploadFile/uploadsignature',
+        'https://attendance-dci.web.app/api/UploadFile/uploadsignature',
         data: formData,
         options: dio.Options(
           headers: {
@@ -393,7 +393,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
           return response.data['url'];
         }
         // If your API just stores the file and you know the public URL pattern:
-        return 'http://192.168.1.78:8081/api/UploadFile/signatures/$fileName';
+        return 'https://attendance-dci.web.app/api/UploadFile/signatures/$fileName';
       } else {
         return null;
       }

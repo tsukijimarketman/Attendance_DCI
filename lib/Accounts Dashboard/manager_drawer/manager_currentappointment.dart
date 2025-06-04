@@ -152,7 +152,7 @@ class _ManagerAppointmentManagerState extends State<ManagerAppointmentManager> {
                 int formExpiryTime = now + (60 * 60 * 1000); // 60 minutes
 
                 // Generate QR URL
-                qrUrl = "http://192.168.1.78:8081//#/attendance_form"
+                qrUrl = "https://attendance-dci.web.app//#/attendance_form"
                     "?agenda=${Uri.encodeComponent(appointmentData['agenda'] ?? '')}"
                   "&department=${Uri.encodeComponent(deptID)}"
 

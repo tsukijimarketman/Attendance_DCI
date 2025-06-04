@@ -77,7 +77,7 @@ class _UsersMakingAFormState extends State<UsersMakingAForm> {
     // Form expires in 1 hour
     int formExpiryTime = now + (60 * 60 * 1000);
 
-    String qrUrl = "http://192.168.1.78:8081//#/attendance_form"
+    String qrUrl = "https://attendance-dci.web.app//#/attendance_form"
         "?agenda=${Uri.encodeComponent(widget.agenda.text)}"
         "&department=${Uri.encodeComponent(widget.department.text)}"
         "&createdBy=${Uri.encodeComponent(widget.createdBy)}"
