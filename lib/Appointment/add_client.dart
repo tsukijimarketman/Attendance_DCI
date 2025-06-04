@@ -42,18 +42,6 @@ class _AddClientState extends State<AddClient> {
       return;
     }
 
-     // ✅ Gmail validation
-  if (!RegExp(r'^[\w-\.]+@gmail\.com$').hasMatch(emailAdd.text.trim())) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Please enter a valid Gmail address."),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
-
-
     try {
       await _firestore.collection('clients').add({
         'fullName': fullName.text,
@@ -92,17 +80,6 @@ class _AddClientState extends State<AddClient> {
         SnackBar(
           content: Text("Client not found."),
           backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-     // ✅ Gmail validation
-    if (!RegExp(r'^[\w-\.]+@gmail\.com$').hasMatch(emailAdd.trim())) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Please enter a valid Gmail address."),
-          backgroundColor: Colors.red,
         ),
       );
       return;
