@@ -5,6 +5,7 @@ import 'package:attendance_app/Accounts%20Dashboard/internaluser_drawer/sidebar_
 import 'package:attendance_app/Accounts%20Dashboard/internaluser_drawer/su_address_provider.dart';
 import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_address_provider.dart';
 import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_sidebar_provider.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/profileimagenotifier.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/sidebar_provider.dart';
 import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_sidebar_provider.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/su_address_provider.dart';
@@ -50,6 +51,8 @@ void main() async {
     //multiprovider is used to provide multiple providers to the widget tree 
     //it is like a global variable but it is disposable to reduce memory leak.
     MultiProvider(providers: [
+      ChangeNotifierProvider(
+      create: (_) => ProfileImageNotifier()),
     ChangeNotifierProvider(
       create: (context) => EditModeProvider(),
     ),
@@ -124,7 +127,7 @@ class MyApp extends StatelessWidget {
     return MaterialPageRoute(
       builder: (context) => AttendanceForm(
         selectedScheduleTime: selectedScheduleTime,
-        // expiryTime: expiryTime,
+        expiryTime: expiryTime,
         createdBy: uri.queryParameters['createdBy'] ?? "",
         roles: uri.queryParameters['roles'] ?? "",
         deptID: uri.queryParameters['department'] ?? "",

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/Manager_DB.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/currentappointment.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/maintenance/maintenance.dart';
@@ -12,7 +13,7 @@ import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/auditSU.dar
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/settings_su.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/sidebar_provider.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/sidebarx_usage.dart';
-import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/profile.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/references_su.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/usermanagement_su.dart';
 import 'package:attendance_app/Auth/showDialogSignOut.dart';
 import 'package:attendance_app/hover_extensions.dart';
@@ -20,6 +21,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:toastification/toastification.dart';
+import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/profileimagenotifier.dart';
 
 class SuperUserDashboard extends StatefulWidget {
   const SuperUserDashboard({super.key});
@@ -30,81 +32,76 @@ class SuperUserDashboard extends StatefulWidget {
 
 class _SuperUserDashboardState extends State<SuperUserDashboard> {
   // Start with Dashboard
+
+  // Color variables are initialized for various UI elements. These colors will likely be dynamically updated based on
+// user interaction or some condition in the app. Currently, they are all set to grey, indicating neutral or inactive states.
   Color color1 = Colors.grey;
   Color color2 = Colors.grey;
   Color color3 = Colors.grey;
   Color color4 = Colors.grey;
 
+// Icon for settings is initialized as the settings icon from the material design icons library.
+  IconData iconSettings = Icons.settings;
+
+  // Boolean variable to check if a profile completion toast has been shown already. This avoids multiple toasts being shown.
   bool _hasShownProfileToast = false;
-  bool isHeadersClicked = false;
-  String selectedOption = "";
-  
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  StreamSubscription<QuerySnapshot>? _userSubscription;
-  StreamSubscription? _profileImageSubscription;
 
-  String firstName = "Loading...";
-  String lastName = "";
-  String role = "Fetching...";
-  bool isLoading = true;
-  
-  String? _imageUrl;
-  DateTime _lastImageRefresh = DateTime.now();
-
+  // The initState() method is called when the widget is inserted into the widget tree. It performs several initialization tasks:
+// - It subscribes to user data updates using _subscribeToUserData()
+// - It fetches the user's profile image asynchronously using _fetchProfileImage()
+// - It checks if the user's profile is complete by calling _checkProfileCompletion() after the widget has been laid out
   @override
   void initState() {
     super.initState();
-    _subscribeToUserData();
-    _fetchProfileImage();
-    
-    // Listen for profile image updates from the Profile component
-    _profileImageSubscription = profileImageUpdateController.stream.listen((imageUrl) {
-      if (mounted && imageUrl != null) {
-        setState(() {
-          _imageUrl = imageUrl;
-        });
-      }
-    });
+    _subscribeToUserData(); // Starts listening for user data from Firestore
+    _fetchProfileImage(); // Fetches the user's profile image
+
+    // Listen to profile image changes
+    Provider.of<ProfileImageNotifier>(context, listen: false).addListener(_onProfileImageChanged);
 
     // Executes the profile completion check after the widget has been rendered
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkProfileCompletion();
+      _checkProfileCompletion(); // Checks if the user profile is complete after the first frame is rendered
     });
-    
-    // Set up periodic refresh of profile image (every 30 seconds)
-    _setupProfileImageRefresh();
-  }
-  
-  // Set up a timer to periodically check if the profile image needs refreshing
-  void _setupProfileImageRefresh() {
-    Timer.periodic(Duration(seconds: 30), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      
-      _checkProfileImageUpdate();
-    });
-  }
-  
-  // Check if the profile image has been updated elsewhere
-  Future<void> _checkProfileImageUpdate() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final lastUpdateTimestamp = prefs.getInt('profile_image_timestamp') ?? 0;
-      
-      // If stored timestamp is newer than our last refresh time, fetch the image again
-      final lastUpdateTime = DateTime.fromMillisecondsSinceEpoch(lastUpdateTimestamp);
-      if (lastUpdateTime.isAfter(_lastImageRefresh)) {
-        await _fetchProfileImage();
-        _lastImageRefresh = DateTime.now();
-      }
-    } catch (e) {
-      debugPrint('Error checking profile image update: $e');
-    }
   }
 
+  void _onProfileImageChanged() {
+    setState(() {
+      _imageUrl = Provider.of<ProfileImageNotifier>(context, listen: false).imageUrl;
+    });
+  }
+
+  // This variable tracks whether a specific section of the UI (likely headers) has been clicked.
+// It is used to toggle the view of options or further details on the dashboard.
+  bool isHeadersClicked = false;
+
+  // This variable stores the selected option for some kind of user interaction on the dashboard. It tracks which option is active.
+  String selectedOption = "";
+
+  // Firebase authentication and Firestore instances are initialized to interact with Firebase services.
+// These are used for authentication (user login, etc.) and to fetch/update user data from Firestore.
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // _userSubscription is a subscription to real-time updates from Firestore for the user's data.
+// The StreamSubscription will handle updates for any changes in user data while the user is active.
+  StreamSubscription<QuerySnapshot>? _userSubscription;
+
+  // These variables are used to store the current user's details, including their first name, last name, role, and loading state.
+// The initial values are set to "Loading..." or default values, which will be updated once the user data is retrieved.
+  String firstName = "Loading...";
+  String lastName = "";
+  String role = "Fetching...";
+
+  // The isLoading flag is set to true initially to indicate that user data is being fetched, and UI elements can show loading indicators.
+  bool isLoading = true;
+
+  // This method subscribes to real-time updates for the current user's data from the Firestore database.
+// It checks if the user is authenticated by retrieving their UID from FirebaseAuth. If the user is logged in,
+// it proceeds to listen for changes in the "users" collection where the UID matches the current user's UID.
+// The method listens for snapshot changes and updates the local state with the user's first name, last name,
+// and role. If data is available, it sets the appropriate values; otherwise, it defaults to "No Data" or "N/A"
+// for missing values. The loading state is also managed by setting `isLoading` to false once the data is fetched.
   void _subscribeToUserData() {
     final String? currentUserUid = _auth.currentUser?.uid;
     if (currentUserUid == null) return;
@@ -136,25 +133,69 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
 
   @override
   void dispose() {
-    _userSubscription?.cancel();
-    _profileImageSubscription?.cancel();
+    // Cancel the active user subscription to stop receiving updates when the widget is disposed
+    Provider.of<ProfileImageNotifier>(context, listen: false).removeListener(_onProfileImageChanged);
+    _userSubscription?.cancel(); // Cancel subscription to prevent memory leaks
     super.dispose();
   }
 
-  // This function uses the ProfileImageUtil class to fetch the profile image
+  final supabase = Supabase.instance.client;
+  File? _image;
+  String? _imageUrl;
+
+  // This function fetches the profile image for the currently authenticated user
+// from the Supabase storage service. It first checks if the user is authenticated
+// and then attempts to retrieve the user's profile image file from the storage bucket
+// based on their UID. If the image file exists, it constructs a public URL to access
+// the image and ensures it is properly formatted with a timestamp to prevent caching
+// issues. The image URL is then set in the state to be displayed. If no image is found,
+// the user is notified through a SnackBar.
   Future<void> _fetchProfileImage() async {
-    final imageUrl = await ProfileImageUtil.fetchProfileImage();
-    
-    if (mounted && imageUrl != null) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final filePrefix =
+        'profile_${user.uid}'; // Match all files starting with this
+    final response = await supabase.storage.from('profile-pictures').list();
+
+    FileObject? userFile;
+    try {
+      userFile =
+          response.firstWhere((file) => file.name.startsWith(filePrefix));
+    } catch (e) {
+      userFile = null; // Handle case where no file is found
+    }
+
+    if (userFile != null) {
+      String imageUrl =
+          supabase.storage.from('profile-pictures').getPublicUrl(userFile.name);
+
+      // 🛠️ Ensure URL does NOT contain an extra ":http:"
+      if (imageUrl.contains(':http:')) {
+        imageUrl = imageUrl.replaceAll(':http:', ''); // Fix malformed URL
+      }
+
+      // 🔄 Add timestamp to force refresh
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      imageUrl = "$imageUrl?t=$timestamp";
+
       setState(() {
         _imageUrl = imageUrl;
       });
+
+      // Notify all listeners (including super_user_dashboard.dart)
+      Provider.of<ProfileImageNotifier>(context, listen: false).updateImageUrl(_imageUrl);
     }
   }
 
+  // Function to check if the user's profile is complete by validating required fields in Firestore
   void _checkProfileCompletion() async {
     final user = _auth.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      // If there is no user, exit the function
+
+      return;
+    }
 
     try {
       // First approach: Try fetching the user's document directly by their UID
@@ -168,19 +209,23 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
             .limit(1)
             .get();
 
+        // If a matching user is found in the query results, set the document to that user
         if (querySnapshot.docs.isNotEmpty) {
           doc = querySnapshot.docs.first;
         }
       }
 
+      // If the user document doesn't exist, show a toast notification and return
       if (!doc.exists) {
         _showProfileCompletionToast();
         return;
       }
 
+      // Document exists, proceed to check if the profile fields are complete
       try {
         final userData = doc.data() as Map<String, dynamic>;
 
+        // List of required fields that must be present and non-empty in the user's profile
         final requiredFields = [
           'birthdate',
           'sex',
@@ -193,50 +238,62 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
           'dual_citizen',
         ];
 
+        // Flag to track if the profile is complete
         bool isProfileComplete = true;
+
+        // List to store any missing fields
         List<String> missingFields = [];
 
+        // Check each required field to see if it exists and isn't empty
         for (String field in requiredFields) {
           final hasField = userData.containsKey(field);
           final fieldValue = userData[field];
           final isEmpty = fieldValue == null ||
               (fieldValue is String && fieldValue.isEmpty);
 
+          // If the field is missing or empty, mark the profile as incomplete
+
           if (!hasField || isEmpty) {
             isProfileComplete = false;
-            missingFields.add(field);
+            missingFields.add(field); // Add the missing field to the list
           }
         }
 
+        // If the profile is incomplete, show the toast to notify the user
         if (!isProfileComplete) {
           _showProfileCompletionToast();
         } else {
+          // If the profile is complete, save a preference to avoid checking it again
+
+          // Save preference to avoid future checks if profile is complete
           try {
             final prefs = await SharedPreferences.getInstance();
-            await prefs.setBool('isProfileCompleted_${user.uid}', true);
+            await prefs.setBool('isProfileCompleted_${user.uid}',
+                true); // Save the profile completion status
           } catch (e) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Error: $e')),
-              );
-            }
+            // Show a Snackbar if there was an error saving the preference
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error: $e')),
+            );
           }
         }
       } catch (e) {
+        // If there was an error checking the user data, show the toast notification
+
         _showProfileCompletionToast();
       }
     } catch (e) {
+      // If there was an error fetching user data, show the toast notification
       _showProfileCompletionToast();
     }
   }
 
+// Simplify the toast method
+// This will shpw a Toast if the User Have something in his profile that is not completed
   void _showProfileCompletionToast() {
-    if (!mounted) return;
-    
     // Delay showing toast slightly to ensure UI is ready
     Future.delayed(Duration(milliseconds: 800), () {
-      if (!mounted) return;
-      
       toastification.show(
         context: context,
         alignment: Alignment.topRight,
@@ -254,7 +311,7 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
           ),
         ),
         type: ToastificationType.warning,
-        style: ToastificationStyle.flatColored,
+        style: ToastificationStyle.flatColored, // Light yellow color
         autoCloseDuration: const Duration(seconds: 6),
         animationDuration: const Duration(milliseconds: 300),
       );
@@ -263,6 +320,7 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final String? currentUserUid = FirebaseAuth.instance.currentUser?.uid;
     final sidebarProvider = Provider.of<SidebarProvider>(context);
     return Scaffold(
         backgroundColor: Color(0xFFf2edf3),
@@ -339,7 +397,7 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
               ],
             ),
             SizedBox(
-              width: MediaQuery.of(context).size.width / 40,
+              width: MediaQuery.of(context).size.width / 50,
             ),
             GestureDetector(
               onTap: () {
@@ -408,11 +466,11 @@ class _SuperUserDashboardState extends State<SuperUserDashboard> {
       case 4:
         return const Maintenance();
       case 5:
-        return const AppointmentManager();
+      return const AppointmentManager();
       case 6:
-        return const ManagerDB();
+      return const ManagerDB();
       case 7:
-        return const SettingsSU();
+      return const SettingsSU();
       case 8:
         return const AuditSU();
       default:

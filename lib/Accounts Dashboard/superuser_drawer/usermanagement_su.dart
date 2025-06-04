@@ -1014,7 +1014,7 @@ String _getWelcomeEmailTemplate(String userName) {
     
     <p>Please use the link below to access the system:</p>
     
-    <a href="http://192.168.1.78:8081" class="button" style="display: inline-block; background-color: #8B0000; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 20px 0;">Access Appointment System</a>
+    <a href="https://attendance-dci.web.app/" class="button" style="display: inline-block; background-color: #8B0000; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 20px 0;">Access Appointment System</a>
     
     <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
     
