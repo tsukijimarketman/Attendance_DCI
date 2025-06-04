@@ -35,6 +35,8 @@ class _AppointmentManagerState extends State<AppointmentManager> {
   int totalPagesHistory = 1;
   TextEditingController itemsPerPageController = TextEditingController();
   bool isAscending = true; // Default sort direction
+    Map<String, String> departmentMap = {};
+
 
   // Status colors
   final Map<String, Color> statusColors = {
@@ -48,7 +50,13 @@ class _AppointmentManagerState extends State<AppointmentManager> {
   void initState() {
     super.initState();
     itemsPerPageController.text = itemsPerPage.toString();
-  }
+  
+  fetchDepartmentNames().then((map) {
+    setState(() {
+      departmentMap = map;
+    });
+  });
+}
 
   @override
   void dispose() {
@@ -61,7 +69,7 @@ class _AppointmentManagerState extends State<AppointmentManager> {
 
   // Modified _showAppointmentDetails method to add status-based restriction
   void _showAppointmentDetails(
-      Map<String, dynamic> appointmentData, String docId) {
+      Map<String, dynamic> appointmentData, String docId) async{
     final TextEditingController agendaController =
         TextEditingController(text: appointmentData['agenda'] ?? '');
     final TextEditingController departmentController =
@@ -76,6 +84,28 @@ class _AppointmentManagerState extends State<AppointmentManager> {
 
     final double dialogWidth = MediaQuery.of(context).size.width * 0.7;
     final double dialogHeight = MediaQuery.of(context).size.height * 0.7;
+
+  
+     // ✅ Fetch departmentName before the dialog
+  String deptID = appointmentData['deptID'] ?? '';
+  String departmentName = 'Unknown Department';
+
+  try {
+    QuerySnapshot refSnapshot = await FirebaseFirestore.instance
+        .collection('references')
+        .where('deptID', isEqualTo: deptID)
+        .where('isDeleted', isEqualTo: false)
+        .limit(1)
+        .get();
+
+    if (refSnapshot.docs.isNotEmpty) {
+      var deptData = refSnapshot.docs.first.data() as Map<String, dynamic>;
+      departmentName = deptData['name'] ?? 'Unknown Department';
+    }
+  } catch (e) {
+    print("Error fetching department name: $e");
+  }
+
 
     // QR code states - only used if status is "In Progress"
     bool isGeneratingQR = false;
@@ -116,20 +146,16 @@ class _AppointmentManagerState extends State<AppointmentManager> {
                   }
                 }
 
-                int now = DateTime.now().millisecondsSinceEpoch;
-                int qrExpiryTime = now + (30 * 60 * 1000); // 30 minutes
-                int formExpiryTime = now + (60 * 60 * 1000); // 60 minutes
+                 String deptID = appointmentData['deptID'] ?? '';
 
                 // Generate QR URL
                 qrUrl = "https://attendance-dci.web.app//#/attendance_form"
                     "?agenda=${Uri.encodeComponent(appointmentData['agenda'] ?? '')}"
-                    "&department=${Uri.encodeComponent(appointmentData['department'] ?? '')}"
+                  "&department=${Uri.encodeComponent(deptID)}"
+
                     "&createdBy=${Uri.encodeComponent(appointmentData['createdBy'] ?? '')}"
                     "&first_name=${Uri.encodeComponent(firstName)}"
-                    "&last_name=${Uri.encodeComponent(lastName)}"
-                    "&expiryTime=${formExpiryTime}";
-
-                expiryTime = qrExpiryTime;
+                    "&last_name=${Uri.encodeComponent(lastName)}";
 
                 setState(() {
                   qrGenerated = true;
@@ -224,11 +250,10 @@ class _AppointmentManagerState extends State<AppointmentManager> {
                                   _buildDetailItem(
                                       Icons.access_time, 'Time', formattedTime),
                                   SizedBox(height: 15),
-                                  _buildDetailItem(
+                                 _buildDetailItem(
                                       Icons.business,
                                       'Department',
-                                      appointmentData['department'] ??
-                                          'No Department'),
+                                    departmentName),
                                   SizedBox(height: 15),
                                   _buildDetailItem(
                                       Icons.person,
@@ -523,69 +548,29 @@ class _AppointmentManagerState extends State<AppointmentManager> {
     );
   }
 
-  void debugFilteringProcess(
-      List<QueryDocumentSnapshot> allAppointments, String? currentUserEmail) {
-    print("DEBUG: All appointments count: ${allAppointments.length}");
-    print("DEBUG: Current user email: $currentUserEmail");
+   Future<Map<String, String>> fetchDepartmentNames() async {
+  QuerySnapshot snapshot = await FirebaseFirestore.instance
+      .collection('references')
+      .where('isDeleted', isEqualTo: false)
+      .get();
 
-    if (currentUserEmail == null) {
-      print("DEBUG: User email is null, cannot filter");
-      return;
+  Map<String, String> deptMap = {};
+  for (var doc in snapshot.docs) {
+    var data = doc.data() as Map<String, dynamic>;
+    if (data.containsKey('deptID') && data.containsKey('name')) {
+      deptMap[data['deptID']] = data['name'];
     }
-
-    int createdByUserCount = 0;
-    int invitedUserCount = 0;
-
-    for (var doc in allAppointments) {
-      var data = doc.data() as Map<String, dynamic>;
-
-      // Check if created by current user
-      if (data['createdByEmail'] == currentUserEmail) {
-        createdByUserCount++;
-        print("DEBUG: Found appointment created by user: ${data['agenda']}");
-      }
-
-      // Check if user is in internal_users
-      bool isInInternalUsers = false;
-      List<dynamic> internalUsers = data['internal_users'] ?? [];
-      for (var user in internalUsers) {
-        if (user is Map && user['email'] == currentUserEmail) {
-          isInInternalUsers = true;
-          invitedUserCount++;
-          print(
-              "DEBUG: Found appointment with user in internal_users: ${data['agenda']}");
-          break;
-        }
-      }
-
-      // Print the internal_users for inspection
-      if (!isInInternalUsers && internalUsers.isNotEmpty) {
-        print(
-            "DEBUG: ${data['agenda']} has internal_users but user not found:");
-        for (var user in internalUsers) {
-          if (user is Map) {
-            print("  - ${user['email']}");
-          }
-        }
-      }
-    }
-
-    print("DEBUG: Appointments created by user: $createdByUserCount");
-    print("DEBUG: Appointments with user in internal_users: $invitedUserCount");
   }
+  return deptMap;
+}
 
   // Modified filter method to check for user invitation
-  // Modified filter method to check for user invitation or creation
   List<QueryDocumentSnapshot> getFilteredAppointments(
-      List<QueryDocumentSnapshot> allAppointments, String? currentUserEmail) {
-    // Debug the filtering process
-    debugFilteringProcess(allAppointments, currentUserEmail);
+      List<QueryDocumentSnapshot> allAppointments, 
+      String? currentUserEmail,
+            Map<String, String> departmentMap // Add the departmentMap here
 
-    if (currentUserEmail == null) {
-      print("No user email available, returning empty list");
-      return [];
-    }
-
+) {
     // First filter by search query
     List<QueryDocumentSnapshot> searchFiltered;
     if (searchQuery.isEmpty) {
@@ -594,56 +579,45 @@ class _AppointmentManagerState extends State<AppointmentManager> {
       searchFiltered = allAppointments.where((doc) {
         var data = doc.data() as Map<String, dynamic>;
         String agenda = (data['agenda'] ?? '').toString().toLowerCase();
-        String department = (data['department'] ?? '').toString().toLowerCase();
+ String deptID = (data['deptID'] ?? '').toString();
+        String deptName = departmentMap[deptID]?.toLowerCase() ?? ''; // Get department name from departmentMap
         String createdBy = (data['createdBy'] ?? '').toString().toLowerCase();
 
         return agenda.contains(searchQuery.toLowerCase()) ||
-            department.contains(searchQuery.toLowerCase()) ||
+            deptName.contains(searchQuery.toLowerCase()) ||
+
             createdBy.contains(searchQuery.toLowerCase());
       }).toList();
-
-      print(
-          "DEBUG: After search filter, found ${searchFiltered.length} appointments");
     }
 
-    // Then filter by user invitation status or creation
-    List<QueryDocumentSnapshot> userFiltered = searchFiltered.where((doc) {
-      var data = doc.data() as Map<String, dynamic>;
+    // Then filter by user invitation status
+    if (currentUserEmail != null) {
+      return searchFiltered.where((doc) {
+        var data = doc.data() as Map<String, dynamic>;
 
-      // Case insensitive comparison for email
-      String createdByEmail =
-          (data['createdByEmail'] ?? '').toString().toLowerCase();
-      String userEmail = currentUserEmail.toLowerCase();
+        // Check if the current user is in internal_users
+        List<dynamic> internalUsers = data['internal_users'] ?? [];
 
-      // Check if the current user created the appointment
-      if (createdByEmail == userEmail) {
-        print(
-            "DEBUG: Including appointment created by user: ${data['agenda']}");
-        return true;
-      }
+        // If user created the appointment, include it
+        if (data['createdByEmail'] == currentUserEmail) {
+          return true;
+        }
 
-      // Check if the current user is in internal_users array
-      List<dynamic> internalUsers = data['internal_users'] ?? [];
-      for (var user in internalUsers) {
-        if (user is Map) {
-          String internalUserEmail =
-              (user['email'] ?? '').toString().toLowerCase();
-          if (internalUserEmail == userEmail) {
-            print(
-                "DEBUG: Including appointment with user in internal_users: ${data['agenda']}");
+        // Check if user is in the internal_users array
+        for (var user in internalUsers) {
+          if (user is Map && user['email'] == currentUserEmail) {
             return true;
           }
         }
-      }
 
-      return false;
-    }).toList();
+        return false;
+      }).toList();
+    }
 
-    print("DEBUG: Final filtered appointments count: ${userFiltered.length}");
-    return userFiltered;
+    return searchFiltered;
   }
 
-// Separate current and history appointments based on status
+  // Separate current and history appointments
   Map<String, List<QueryDocumentSnapshot>> separateAppointments(
       List<QueryDocumentSnapshot> filteredAppointments) {
     List<QueryDocumentSnapshot> currentAppointments = [];
@@ -653,8 +627,6 @@ class _AppointmentManagerState extends State<AppointmentManager> {
       var data = doc.data() as Map<String, dynamic>;
       String status = (data['status'] ?? '').toString();
 
-      // Current: Scheduled and In Progress
-      // History: Completed and Cancelled
       if (status == 'Completed' || status == 'Cancelled') {
         historyAppointments.add(doc);
       } else {
@@ -762,265 +734,246 @@ class _AppointmentManagerState extends State<AppointmentManager> {
 
               // Appointments lists - current and history side by side
               Expanded(
-                child: FutureBuilder<String?>(
-                  future: _getCurrentUserEmail(),
-                  builder: (context, userEmailSnapshot) {
-                    if (userEmailSnapshot.connectionState ==
-                        ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    final currentUserEmail = userEmailSnapshot.data;
-                    print(
-                        "DEBUG: Current user email from FutureBuilder: $currentUserEmail");
-
-                    if (currentUserEmail == null) {
-                      return Center(
-                          child: Text('Error: Cannot retrieve user email'));
-                    }
-
-                    return StreamBuilder<QuerySnapshot>(
-                      stream: _firestore.collection('appointment').snapshots(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
+                  child: FutureBuilder<String?>(
+                      future: _getCurrentUserEmail(),
+                      builder: (context, userEmailSnapshot) {
+                        if (userEmailSnapshot.connectionState ==
                             ConnectionState.waiting) {
                           return const Center(
                               child: CircularProgressIndicator());
                         }
 
-                        if (snapshot.hasError) {
-                          print(
-                              "DEBUG: StreamBuilder error: ${snapshot.error}");
-                          return Center(
-                            child: Text(
-                              'Error loading appointments: ${snapshot.error}',
-                              style: TextStyle(fontSize: width / 120),
-                            ),
-                          );
-                        }
+                        final currentUserEmail = userEmailSnapshot.data;
 
-                        final allAppointments = snapshot.data?.docs ?? [];
-                        print(
-                            "DEBUG: Total appointments from Firestore: ${allAppointments.length}");
+                        return StreamBuilder<QuerySnapshot>(
+                          stream:
+                              _firestore.collection('appointment').snapshots(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Center(
+                                  child: CircularProgressIndicator());
+                            }
 
-                        // Debug some sample data if available
-                        if (allAppointments.isNotEmpty) {
-                          var sampleData =
-                              allAppointments[0].data() as Map<String, dynamic>;
-                          print("DEBUG: Sample appointment data:");
-                          print("  - Agenda: ${sampleData['agenda']}");
-                          print("  - CreatedBy: ${sampleData['createdBy']}");
-                          print(
-                              "  - CreatedByEmail: ${sampleData['createdByEmail']}");
-                          print("  - Status: ${sampleData['status']}");
-                        }
+                            if (snapshot.hasError) {
+                              return Center(
+                                child: Text(
+                                  'Error loading appointments',
+                                  style: TextStyle(fontSize: width / 120),
+                                ),
+                              );
+                            }
 
-                        final filteredAppointments = getFilteredAppointments(
-                            allAppointments, currentUserEmail);
-                        final separatedAppointments =
-                            separateAppointments(filteredAppointments);
+                            final allAppointments = snapshot.data?.docs ?? [];
+                            final filteredAppointments =
+                                getFilteredAppointments(
+                                    allAppointments, currentUserEmail, departmentMap);
+                            final separatedAppointments =
+                                separateAppointments(filteredAppointments);
 
-                        final currentAppointments =
-                            separatedAppointments['current'] ?? [];
-                        final historyAppointments =
-                            separatedAppointments['history'] ?? [];
+                            // Rest of the code remains the same...
+                            final currentAppointments =
+                                separatedAppointments['current'] ?? [];
+                            final historyAppointments =
+                                separatedAppointments['history'] ?? [];
 
-                        print(
-                            "DEBUG: Current appointments count: ${currentAppointments.length}");
-                        print(
-                            "DEBUG: History appointments count: ${historyAppointments.length}");
+                            // Calculate pagination without setState
+                            final activePagination = calculatePagination(
+                                currentAppointments, 'current');
+                            final historyPagination = calculatePagination(
+                                historyAppointments, 'history');
 
-                        // Calculate pagination without setState
-                        final activePagination =
-                            calculatePagination(currentAppointments, 'current');
-                        final historyPagination =
-                            calculatePagination(historyAppointments, 'history');
+                            final effectiveCurrentPageActive =
+                                activePagination['currentPage'] ??
+                                    currentPageActive;
+                            final effectiveCurrentPageHistory =
+                                historyPagination['currentPage'] ??
+                                    currentPageHistory;
+                            final effectiveTotalPagesActive =
+                                activePagination['totalPages'] ?? 1;
+                            final effectiveTotalPagesHistory =
+                                historyPagination['totalPages'] ?? 1;
 
-                        final effectiveCurrentPageActive =
-                            activePagination['currentPage'] ??
-                                currentPageActive;
-                        final effectiveCurrentPageHistory =
-                            historyPagination['currentPage'] ??
-                                currentPageHistory;
-                        final effectiveTotalPagesActive =
-                            activePagination['totalPages'] ?? 1;
-                        final effectiveTotalPagesHistory =
-                            historyPagination['totalPages'] ?? 1;
+                            final currentPageItemsActive = getCurrentPageItems(
+                                currentAppointments,
+                                effectiveCurrentPageActive);
+                            final currentPageItemsHistory = getCurrentPageItems(
+                                historyAppointments,
+                                effectiveCurrentPageHistory);
 
-                        final currentPageItemsActive = getCurrentPageItems(
-                            currentAppointments, effectiveCurrentPageActive);
-                        final currentPageItemsHistory = getCurrentPageItems(
-                            historyAppointments, effectiveCurrentPageHistory);
-
-                        print(
-                            "DEBUG: Current page items (active): ${currentPageItemsActive.length}");
-                        print(
-                            "DEBUG: Current page items (history): ${currentPageItemsHistory.length}");
-
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Current Appointments Section
-                            Expanded(
-                              child: Container(
-                                color: Colors.blueGrey[100],
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Header
-                                    Container(
-                                      padding: EdgeInsets.symmetric(
-                                          vertical: height * 0.01,
-                                          horizontal: width * 0.01),
-                                      decoration: BoxDecoration(
-                                        color: const Color.fromARGB(
-                                            255, 11, 55, 99),
-                                        borderRadius: BorderRadius.only(
-                                          topLeft:
-                                              Radius.circular(width * 0.01),
-                                          topRight:
-                                              Radius.circular(width * 0.01),
-                                        ),
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            'Current Appointments (${currentAppointments.length})',
-                                            style: TextStyle(
-                                              fontSize: width / 80,
-                                              fontFamily: 'SB',
-                                              color: Colors.white,
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Current Appointments Section
+                                Expanded(
+                                  child: Container(
+                                    color: Colors.blueGrey[100],
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        // Header
+                                        Container(
+                                          padding: EdgeInsets.symmetric(
+                                              vertical: height * 0.01,
+                                              horizontal: width * 0.01),
+                                          decoration: BoxDecoration(
+                                            color: const Color.fromARGB(
+                                                255, 11, 55, 99),
+                                            borderRadius: BorderRadius.only(
+                                              topLeft:
+                                                  Radius.circular(width * 0.01),
+                                              topRight:
+                                                  Radius.circular(width * 0.01),
                                             ),
                                           ),
-                                          _buildPaginationControls(
-                                              effectiveCurrentPageActive,
-                                              effectiveTotalPagesActive,
-                                              (page) => setState(() =>
-                                                  currentPageActive = page),
-                                              width,
-                                              true),
-                                        ],
-                                      ),
-                                    ),
-
-                                    // List
-                                    Expanded(
-                                      child: currentAppointments.isEmpty
-                                          ? _buildEmptyState(
-                                              'No current appointments', width)
-                                          : ListView.builder(
-                                              itemCount:
-                                                  currentPageItemsActive.length,
-                                              itemBuilder: (context, index) {
-                                                final appointmentData =
-                                                    currentPageItemsActive[
-                                                                index]
-                                                            .data()
-                                                        as Map<String, dynamic>;
-                                                print(
-                                                    "DEBUG: Building active appointment: ${appointmentData['agenda']}");
-                                                return _buildAppointmentCard(
-                                                  appointmentData,
-                                                  currentPageItemsActive[index]
-                                                      .id,
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                'Current Appointments',
+                                                style: TextStyle(
+                                                  fontSize: width / 80,
+                                                  fontFamily: 'SB',
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                              _buildPaginationControls(
+                                                  effectiveCurrentPageActive,
+                                                  effectiveTotalPagesActive,
+                                                  (page) => setState(() =>
+                                                      currentPageActive = page),
                                                   width,
-                                                  height,
-                                                  false,
-                                                );
-                                              },
-                                            ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-
-                            SizedBox(width: width * 0.02),
-
-                            // History Appointments Section
-                            Expanded(
-                              child: Container(
-                                color: Colors.grey[300],
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Header
-                                    Container(
-                                      padding: EdgeInsets.symmetric(
-                                          vertical: height * 0.01,
-                                          horizontal: width * 0.01),
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey[600],
-                                        borderRadius: BorderRadius.only(
-                                          topLeft:
-                                              Radius.circular(width * 0.01),
-                                          topRight:
-                                              Radius.circular(width * 0.01),
+                                                  true),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            'Appointment History (${historyAppointments.length})',
-                                            style: TextStyle(
-                                              fontSize: width / 80,
-                                              fontFamily: 'SB',
-                                              color: Colors.white,
+
+                                        // List
+                                        Expanded(
+                                          child: currentAppointments.isEmpty
+                                              ? _buildEmptyState(
+                                                  'No current appointments',
+                                                  width)
+                                              : ListView.builder(
+                                                  itemCount:
+                                                      currentPageItemsActive
+                                                          .length,
+                                                  itemBuilder:
+                                                      (context, index) {
+                                                    final appointmentData =
+                                                        currentPageItemsActive[
+                                                                    index]
+                                                                .data()
+                                                            as Map<String,
+                                                                dynamic>;
+                                                    return _buildAppointmentCard(
+                                                      appointmentData,
+                                                      currentPageItemsActive[
+                                                              index]
+                                                          .id,
+                                                      width,
+                                                      height,
+                                                      false,
+                                                       departmentMap, // 👈 add this
+                                                    );
+                                                  },
+                                                ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+
+                                SizedBox(width: width * 0.02),
+
+                                // History Appointments Section
+                                Expanded(
+                                  child: Container(
+                                    color: Colors.grey[300],
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        // Header
+                                        Container(
+                                          padding: EdgeInsets.symmetric(
+                                              vertical: height * 0.01,
+                                              horizontal: width * 0.01),
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey[600],
+                                            borderRadius: BorderRadius.only(
+                                              topLeft:
+                                                  Radius.circular(width * 0.01),
+                                              topRight:
+                                                  Radius.circular(width * 0.01),
                                             ),
                                           ),
-                                          _buildPaginationControls(
-                                              effectiveCurrentPageHistory,
-                                              effectiveTotalPagesHistory,
-                                              (page) => setState(() =>
-                                                  currentPageHistory = page),
-                                              width,
-                                              true),
-                                        ],
-                                      ),
-                                    ),
-
-                                    // List
-                                    Expanded(
-                                      child: historyAppointments.isEmpty
-                                          ? _buildEmptyState(
-                                              'No appointment history', width)
-                                          : ListView.builder(
-                                              itemCount: currentPageItemsHistory
-                                                  .length,
-                                              itemBuilder: (context, index) {
-                                                final appointmentData =
-                                                    currentPageItemsHistory[
-                                                                index]
-                                                            .data()
-                                                        as Map<String, dynamic>;
-                                                print(
-                                                    "DEBUG: Building history appointment: ${appointmentData['agenda']}");
-                                                return _buildAppointmentCard(
-                                                  appointmentData,
-                                                  currentPageItemsHistory[index]
-                                                      .id,
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                'Appointment History',
+                                                style: TextStyle(
+                                                  fontSize: width / 80,
+                                                  fontFamily: 'SB',
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                              _buildPaginationControls(
+                                                  effectiveCurrentPageHistory,
+                                                  effectiveTotalPagesHistory,
+                                                  (page) => setState(() =>
+                                                      currentPageHistory =
+                                                          page),
                                                   width,
-                                                  height,
-                                                  true,
-                                                );
-                                              },
-                                            ),
+                                                  true),
+                                            ],
+                                          ),
+                                        ),
+
+                                        // List
+                                        Expanded(
+                                          child: historyAppointments.isEmpty
+                                              ? _buildEmptyState(
+                                                  'No appointment history',
+                                                  width)
+                                              : ListView.builder(
+                                                  itemCount:
+                                                      currentPageItemsHistory
+                                                          .length,
+                                                  itemBuilder:
+                                                      (context, index) {
+                                                    final appointmentData =
+                                                        currentPageItemsHistory[
+                                                                    index]
+                                                                .data()
+                                                            as Map<String,
+                                                                dynamic>;
+                                                    return _buildAppointmentCard(
+                                                      appointmentData,
+                                                      currentPageItemsHistory[
+                                                              index]
+                                                          .id,
+                                                      width,
+                                                      height,
+                                                      true,
+                                                       departmentMap, // 👈 add this
+                                                    );
+                                                  },
+                                                ),
+                                        ),
+                                      ],
                                     ),
-                                  ],
+                                  ),
                                 ),
-                              ),
-                            ),
-                          ],
+                              ],
+                            );
+                          },
                         );
-                      },
-                    );
-                  },
-                ),
-              )
+                      }))
             ],
           ),
         ),
@@ -1284,6 +1237,9 @@ class _AppointmentManagerState extends State<AppointmentManager> {
     double width,
     double height,
     bool isHistory,
+          Map<String, String> departmentMap, // new param
+
+
   ) {
     // Parse schedule string to DateTime
     DateTime scheduleDate = DateTime.parse(appointmentData['schedule']);
@@ -1377,7 +1333,8 @@ class _AppointmentManagerState extends State<AppointmentManager> {
                               isHistory ? Colors.grey[500] : Colors.grey[600]),
                       SizedBox(width: width * 0.005),
                       Text(
-                        appointmentData['department'] ?? 'No Department',
+                       departmentMap[appointmentData['deptID']] ?? 'No Department',
+
                         style: TextStyle(
                           fontSize: bodySize,
                           fontFamily: 'M', // Medium font

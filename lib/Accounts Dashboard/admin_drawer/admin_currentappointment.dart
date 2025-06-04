@@ -143,21 +143,13 @@ class _AppointmentManagerState extends State<AppointmentManager> {
                   }
                 }
                      String deptID = appointmentData['deptID'] ?? '';
-
-                int now = DateTime.now().millisecondsSinceEpoch;
-                int qrExpiryTime = now + (30 * 60 * 1000); // 30 minutes
-                int formExpiryTime = now + (60 * 60 * 1000); // 60 minutes
-
                 // Generate QR URL
                 qrUrl = "https://attendance-dci.web.app//#/attendance_form"
                     "?agenda=${Uri.encodeComponent(appointmentData['agenda'] ?? '')}"
                   "&department=${Uri.encodeComponent(deptID)}"
                     "&createdBy=${Uri.encodeComponent(appointmentData['createdBy'] ?? '')}"
                     "&first_name=${Uri.encodeComponent(firstName)}"
-                    "&last_name=${Uri.encodeComponent(lastName)}"
-                    "&expiryTime=${formExpiryTime}";
-
-                expiryTime = qrExpiryTime;
+                    "&last_name=${Uri.encodeComponent(lastName)}";
 
                 setState(() {
                   qrGenerated = true;

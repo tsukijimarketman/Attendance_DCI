@@ -4,6 +4,7 @@ import 'package:attendance_app/Accounts%20Dashboard/internaluser_drawer/inernal_
 import 'package:attendance_app/Accounts%20Dashboard/manager_drawer/manager_dashboard.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/super_user_dashboard.dart';
 import 'package:attendance_app/Animation/loader.dart';
+import 'package:attendance_app/Auth/SessionManager.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -32,6 +33,9 @@ class AuthPersistent extends StatelessWidget {
           return const Center(child: CustomLoader());
           // Show a loading indicator while waiting for the authentication state
         } else if (snapshot.hasData) {
+          // ✅ Start session only if user is logged in
+          SessionManager().startSession(context);
+
           // If the user is authenticated, check their role
           return FutureBuilder(
             future: checkUserRole(snapshot.data!, context), // Pass context
@@ -47,6 +51,8 @@ class AuthPersistent extends StatelessWidget {
           );
           // If the user is not authenticated, show the login screen
         } else {
+                    SessionManager().cancelSession();
+
           return Login();
         }
       },

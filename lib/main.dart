@@ -9,6 +9,8 @@ import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/sidebar_pro
 import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_sidebar_provider.dart';
 import 'package:attendance_app/Accounts%20Dashboard/superuser_drawer/su_address_provider.dart';
 import 'package:attendance_app/Accounts%20Dashboard/admin_drawer/admin_address_provider.dart';
+import 'package:attendance_app/Auth/SessionManager.dart';
+import 'package:attendance_app/Auth/SessionWrapper.dart';
 import 'package:attendance_app/edit_mode_provider.dart';
 import 'package:attendance_app/firebase_options.dart';
 import 'package:attendance_app/form/form.dart';
@@ -61,7 +63,8 @@ void main() async {
     ChangeNotifierProvider(create: (_) => ManagerSidebarProvider()),  
      ChangeNotifierProvider(create: (_) => InternalSidebarProvider()), 
     ChangeNotifierProvider(create: (_) => InternalAddressProvider()),  
-  ], child: MyApp())
+  ],     child: SessionWrapper(child: MyApp()),
+)
   );
   
 }
@@ -73,6 +76,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'QR Code Attendance',
       onGenerateRoute: _generateRoute,
@@ -120,7 +124,7 @@ class MyApp extends StatelessWidget {
     return MaterialPageRoute(
       builder: (context) => AttendanceForm(
         selectedScheduleTime: selectedScheduleTime,
-        expiryTime: expiryTime,
+        // expiryTime: expiryTime,
         createdBy: uri.queryParameters['createdBy'] ?? "",
         roles: uri.queryParameters['roles'] ?? "",
         deptID: uri.queryParameters['department'] ?? "",

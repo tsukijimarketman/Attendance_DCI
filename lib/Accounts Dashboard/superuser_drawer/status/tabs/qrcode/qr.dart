@@ -71,7 +71,7 @@ class _QrCodeState extends State<QrCode> with AutomaticKeepAliveClientMixin {
             .limit(1)
             .get();
 
-        if (querySnapshot.docs.isNotEmpty) {
+        if (querySnapshot.docs.isNotEmpty) { 
           var userData =
               querySnapshot.docs.first.data() as Map<String, dynamic>;
                   String deptID = userData['deptID'] ?? '';
@@ -128,8 +128,7 @@ class _QrCodeState extends State<QrCode> with AutomaticKeepAliveClientMixin {
         "?agenda=${Uri.encodeComponent(agendaController.text)}"
         "&department=${Uri.encodeComponent(departmentController.text)}"
         "&first_name=${Uri.encodeComponent(firstName)}"
-        "&last_name=${Uri.encodeComponent(lastName)}"
-        "&expiryTime=${formExpiryTime}";
+        "&last_name=${Uri.encodeComponent(lastName)}";
 
     try {
       // Audit Trail: Log when a user generates a QR Code

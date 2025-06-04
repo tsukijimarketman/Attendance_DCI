@@ -23,7 +23,7 @@ class _UserManagementState extends State<UserManagement> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Holds the currently selected role from the dropdown (default is '---')
-  String selectedRoles = '---';
+String? selectedRoles;  // Start as null (no role selected)
 
   // List to store department names fetched from Firestore
 List<Map<String, dynamic>> departmentList = []; // Using dynamic type for flexibility
@@ -46,7 +46,6 @@ String? selectedDepartmentId;
   // Map that defines the display name of roles and their corresponding internal role identifiers
 // Used to map the human-readable role names to the backend-recognized role keys
   final Map<String, String> rolesMap = {
-    '---': '',
     'Super User': 'Superuser',
     'Manager': 'Manager',
     'Department Head': 'DepartmentHead',
@@ -145,6 +144,14 @@ String? selectedDepartmentId;
   int get _totalPages {
     return (_filteredUsers.length / _itemsPerPage).ceil();
   }
+
+  void clearDropdowns() {
+  setState(() {
+    selectedRoles = null;
+    selectedDepartmentId = null;
+  });
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -454,38 +461,41 @@ String? selectedDepartmentId;
                       child: Column(
                         children: [
                           // Role Dropdown
-                          DropdownButtonFormField<String>(
-                            value: selectedRoles,
-                            onChanged: (String? newRole) {
-                              setState(() {
-                                selectedRoles = newRole!;
-                              });
-                            },
-                            isExpanded: true,
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.black87,
-                            ),
-                            decoration: InputDecoration(
-                              contentPadding: EdgeInsets.symmetric(
-                                vertical: 12,
-                                horizontal: 10,
-                              ),
-                              labelText: "Select Role",
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8.0),
-                                borderSide:
-                                    BorderSide(color: Colors.grey.shade300),
-                              ),
-                            ),
-                            items: rolesMap.keys.map<DropdownMenuItem<String>>(
-                                (String displayValue) {
-                              return DropdownMenuItem<String>(
-                                value: displayValue,
-                                child: Text(displayValue),
-                              );
-                            }).toList(),
-                          ),
+                        DropdownButtonFormField<String>(
+  value: selectedRoles,
+  onChanged: (String? newRole) {
+    setState(() {
+      selectedRoles = newRole;
+    });
+  },
+  isExpanded: true,
+  style: TextStyle(
+    fontSize: 16,
+    color: Colors.black87,
+  ),
+  decoration: InputDecoration(
+    contentPadding: EdgeInsets.symmetric(
+      vertical: 12,
+      horizontal: 10,
+    ),
+    labelText: "Select Role",
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8.0),
+      borderSide: BorderSide(color: Colors.grey.shade300),
+    ),
+  ),
+  hint: Text(
+    "Select Role",
+    style: TextStyle(fontSize: 16, color: Colors.black54),
+  ),
+  items: rolesMap.keys.map<DropdownMenuItem<String>>((String displayValue) {
+    return DropdownMenuItem<String>(
+      value: displayValue,
+      child: Text(displayValue),
+    );
+  }).toList(),
+),
+
                           SizedBox(height: 12),
 
                           // Department Dropdown
@@ -542,7 +552,10 @@ String? selectedDepartmentId;
                             ],
                           ),
                           child: TextButton(
-                            onPressed: () => Navigator.pop(context),
+                            onPressed: (){
+                              Navigator.pop(context);
+                              clearDropdowns();
+                              },
                             child: Text(
                               "Cancel",
                               style: TextStyle(
@@ -570,18 +583,27 @@ String? selectedDepartmentId;
                             ],
                           ),
                           child: TextButton(
-                            onPressed: _isSendingEmail ? null : () {
+                            onPressed: _isSendingEmail ? null : () async {
                               // Prevent saving if a department is required but not selected
-                              if (selectedDepartmentId  == null) {
-                                _showErrorDialog(
-                                    context, "Please select a department.");
-                                return;
-                              }
+                      if (selectedRoles == null || selectedRoles!.isEmpty) {
+  _showErrorDialog(context, "Please select a role.");
+  return;
+}
+
+
+  // Validate department
+  if (selectedDepartmentId == null || selectedDepartmentId!.isEmpty) {
+    _showErrorDialog(context, "Please select a department.");
+    return;
+  }
+                              
 
                               // This will close the showDialog Box
                               Navigator.pop(context);
                               // This will trigger the _approveUser and passing the user
-                              _approveUser(user);
+  await _approveUser(user);  // wait for approval to finish
+                                                            clearDropdowns();
+
                             },
                             child: Text(
                               "Confirm",
