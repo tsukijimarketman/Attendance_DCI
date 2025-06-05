@@ -37,8 +37,7 @@ void main() async {
 
   // Initialize Supabase services.
   await Supabase.initialize(
-      url: AppSecrets.supaUrl,
-      anonKey: AppSecrets.supaAnon);
+      url: AppSecrets.supaUrl, anonKey: AppSecrets.supaAnon);
 
   // Set Firebase authentication persistence to LOCAL.
   // This means that the user's authentication state will be persisted even after the app is closed.
@@ -48,30 +47,28 @@ void main() async {
   await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
 
   runApp(
-    //multiprovider is used to provide multiple providers to the widget tree 
-    //it is like a global variable but it is disposable to reduce memory leak.
-    MultiProvider(providers: [
+      //multiprovider is used to provide multiple providers to the widget tree
+      //it is like a global variable but it is disposable to reduce memory leak.
+      MultiProvider(
+    providers: [
+      ChangeNotifierProvider(create: (_) => ProfileImageNotifier()),
       ChangeNotifierProvider(
-      create: (_) => ProfileImageNotifier()),
-    ChangeNotifierProvider(
-      create: (context) => EditModeProvider(),
-    ),
-    ChangeNotifierProvider(create: (_) => AddressProvider()),
-    ChangeNotifierProvider(create: (_) => AdminAddressProvider()),
-    ChangeNotifierProvider(create: (_) => SidebarProvider()), 
-    ChangeNotifierProvider(create: (_) => DeptHeadAddressProvider()), 
-    ChangeNotifierProvider(create: (_) => DeptHeadSidebarProvider()), 
-    ChangeNotifierProvider(create: (_) => AdminSidebarProvider()),
-    ChangeNotifierProvider(create: (_) => ManagerAddressProvider()), 
-    ChangeNotifierProvider(create: (_) => ManagerSidebarProvider()),  
-     ChangeNotifierProvider(create: (_) => InternalSidebarProvider()), 
-    ChangeNotifierProvider(create: (_) => InternalAddressProvider()),  
-  ],     child: SessionWrapper(child: MyApp()),
-)
-  );
-  
+        create: (context) => EditModeProvider(),
+      ),
+      ChangeNotifierProvider(create: (_) => AddressProvider()),
+      ChangeNotifierProvider(create: (_) => AdminAddressProvider()),
+      ChangeNotifierProvider(create: (_) => SidebarProvider()),
+      ChangeNotifierProvider(create: (_) => DeptHeadAddressProvider()),
+      ChangeNotifierProvider(create: (_) => DeptHeadSidebarProvider()),
+      ChangeNotifierProvider(create: (_) => AdminSidebarProvider()),
+      ChangeNotifierProvider(create: (_) => ManagerAddressProvider()),
+      ChangeNotifierProvider(create: (_) => ManagerSidebarProvider()),
+      ChangeNotifierProvider(create: (_) => InternalSidebarProvider()),
+      ChangeNotifierProvider(create: (_) => InternalAddressProvider()),
+    ],
+    child: SessionWrapper(child: MyApp()),
+  ));
 }
-
 
 class MyApp extends StatelessWidget {
   MyApp({super.key});
@@ -110,10 +107,10 @@ class MyApp extends StatelessWidget {
   MaterialPageRoute _handleAttendanceFormRoute(Uri uri) {
     /// - Extracts and validates important parameters like `expiryTime` and `selectedScheduleTime`.
     int expiryTime = int.tryParse(uri.queryParameters['expiryTime'] ?? "") ?? 0;
-     // Fix: Ensure proper parsing of the schedule time
+    // Fix: Ensure proper parsing of the schedule time
     String scheduleParam = uri.queryParameters['selectedScheduleTime'] ?? "";
     int selectedScheduleTime = 0;
-    
+
     // Try to parse the schedule parameter
     try {
       selectedScheduleTime = int.parse(scheduleParam);
