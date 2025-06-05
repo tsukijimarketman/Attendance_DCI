@@ -124,7 +124,7 @@ class _QrCodeState extends State<QrCode> with AutomaticKeepAliveClientMixin {
 
     int formExpiryTime = now + (60 * 60 * 1000); // Form expires in 1 hour
 
-     qrUrl = "https://attendance-dci.web.app//#/attendance_form"
+     qrUrl = "https://attendance-dci.web.app/#/attendance_form"
         "?agenda=${Uri.encodeComponent(agendaController.text)}"
         "&department=${Uri.encodeComponent(departmentController.text)}"
         "&first_name=${Uri.encodeComponent(firstName)}"

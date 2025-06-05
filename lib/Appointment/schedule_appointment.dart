@@ -650,12 +650,6 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
         });
   }
 
-  bool isValidGmail(String email) {
-  final gmailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@gmail\.com$');
-  return gmailRegex.hasMatch(email);
-}
-
-
   void _showAddGuestDialog() {
     final FirebaseFirestore _firestore = FirebaseFirestore.instance;
     final TextEditingController fullName = TextEditingController();
@@ -869,16 +863,6 @@ class _ScheduleAppointmentState extends State<ScheduleAppointment> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text("Please fill in all fields."),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
-
-  if (!isValidGmail(emailAdd.text.trim())) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Please enter a valid Gmail address."),
         backgroundColor: Colors.red,
       ),
     );

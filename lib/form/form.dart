@@ -9,7 +9,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:signature/signature.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:dio/dio.dart' as dio;
 
 class AttendanceForm extends StatefulWidget {
   // This is passing the data from the previous screen
@@ -19,14 +19,12 @@ class AttendanceForm extends StatefulWidget {
   final String firstName;
   final String lastName;
   final String createdBy;
-  final int expiryTime;
   final int selectedScheduleTime;
 
   const AttendanceForm({
     // This is passing the data from the previous screen
     // and requiring the data to be passed
     required this.createdBy,
-    required this.expiryTime,
     required this.roles,
     required this.deptID, // <- Use this to fetch the department name
     required this.agenda,
@@ -51,8 +49,6 @@ class _AttendanceFormState extends State<AttendanceForm> {
     penColor: Colors.black,
     exportBackgroundColor: Colors.white,
   );
-  late Timer _timer;
-  int remainingTime = 0; // Time in seconds
   late DateTime scheduledTime; // Moved initialization inside initState()
 
   bool isValidPhone(String input) {
@@ -64,6 +60,10 @@ class _AttendanceFormState extends State<AttendanceForm> {
   bool isEmailValid = true;
   List<bool> contactFieldValidity = [];
   String departmentName = "";
+  late Timer _countdownTimer;
+int remainingTime = 3600; // 1 hour in seconds
+
+
 
   // Initialize the controllers and other variables
   // This function is called when the widget is created
@@ -79,119 +79,84 @@ class _AttendanceFormState extends State<AttendanceForm> {
     fetchDepartmentName(widget.deptID);
     super.initState();
     contactControllers = [TextEditingController()];
-  contactFieldValidity = [true];
+    contactFieldValidity = [true];
     scheduledTime =
         DateTime.fromMillisecondsSinceEpoch(widget.selectedScheduleTime);
+          startCountdownTimer(); // Start countdown
 
-    int now = DateTime.now().millisecondsSinceEpoch;
-
-    // Check if form expired (1-hour limit)
-    if (widget.expiryTime < now) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const NotFoundPage()),
-        );
-      });
-      return;
-    }
-
-    _startCountdown();
   }
 
-  Future<void> fetchDepartmentName(String deptID) async {
-  try {
-    var query = await FirebaseFirestore.instance
-        .collection('references')
-        .where('deptID', isEqualTo: deptID)
-        .where('isDeleted', isEqualTo: false)
-        .limit(1)
-        .get();
-
-    if (query.docs.isNotEmpty) {
-      var data = query.docs.first.data() as Map<String, dynamic>;
+  void startCountdownTimer() {
+  _countdownTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+    if (mounted) {
       setState(() {
-        departmentName = data['name'] ?? 'Unknown Department';
-      });
-    } else {
-      setState(() {
-        departmentName = 'Unknown Department';
-      });
-    }
-  } catch (e) {
-    setState(() {
-      departmentName = 'Error loading department';
-    });
-    print('Error fetching department: $e');
-  }
-}
-
-  // Start the countdown timer
-  // This function is called when the widget is initialized
-  // It calculates the remaining time until the form expires
-  // and sets up a periodic timer to update the remaining time
-  void _startCountdown() {
-    // Get the current time in milliseconds since epoch
-    // Calculate the remaining time in seconds
-    int now = DateTime.now().millisecondsSinceEpoch;
-    remainingTime = ((widget.expiryTime - now) / 1000).round();
-
-    // Check if the remaining time is greater than 0
-    // If so, set up a periodic timer to update the remaining time
-    // If not, show the expired dialog immediately
-    if (remainingTime > 0) {
-      _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-        // Check if the widget is still mounted
-        // This is important to avoid calling setState on a disposed widget
-        // and to ensure that the timer is only active when the widget is visible
-        // and not in the background
-        if (mounted) {
-          setState(() {
-            remainingTime--;
-          });
-
-          // Check if the remaining time is less than or equal to 0
-          // If so, cancel the timer and show the expired dialog
-          // This is important to ensure that the dialog is shown only when the time is up
-          // and to prevent any further updates to the UI
-          // after the form has expired
-          if (remainingTime <= 0) {
-            _timer.cancel();
-            _showExpiredDialog();
-          }
+        if (remainingTime > 0) {
+          remainingTime--;
+        } else {
+          _countdownTimer.cancel();
+          _showExpiredDialog(); // Call dialog first
         }
       });
-    } else {
-      // If the remaining time is less than or equal to 0
-      // show the expired dialog immediately
-      // This is important to ensure that the user is notified of the expiration
-      
-      _showExpiredDialog();
+    }
+  });
+}
+
+void _showExpiredDialog() {
+  showDialog(
+    context: context,
+    barrierDismissible: false, // prevent user from closing it manually
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Form Expired'),
+        content: const Text('The form has expired due to time limit.'),
+        actions: [
+          TextButton(
+            child: const Text('OK'),
+            onPressed: () {
+              Navigator.of(context).pop(); // Close the dialog
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const NotFoundPage()),
+              );
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
+
+
+
+
+  Future<void> fetchDepartmentName(String deptID) async {
+    try {
+      var query = await FirebaseFirestore.instance
+          .collection('references')
+          .where('deptID', isEqualTo: deptID)
+          .where('isDeleted', isEqualTo: false)
+          .limit(1)
+          .get();
+
+      if (query.docs.isNotEmpty) {
+        var data = query.docs.first.data() as Map<String, dynamic>;
+        setState(() {
+          departmentName = data['name'] ?? 'Unknown Department';
+        });
+      } else {
+        setState(() {
+          departmentName = 'Unknown Department';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        departmentName = 'Error loading department';
+      });
+      print('Error fetching department: $e');
     }
   }
 
-  // Show a dialog when the form has expired
-  // This function is called when the form expires
-  // It shows an alert dialog to the user
-  // with a message indicating that the form has expired
-  void _showExpiredDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text("The Form Has Expired"),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop(); // Go back to previous screen
-            },
-            child: Text("OK"),
-          )
-        ],
-      ),
-    );
-  }
-
+ 
   // Dispose of the controllers to free up resources
   // This function is called when the widget is removed from the widget tree
   // It ensures that all controllers are properly disposed of
@@ -206,7 +171,8 @@ class _AttendanceFormState extends State<AttendanceForm> {
       controller.dispose();
     }
     _signatureController.dispose();
-    _timer.cancel();
+      _countdownTimer.cancel(); // cancel timer to prevent memory leak
+
     super.dispose();
   }
 
@@ -226,18 +192,23 @@ class _AttendanceFormState extends State<AttendanceForm> {
   // and updates the state to reflect the change in the UI
   void removeContactField(int index) {
     setState(() {
-      contactControllers
-          .removeAt(index);
+      contactControllers.removeAt(index);
     });
   }
 
   // Format the time in minutes and seconds
   // Example: "5:30" for 5 minutes and 30 seconds
-  String _formatTime(int seconds) {
-    int minutes = seconds ~/ 60;
-    int secs = seconds % 60;
-    return "$minutes:${secs.toString().padLeft(2, '0')}";
-  }
+  String _formatTime(int totalSeconds) {
+  int hours = totalSeconds ~/ 3600;
+  int minutes = (totalSeconds % 3600) ~/ 60;
+  int seconds = totalSeconds % 60;
+
+  String hoursStr = hours > 0 ? "$hours hour${hours > 1 ? 's' : ''} " : "";
+  String minutesStr = minutes > 0 ? "$minutes minute${minutes > 1 ? 's' : ''} " : "";
+  String secondsStr = "$seconds second${seconds != 1 ? 's' : ''}";
+
+  return "$hoursStr$minutesStr$secondsStr".trim();
+}
 
   // Validate the form fields
   bool validateForm() {
@@ -246,37 +217,38 @@ class _AttendanceFormState extends State<AttendanceForm> {
     // Set the validity state for each field
     // Use trim() to remove leading and trailing spaces
     // Use isNotEmpty to check if the field is not empty
-  setState(() {
-    isNameValid = nameController.text.trim().isNotEmpty;
-    isCompanyValid = companyController.text.trim().isNotEmpty;
+    setState(() {
+      isNameValid = nameController.text.trim().isNotEmpty;
+      isCompanyValid = companyController.text.trim().isNotEmpty;
 
-    final email = emailAddController.text.trim();
-    final emailRegExp = RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
-    isEmailValid = emailRegExp.hasMatch(email);
+      final email = emailAddController.text.trim();
+      final emailRegExp =
+          RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
+      isEmailValid = emailRegExp.hasMatch(email);
 
-    contactFieldValidity = contactControllers.map((controller) {
-      String number = controller.text.trim();
-      return isValidPhone(number);
-    }).toList();
-  });
+      contactFieldValidity = contactControllers.map((controller) {
+        String number = controller.text.trim();
+        return isValidPhone(number);
+      }).toList();
+    });
 
-  // Check if all fields are valid
-  bool allContactsValid = contactFieldValidity.any((valid) => valid);
-  if (!isNameValid || !isCompanyValid || !isEmailValid || !allContactsValid) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Please correct the highlighted fields.")),
-    );
-    return false;
+    // Check if all fields are valid
+    bool allContactsValid = contactFieldValidity.any((valid) => valid);
+    if (!isNameValid || !isCompanyValid || !isEmailValid || !allContactsValid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Please correct the highlighted fields.")),
+      );
+      return false;
+    }
+
+    return true;
   }
-
-  return true;
-}
 
   // Submit the form data to Firestore and upload the signature to Supabase
   void submitForm() async {
     // Check if the form is valid
     // Early exit if validation fails
-      if (!validateForm()) return;
+    if (!validateForm()) return;
 
     // Check if the signature is empty
     // Early exit if signature is empty
@@ -299,9 +271,9 @@ class _AttendanceFormState extends State<AttendanceForm> {
       );
       return;
     }
-  
+
     // Upload the signature to Supabase
-    final String? signatureUrl = await _uploadToSupabase(signatureImage);
+    final String? signatureUrl = await _uploadSignatureToServer(signatureImage);
     // Check if the upload was successful
     // Early exit if the upload failed
     if (signatureUrl == null) {
@@ -344,7 +316,6 @@ class _AttendanceFormState extends State<AttendanceForm> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Form submitted successfully!")),
     );
-    
 
     // Clear fields after submission
     nameController.clear();
@@ -365,33 +336,41 @@ class _AttendanceFormState extends State<AttendanceForm> {
   }
 
   // Upload the signature image to Supabase and return the public URL
-  Future<String?> _uploadToSupabase(Uint8List imageBytes) async {
-    // Ensure the Supabase client is initialized
+  Future<String?> _uploadSignatureToServer(Uint8List imageBytes) async {
     try {
-      // Check if Supabase client is initialized
-      final client = Supabase.instance.client;
-      final String fileName =
-          "signature_${DateTime.now().millisecondsSinceEpoch}.png";
-      
-      // Upload the image to Supabase storage 
-      final response = await client.storage
-          .from("signatures") // This is the bucket Name
-          // Specify the file name and the image bytes
-          .uploadBinary(fileName, imageBytes,
-              fileOptions: const FileOptions(upsert: true));
+      final fileName = "signature_${DateTime.now().millisecondsSinceEpoch}.png";
+      final dioClient = dio.Dio();
+      final formData = dio.FormData.fromMap({
+        "file": dio.MultipartFile.fromBytes(
+          imageBytes,
+          filename: fileName,
+        ),
+      });
 
-      // CHECK IF UPLOAD FAILED
-      if (response.isEmpty) {
-        // Handle the error if the upload failed
+      final response = await dioClient.post(
+        'http://192.168.1.78:8081/api/UploadFile/uploadsignature',
+        data: formData,
+        options: dio.Options(
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          receiveTimeout: const Duration(seconds: 30),
+          sendTimeout: const Duration(seconds: 30),
+        ),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Assuming your API returns the public URL in the response body as 'url'
+        if (response.data is Map && response.data['url'] != null) {
+          return response.data['url'];
+        }
+        // If your API just stores the file and you know the public URL pattern:
+        return 'http://192.168.1.78:8081/api/UploadFile/signatures/$fileName';
+      } else {
         return null;
       }
-
-      // Get the public URL of the uploaded file
-      final String publicUrl =
-          client.storage.from("signatures").getPublicUrl(fileName);
-      // Check if the public URL is empty
-      return publicUrl;
-      // Handle the error if the public URL is empty
+    } on dio.DioException catch (e) {
+      return null;
     } catch (e) {
       return null;
     }
@@ -463,7 +442,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
                             style: TextStyle(fontSize: 14),
                           ),
                           subtitle: Text(
-                           departmentName,
+                            departmentName,
                             style: TextStyle(fontSize: 10),
                           ),
                         ),
@@ -481,18 +460,19 @@ class _AttendanceFormState extends State<AttendanceForm> {
                         ),
                         SizedBox(height: 10),
                         Center(
-                          child: Text(
-                            remainingTime > 0
-                                ? "Expires in: ${_formatTime(remainingTime)} minutes"
-                                : "Form has expired",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color:
-                                  remainingTime > 0 ? Colors.red : Colors.grey,
-                            ),
-                          ),
-                        ),
+  child: Text(
+    remainingTime > 0
+        ? "Expires in: ${_formatTime(remainingTime)}"
+        : "Form has expired",
+    style: TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.bold,
+      color: remainingTime > 0 ? Colors.red : Colors.grey,
+    ),
+  ),
+),
+                        SizedBox(height: 10),
+
                       ],
                     ),
                   ),
@@ -504,14 +484,13 @@ class _AttendanceFormState extends State<AttendanceForm> {
                     height: 50,
                     width: 400,
                     child: CupertinoTextField(
-                      
                       textCapitalization: TextCapitalization.words,
                       keyboardType: TextInputType.name,
                       controller: nameController,
                       placeholder: 'Name',
                       decoration: BoxDecoration(
-    border: Border.all(color: isNameValid ? Colors.blue : Colors.red),
-                        
+                        border: Border.all(
+                            color: isNameValid ? Colors.blue : Colors.red),
                         borderRadius: BorderRadius.circular(10),
                       ),
                     )),
@@ -526,7 +505,8 @@ class _AttendanceFormState extends State<AttendanceForm> {
                       controller: companyController,
                       placeholder: 'Company',
                       decoration: BoxDecoration(
-    border: Border.all(color: isCompanyValid ? Colors.blue : Colors.red),
+                        border: Border.all(
+                            color: isCompanyValid ? Colors.blue : Colors.red),
                         borderRadius: BorderRadius.circular(10),
                       ),
                     )),
@@ -541,7 +521,8 @@ class _AttendanceFormState extends State<AttendanceForm> {
                       controller: emailAddController,
                       placeholder: 'Email Address',
                       decoration: BoxDecoration(
-    border: Border.all(color: isEmailValid ? Colors.blue : Colors.red),
+                        border: Border.all(
+                            color: isEmailValid ? Colors.blue : Colors.red),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       onChanged: (value) {
@@ -557,9 +538,11 @@ class _AttendanceFormState extends State<AttendanceForm> {
                   height: 10,
                 ),
                 ...contactControllers.asMap().entries.map((entry) {
-  int index = entry.key;
-  TextEditingController controller = entry.value;
-  bool isValid = index < contactFieldValidity.length ? contactFieldValidity[index] : true;
+                  int index = entry.key;
+                  TextEditingController controller = entry.value;
+                  bool isValid = index < contactFieldValidity.length
+                      ? contactFieldValidity[index]
+                      : true;
 
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 5),
@@ -576,7 +559,8 @@ class _AttendanceFormState extends State<AttendanceForm> {
                               12), // limit to max 13 digits (adjust as needed)
                         ],
                         decoration: BoxDecoration(
-          border: Border.all(color: isValid ? Colors.blue : Colors.red),
+                          border: Border.all(
+                              color: isValid ? Colors.blue : Colors.red),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         suffix: index == 0
@@ -584,7 +568,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
                                 icon: Icon(Icons.add_circle_outline,
                                     color: Colors
                                         .blue), // Size and color of the icon
-                                        // This will Trigger the addNewContactField function
+                                // This will Trigger the addNewContactField function
                                 onPressed:
                                     addNewContactField, // Add new contact when pressed
                               )
@@ -592,7 +576,7 @@ class _AttendanceFormState extends State<AttendanceForm> {
                                 icon: Icon(Icons.remove_circle_outline,
                                     color: Colors
                                         .red), // Remove icon for subsequent fields
-                                        // This will Trigger the removeContactField function
+                                // This will Trigger the removeContactField function
                                 onPressed: () {
                                   removeContactField(
                                       index); // Remove specific contact field

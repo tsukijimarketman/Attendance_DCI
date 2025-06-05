@@ -127,7 +127,6 @@ class MyApp extends StatelessWidget {
     return MaterialPageRoute(
       builder: (context) => AttendanceForm(
         selectedScheduleTime: selectedScheduleTime,
-        expiryTime: expiryTime,
         createdBy: uri.queryParameters['createdBy'] ?? "",
         roles: uri.queryParameters['roles'] ?? "",
         deptID: uri.queryParameters['department'] ?? "",
