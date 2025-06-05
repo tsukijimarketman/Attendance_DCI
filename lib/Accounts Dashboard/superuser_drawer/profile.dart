@@ -36,7 +36,6 @@ class _ProfileState extends State<Profile> {
         _image = null; // Flutter Web doesn't support File, so don't store it
       });
 
-      // ✅ Pass `pickedFile` directly to upload function
       await _uploadImage(pickedFile);
     }
   }
